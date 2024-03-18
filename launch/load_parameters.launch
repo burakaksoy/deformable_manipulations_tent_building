@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<launch>
+
+<arg name="namespace" default="" />
+<arg name="dlo_simulator_config" default="" />
+
+<!-- Load DLO Default parameters -->
+<rosparam ns="$(arg namespace)" command="load" file="$(arg dlo_simulator_config)" subst_value="true" />
+
+</launch>

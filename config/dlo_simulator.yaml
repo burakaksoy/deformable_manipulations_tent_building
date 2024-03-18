@@ -1,0 +1,115 @@
+# Gravity of environment for dlo simulation
+gravity_x: 0.0 # m/s^2
+gravity_y: 0.0 # m/s^2
+gravity_z: -9.804 # m/s^2
+
+dt: 0.002 # seconds. Simulated time per iteration of the dlo simulation.
+set_sim_rate_auto: false  # to set the simulation rate and dt automaticall, do not use
+num_substeps: 40 # 40  #40 # Number of substeps per iteration based on 2019 Small Steps XPBD paper.
+num_steps: 1 # experimental only. do not change from 1
+
+dlo_l: 3.3528 # 2.25 # 3.3528 # dlo length in meters
+dlo_r: 0.0035 # 0.0035 # 0.0035 # dlo radius in meters
+dlo_density: 1792.89 # dlo mass per meter cube (kg/m^3)
+dlo_num_segments: 40 # max 45 # number of segment in dlo (int)
+
+dlo_zero_stretch_stiffness: 1.0e+14
+dlo_young_modulus: 30.0e+9 # 30.0e+9 # 3.0e+7 # E, elasticity modulus (unit: Pa?)
+dlo_torsion_modulus: 10.0e+9 # 10.0e+9 # 1.0e+7 # G, Shear modulus in classical phsysics. (unit: Pa?)
+
+contact_tolerance: 0.1 # m, It's like offset around the obstacle object for aabb checking. default: 0.1
+contact_sdf_domain_offset: 2.0 # m, defines the minimum distance to a rigid body that will start contact checking and reporting minimum distance readings
+
+use_zero_stretch_stiffness: true
+# use_zero_stretch_stiffness: (default: true)
+# If set to false, stretch/shear matrix will be calculated based on E,G and dlo_r 
+# and dlo_zero_stretch_stiffness parameter will be used as a scalar multiplier
+
+# Global artificial velocity damping coefficients. Defaults to 0.0. 
+global_damp_coeff_v: 5.9e-1 # 0.0 # 5.9e-1 # 2.1e-4; // 0.9e-3
+global_damp_coeff_w: 0.9e-3 # 0.0 # 0.9e-3 # 2.1e-4;
+
+# DLO Initial Transformations (By Default, the dlo is laying in +y-axis to -y-axis direction centered at the origin)
+# initial_height: 0.0 # initial dlo height from ground (m) (Deprecated, use dlo_translation instead)
+dlo_translation: [0, 1, 1.5] # [0.675, 0.0, 2.0] # [0.33, 0.37, 2.2] # [0, 0, 0]
+dlo_rotationAxis: [0, 0, 1] # [1, 0, 0]
+dlo_rotationAngle: 1.5708 # 1.508 # 1.5708 # Radians
+# dlo_scale: [1, 1, 1] # NOT USED, use dlo_l and dlo_r parameters instead
+
+custom_static_particles: [5,34] # [0,39] # [5,34] # [0,27] # specify the particle (segment) ids to set as static
+# Note: we also create an odom subscriber for each custom static particle to update their poses online.
+# Note: The specified ids must be in range of "dlo_num_segments" parameter.
+
+custom_static_particles_cmd_vel_topic_prefix: "cmd_vel_particle_"
+custom_static_particles_odom_topic_prefix: "odom_particle_"
+# Note: The topics names will include the id number in the end. 
+# For example, for custom_static_particles_odom_topic_prefix: "custom_static_particles_odom_"
+# and custom_static_particles: [0,27], we will have two odom subscriber topics named:
+# "custom_static_particles_odom_0" and "custom_static_particles_odom_27"
+
+set_particle_dynamicity_service_name: "set_particle_dynamicity"
+change_particle_dynamicity_topic_name: "change_particle_dynamicity"
+
+simulation_rate: 500.0
+rendering_rate: 30.0 # Hz, frequency to publish the dlo vertices and edges to RVIZ visualization markers
+
+dlo_state_topic_name: "dlo_state" # topic name to publish the DLO state with custom SegmetState Array msgs
+dlo_state_pub_rate: 50.0 # Hz, frequency to publish dlo state as a feedback to some other node 
+
+# wrench_pub_rate: 100.0 # Hz, frequency to publish the dlo forces at the attachment points
+rendering_rb_rate: 5.0 # Hz, frequency to publish the rigid body meshes to RVIZ visualization markers
+min_dist_to_rb_pub_rate: 50.0 # Hz, frequency to publish minimum distances to the rigid bodies 
+
+# Rigid body scene .json file, If empty, no rigid bodies exist in the simulator
+rb_scene_config_path: ""
+# rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/DloOnCube_5.json
+# rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/DloOnCylinderUnitBox.json
+# rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/DloOnCylinderVaseUnitBox.json
+# rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/DloOnFloor.json
+rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/TentBuilding.json
+
+
+# DLO VISUALIZATION RELATED PARAMETERS
+
+dlo_frame_id: "map" # the reference tf frame ID that the visualization marker msgs are published in.
+dlo_markers_topic_name: "dlo_markers" # topic name to publish the RVIZ visualization marker msgs
+dlo_visualization_mode: 4 # -1: Disabled, # 0: Points Only, 1: Line Segments Only, 2: Orientation Frames and Line Segments, 3: Points and Line Segments, 4: All
+# Note that using less data in the visualization helps to save network bandwith
+point_marker_scale: 0.015
+point_marker_color_rgba: [1.0, 0.0, 1.0, 1.0]
+line_marker_scale_multiplier: 6.0 # multiplies dlo_r with this scale
+line_marker_color_rgba: [0.0, 1.0, 1.0, 1.0]
+frame_marker_scale: 0.003 # m (for thickness)
+frame_marker_axis_length: 0.03 # m (for length of the axes line segments)
+
+# RIGID BODY VISUALIZATION RELATED PARAMETERS
+rb_markers_topic_name: "rigid_body_markers" # topic name to publish the RVIZ visualization marker array msgs of the rigid bodies in the scene
+rb_visualization_mode: 2 # -1: Disabled, 0: Mesh Only, 1: Wireframe Only, 2: Both
+# Note that using less data in the visualization helps to save network bandwith
+# for the rigid bodies in the scene, we assume the same frame id as the dlo
+# and we are only publishing the wireframe lines and the mesh (i.e no vertex points)
+rb_line_marker_scale_multiplier: 0.2 # multiplies 5 mm with this scale
+rb_line_marker_color_rgba: [0.5, 1.0, 0.5, 0.9]
+rb_mesh_marker_color_rgba: [0.0, 0.0, 0.0, 0.5]
+
+# MINIMUM DISTANCE VISUALIZATION RELATED PARAMETERS
+# Published topic name of the minimum distances to the rigid bodies
+min_dist_to_rb_topic_name: "min_dist_to_rigid_bodies" # DISTANCES TOPIC
+# topic name to publish the RVIZ visualization marker msgs
+min_dist_markers_topic_name: "min_dist_markers" # DISTANCES "VISUALIZATION" TOPIC 
+visualize_min_distances: true
+min_dist_line_marker_scale_multiplier: 4.0 # multiplies 5 mm with this scale
+min_dist_line_marker_color_rgba: [1.0, 0.0, 0.0, 1.0]
+
+# # TF frame names that the dlo is assumed to be attached.
+# wrench_01_frame_id: "d1_tf_dlo_mount_link"
+# wrench_02_frame_id: "d2_tf_dlo_mount_link"
+# wrench_03_frame_id: "d3_tf_dlo_mount_link"
+# wrench_04_frame_id: "d4_tf_dlo_mount_link"
+
+# # Published topic names of the forces of attached robots.
+# wrench_01_topic_name: "d1/dlo_wrench_stamped"
+# wrench_02_topic_name: "d2/dlo_wrench_stamped"
+# wrench_03_topic_name: "d3/dlo_wrench_stamped"
+# wrench_04_topic_name: "d4/dlo_wrench_stamped"
+

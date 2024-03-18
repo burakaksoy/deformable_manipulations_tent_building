@@ -1,0 +1,378 @@
+<?xml version="1.0"?>
+<launch>
+
+    <!-- Particle ID parameter: MAKE SURE YOU SPECIFY IT CORRECTLY -->
+    <arg name="particle_id" default="0"/> 
+
+    <!-- DLO Default parameter file location -->
+    <arg name="dlo_simulator_config" default="$(find deformable_manipulations_tent_building)/config/dlo_simulator.yaml"/>
+    
+    <!-- Change below argument values to match with the yaml files -->
+    <arg name="dlo_state_topic_name"        default="dlo_state"/>
+    <arg name="change_particle_dynamicity_topic_name" default="change_particle_dynamicity"/>
+    <arg name="dlo_markers_topic_name"      default="dlo_markers"/>
+    <arg name="rb_markers_topic_name"       default="rigid_body_markers"/>
+    <arg name="min_dist_to_rb_topic_name"   default="min_dist_to_rigid_bodies"/>
+    <arg name="min_dist_markers_topic_name" default="min_dist_markers"/>
+
+    <arg name="custom_static_particles_odom_topic_prefix"  default="odom_particle_"/>
+    <arg name="custom_static_particles_cmd_vel_topic_prefix"  default="cmd_vel_particle_"/>
+    
+    <arg name="dlo_node_console_logs"  default="log"/>
+
+    <!-- x -->
+    <group>
+        <arg name="axis" value="x" />
+        
+        <arg name="simulation_name_prefix" value="dlo_simulator_" />
+        <!-- <arg name="simulation_name_prefix" value="dlo_simulator" /> -->
+        
+        <arg name="axis_str" value="" if="$(eval arg('axis') == '')" />
+        <arg name="axis_str" value="_$(arg axis)" unless="$(eval arg('axis') == '')" />
+
+        <arg name="simulation_name" value="$(arg simulation_name_prefix)$(arg particle_id)$(arg axis_str)" />
+        <!-- <arg name="simulation_name" value="$(arg simulation_name_prefix)" /> -->
+
+        <!-- Load parameters into dlo_simulator's private namespace -->
+        <include file="$(find deformable_manipulations_tent_building)/launch/load_parameters.launch">
+            <arg name="namespace" value="$(arg simulation_name)" />
+            <arg name="dlo_simulator_config" value="$(arg dlo_simulator_config)" />
+        </include>
+
+        <!-- Simulation -->
+        <node type="dlo_simulator_stiff_rods_node" name="$(arg simulation_name)" pkg="dlo_simulator_stiff_rods" output="$(arg dlo_node_console_logs)">        
+            <!-- Subscriptions -->
+            <remap from="/$(arg custom_static_particles_odom_topic_prefix)$(arg particle_id)" 
+                to="/$(arg custom_static_particles_odom_topic_prefix)$(arg particle_id)$(arg axis_str)"/>
+
+            <remap from="/$(arg custom_static_particles_cmd_vel_topic_prefix)$(arg particle_id)" 
+                to="/$(arg custom_static_particles_cmd_vel_topic_prefix)$(arg particle_id)$(arg axis_str)"/>
+
+            <remap from="/$(arg change_particle_dynamicity_topic_name)" 
+                to="/$(arg change_particle_dynamicity_topic_name)_$(arg particle_id)$(arg axis_str)"/>
+            
+            <!-- Publishers -->
+            <remap from="/$(arg dlo_state_topic_name)" 
+                to="/$(arg dlo_state_topic_name)_$(arg particle_id)$(arg axis_str)"/>
+        
+            <remap from="/$(arg dlo_markers_topic_name)" 
+                to="/$(arg dlo_markers_topic_name)_$(arg particle_id)$(arg axis_str)"/>
+
+            <remap from="/$(arg rb_markers_topic_name)" 
+                to="/$(arg rb_markers_topic_name)_$(arg particle_id)$(arg axis_str)"/>
+
+            <remap from="/$(arg min_dist_to_rb_topic_name)" 
+                to="/$(arg min_dist_to_rb_topic_name)_$(arg particle_id)$(arg axis_str)"/>
+
+            <remap from="/$(arg min_dist_markers_topic_name)" 
+                to="/$(arg min_dist_markers_topic_name)_$(arg particle_id)$(arg axis_str)"/>
+
+            <!-- Parameters -->
+            <rosparam param="dlo_visualization_mode"                    subst_value="true">1</rosparam>
+            <rosparam param="line_marker_scale_multiplier"              subst_value="true">8.0</rosparam>
+            <rosparam param="line_marker_color_rgba"                    subst_value="true">[1.0, 0.0, 0.0, 0.6]</rosparam>
+            <rosparam param="rb_visualization_mode"                     subst_value="true">-1</rosparam>
+            <rosparam param="min_dist_line_marker_scale_multiplier"     subst_value="true">1.0</rosparam>
+            <rosparam param="min_dist_line_marker_color_rgba"           subst_value="true">[1.0, 0.0, 0.0, 1.0]</rosparam>
+
+        </node>
+
+    </group>
+
+    <!-- y -->
+    <group>
+        <arg name="axis" value="y" />
+        
+        <arg name="simulation_name_prefix" value="dlo_simulator_" />
+        <!-- <arg name="simulation_name_prefix" value="dlo_simulator" /> -->
+        
+        <arg name="axis_str" value="" if="$(eval arg('axis') == '')" />
+        <arg name="axis_str" value="_$(arg axis)" unless="$(eval arg('axis') == '')" />
+
+        <arg name="simulation_name" value="$(arg simulation_name_prefix)$(arg particle_id)$(arg axis_str)" />
+        <!-- <arg name="simulation_name" value="$(arg simulation_name_prefix)" /> -->
+
+        <!-- Load parameters into dlo_simulator's private namespace -->
+        <include file="$(find deformable_manipulations_tent_building)/launch/load_parameters.launch">
+            <arg name="namespace" value="$(arg simulation_name)" />
+            <arg name="dlo_simulator_config" value="$(arg dlo_simulator_config)" />
+        </include>
+
+        <!-- Simulation -->
+        <node type="dlo_simulator_stiff_rods_node" name="$(arg simulation_name)" pkg="dlo_simulator_stiff_rods" output="$(arg dlo_node_console_logs)">        
+            <!-- Subscriptions -->
+            <remap from="/$(arg custom_static_particles_odom_topic_prefix)$(arg particle_id)" 
+                to="/$(arg custom_static_particles_odom_topic_prefix)$(arg particle_id)$(arg axis_str)"/>
+
+            <remap from="/$(arg custom_static_particles_cmd_vel_topic_prefix)$(arg particle_id)" 
+                to="/$(arg custom_static_particles_cmd_vel_topic_prefix)$(arg particle_id)$(arg axis_str)"/>
+
+            <remap from="/$(arg change_particle_dynamicity_topic_name)" 
+                to="/$(arg change_particle_dynamicity_topic_name)_$(arg particle_id)$(arg axis_str)"/>
+            
+            <!-- Publishers -->
+            <remap from="/$(arg dlo_state_topic_name)" 
+                to="/$(arg dlo_state_topic_name)_$(arg particle_id)$(arg axis_str)"/>
+        
+            <remap from="/$(arg dlo_markers_topic_name)" 
+                to="/$(arg dlo_markers_topic_name)_$(arg particle_id)$(arg axis_str)"/>
+
+            <remap from="/$(arg rb_markers_topic_name)" 
+                to="/$(arg rb_markers_topic_name)_$(arg particle_id)$(arg axis_str)"/>
+
+            <remap from="/$(arg min_dist_to_rb_topic_name)" 
+                to="/$(arg min_dist_to_rb_topic_name)_$(arg particle_id)$(arg axis_str)"/>
+
+            <remap from="/$(arg min_dist_markers_topic_name)" 
+                to="/$(arg min_dist_markers_topic_name)_$(arg particle_id)$(arg axis_str)"/>
+
+            <!-- Parameters -->
+            <rosparam param="dlo_visualization_mode"                    subst_value="true">1</rosparam>
+            <rosparam param="line_marker_scale_multiplier"              subst_value="true">8.0</rosparam>
+            <rosparam param="line_marker_color_rgba"                    subst_value="true">[0.0, 1.0, 0.0, 0.6]</rosparam>
+            <rosparam param="rb_visualization_mode"                     subst_value="true">-1</rosparam>
+            <rosparam param="min_dist_line_marker_scale_multiplier"     subst_value="true">1.0</rosparam>
+            <rosparam param="min_dist_line_marker_color_rgba"           subst_value="true">[0.0, 1.0, 0.0, 1.0]</rosparam>
+
+        </node>
+
+    </group>
+    
+    <!-- z -->
+    <group>
+        <arg name="axis" value="z" />
+
+        <arg name="simulation_name_prefix" value="dlo_simulator_" />
+        <!-- <arg name="simulation_name_prefix" value="dlo_simulator" /> -->
+        
+        <arg name="axis_str" value="" if="$(eval arg('axis') == '')" />
+        <arg name="axis_str" value="_$(arg axis)" unless="$(eval arg('axis') == '')" />
+
+        <arg name="simulation_name" value="$(arg simulation_name_prefix)$(arg particle_id)$(arg axis_str)" />
+        <!-- <arg name="simulation_name" value="$(arg simulation_name_prefix)" /> -->
+
+        <!-- Load parameters into dlo_simulator's private namespace -->
+        <include file="$(find deformable_manipulations_tent_building)/launch/load_parameters.launch">
+            <arg name="namespace" value="$(arg simulation_name)" />
+            <arg name="dlo_simulator_config" value="$(arg dlo_simulator_config)" />
+        </include>
+
+        <!-- Simulation -->
+        <node type="dlo_simulator_stiff_rods_node" name="$(arg simulation_name)" pkg="dlo_simulator_stiff_rods" output="$(arg dlo_node_console_logs)">        
+            <!-- Subscriptions -->
+            <remap from="/$(arg custom_static_particles_odom_topic_prefix)$(arg particle_id)" 
+                to="/$(arg custom_static_particles_odom_topic_prefix)$(arg particle_id)$(arg axis_str)"/>
+
+            <remap from="/$(arg custom_static_particles_cmd_vel_topic_prefix)$(arg particle_id)" 
+                to="/$(arg custom_static_particles_cmd_vel_topic_prefix)$(arg particle_id)$(arg axis_str)"/>
+            
+            <remap from="/$(arg change_particle_dynamicity_topic_name)" 
+                to="/$(arg change_particle_dynamicity_topic_name)_$(arg particle_id)$(arg axis_str)"/>
+            
+            <!-- Publishers -->
+            <remap from="/$(arg dlo_state_topic_name)" 
+                to="/$(arg dlo_state_topic_name)_$(arg particle_id)$(arg axis_str)"/>
+        
+            <remap from="/$(arg dlo_markers_topic_name)" 
+                to="/$(arg dlo_markers_topic_name)_$(arg particle_id)$(arg axis_str)"/>
+
+            <remap from="/$(arg rb_markers_topic_name)" 
+                to="/$(arg rb_markers_topic_name)_$(arg particle_id)$(arg axis_str)"/>
+
+            <remap from="/$(arg min_dist_to_rb_topic_name)" 
+                to="/$(arg min_dist_to_rb_topic_name)_$(arg particle_id)$(arg axis_str)"/>
+
+            <remap from="/$(arg min_dist_markers_topic_name)" 
+                to="/$(arg min_dist_markers_topic_name)_$(arg particle_id)$(arg axis_str)"/>
+
+            <!-- Parameters -->
+            <rosparam param="dlo_visualization_mode"                    subst_value="true">1</rosparam>
+            <rosparam param="line_marker_scale_multiplier"              subst_value="true">8.0</rosparam>
+            <rosparam param="line_marker_color_rgba"                    subst_value="true">[0.0, 0.0, 1.0, 0.6]</rosparam>
+            <rosparam param="rb_visualization_mode"                     subst_value="true">-1</rosparam>
+            <rosparam param="min_dist_line_marker_scale_multiplier"     subst_value="true">1.0</rosparam>
+            <rosparam param="min_dist_line_marker_color_rgba"           subst_value="true">[0.0, 0.0, 1.0, 1.0]</rosparam>
+
+        </node>
+
+    </group>
+
+    <!-- TH X -->
+    <group>
+        <arg name="axis" value="th_x" />
+        
+        <arg name="simulation_name_prefix" value="dlo_simulator_" />
+        <!-- <arg name="simulation_name_prefix" value="dlo_simulator" /> -->
+        
+        <arg name="axis_str" value="" if="$(eval arg('axis') == '')" />
+        <arg name="axis_str" value="_$(arg axis)" unless="$(eval arg('axis') == '')" />
+
+        <arg name="simulation_name" value="$(arg simulation_name_prefix)$(arg particle_id)$(arg axis_str)" />
+        <!-- <arg name="simulation_name" value="$(arg simulation_name_prefix)" /> -->
+
+        <!-- Load parameters into dlo_simulator's private namespace -->
+        <include file="$(find deformable_manipulations_tent_building)/launch/load_parameters.launch">
+            <arg name="namespace" value="$(arg simulation_name)" />
+            <arg name="dlo_simulator_config" value="$(arg dlo_simulator_config)" />
+        </include>
+
+        <!-- Simulation -->
+        <node type="dlo_simulator_stiff_rods_node" name="$(arg simulation_name)" pkg="dlo_simulator_stiff_rods" output="$(arg dlo_node_console_logs)">        
+            <!-- Subscriptions -->
+            <remap from="/$(arg custom_static_particles_odom_topic_prefix)$(arg particle_id)" 
+                to="/$(arg custom_static_particles_odom_topic_prefix)$(arg particle_id)$(arg axis_str)"/>
+
+            <remap from="/$(arg custom_static_particles_cmd_vel_topic_prefix)$(arg particle_id)" 
+                to="/$(arg custom_static_particles_cmd_vel_topic_prefix)$(arg particle_id)$(arg axis_str)"/>
+
+            <remap from="/$(arg change_particle_dynamicity_topic_name)" 
+                to="/$(arg change_particle_dynamicity_topic_name)_$(arg particle_id)$(arg axis_str)"/>
+            
+            <!-- Publishers -->
+            <remap from="/$(arg dlo_state_topic_name)" 
+                to="/$(arg dlo_state_topic_name)_$(arg particle_id)$(arg axis_str)"/>
+        
+            <remap from="/$(arg dlo_markers_topic_name)" 
+                to="/$(arg dlo_markers_topic_name)_$(arg particle_id)$(arg axis_str)"/>
+
+            <remap from="/$(arg rb_markers_topic_name)" 
+                to="/$(arg rb_markers_topic_name)_$(arg particle_id)$(arg axis_str)"/>
+
+            <remap from="/$(arg min_dist_to_rb_topic_name)" 
+                to="/$(arg min_dist_to_rb_topic_name)_$(arg particle_id)$(arg axis_str)"/>
+
+            <remap from="/$(arg min_dist_markers_topic_name)" 
+                to="/$(arg min_dist_markers_topic_name)_$(arg particle_id)$(arg axis_str)"/>
+
+            <!-- Parameters -->
+            <rosparam param="dlo_visualization_mode"                    subst_value="true">1</rosparam>
+            <rosparam param="line_marker_scale_multiplier"              subst_value="true">8.0</rosparam>
+            <rosparam param="line_marker_color_rgba"                    subst_value="true">[1.0, 0.0, 0.0, 0.6]</rosparam>
+            <rosparam param="rb_visualization_mode"                     subst_value="true">-1</rosparam>
+            <rosparam param="min_dist_line_marker_scale_multiplier"     subst_value="true">1.0</rosparam>
+            <rosparam param="min_dist_line_marker_color_rgba"           subst_value="true">[1.0, 0.0, 0.0, 1.0]</rosparam>
+
+        </node>
+
+
+    </group>
+
+    <!-- TH Y -->
+    <group>
+        <arg name="axis" value="th_y" />
+        
+        <arg name="simulation_name_prefix" value="dlo_simulator_" />
+        <!-- <arg name="simulation_name_prefix" value="dlo_simulator" /> -->
+        
+        <arg name="axis_str" value="" if="$(eval arg('axis') == '')" />
+        <arg name="axis_str" value="_$(arg axis)" unless="$(eval arg('axis') == '')" />
+
+        <arg name="simulation_name" value="$(arg simulation_name_prefix)$(arg particle_id)$(arg axis_str)" />
+        <!-- <arg name="simulation_name" value="$(arg simulation_name_prefix)" /> -->
+
+        <!-- Load parameters into dlo_simulator's private namespace -->
+        <include file="$(find deformable_manipulations_tent_building)/launch/load_parameters.launch">
+            <arg name="namespace" value="$(arg simulation_name)" />
+            <arg name="dlo_simulator_config" value="$(arg dlo_simulator_config)" />
+        </include>
+
+        <!-- Simulation -->
+        <node type="dlo_simulator_stiff_rods_node" name="$(arg simulation_name)" pkg="dlo_simulator_stiff_rods" output="$(arg dlo_node_console_logs)">        
+            <!-- Subscriptions -->
+            <remap from="/$(arg custom_static_particles_odom_topic_prefix)$(arg particle_id)" 
+                to="/$(arg custom_static_particles_odom_topic_prefix)$(arg particle_id)$(arg axis_str)"/>
+
+            <remap from="/$(arg custom_static_particles_cmd_vel_topic_prefix)$(arg particle_id)" 
+                to="/$(arg custom_static_particles_cmd_vel_topic_prefix)$(arg particle_id)$(arg axis_str)"/>
+
+            <remap from="/$(arg change_particle_dynamicity_topic_name)" 
+                to="/$(arg change_particle_dynamicity_topic_name)_$(arg particle_id)$(arg axis_str)"/>
+            
+            <!-- Publishers -->
+            <remap from="/$(arg dlo_state_topic_name)" 
+                to="/$(arg dlo_state_topic_name)_$(arg particle_id)$(arg axis_str)"/>
+        
+            <remap from="/$(arg dlo_markers_topic_name)" 
+                to="/$(arg dlo_markers_topic_name)_$(arg particle_id)$(arg axis_str)"/>
+
+            <remap from="/$(arg rb_markers_topic_name)" 
+                to="/$(arg rb_markers_topic_name)_$(arg particle_id)$(arg axis_str)"/>
+
+            <remap from="/$(arg min_dist_to_rb_topic_name)" 
+                to="/$(arg min_dist_to_rb_topic_name)_$(arg particle_id)$(arg axis_str)"/>
+
+            <remap from="/$(arg min_dist_markers_topic_name)" 
+                to="/$(arg min_dist_markers_topic_name)_$(arg particle_id)$(arg axis_str)"/>
+
+            <!-- Parameters -->
+            <rosparam param="dlo_visualization_mode"                    subst_value="true">1</rosparam>
+            <rosparam param="line_marker_scale_multiplier"              subst_value="true">8.0</rosparam>
+            <rosparam param="line_marker_color_rgba"                    subst_value="true">[0.0, 1.0, 0.0, 0.6]</rosparam>
+            <rosparam param="rb_visualization_mode"                     subst_value="true">-1</rosparam>
+            <rosparam param="min_dist_line_marker_scale_multiplier"     subst_value="true">1.0</rosparam>
+            <rosparam param="min_dist_line_marker_color_rgba"           subst_value="true">[0.0, 1.0, 0.0, 1.0]</rosparam>
+
+        </node>
+
+    </group>
+    
+    <!-- TH Z -->
+    <group>
+        <arg name="axis" value="th_z" />
+
+        <arg name="simulation_name_prefix" value="dlo_simulator_" />
+        <!-- <arg name="simulation_name_prefix" value="dlo_simulator" /> -->
+        
+        <arg name="axis_str" value="" if="$(eval arg('axis') == '')" />
+        <arg name="axis_str" value="_$(arg axis)" unless="$(eval arg('axis') == '')" />
+
+        <arg name="simulation_name" value="$(arg simulation_name_prefix)$(arg particle_id)$(arg axis_str)" />
+        <!-- <arg name="simulation_name" value="$(arg simulation_name_prefix)" /> -->
+
+        <!-- Load parameters into dlo_simulator's private namespace -->
+        <include file="$(find deformable_manipulations_tent_building)/launch/load_parameters.launch">
+            <arg name="namespace" value="$(arg simulation_name)" />
+            <arg name="dlo_simulator_config" value="$(arg dlo_simulator_config)" />
+        </include>
+
+        <!-- Simulation -->
+        <node type="dlo_simulator_stiff_rods_node" name="$(arg simulation_name)" pkg="dlo_simulator_stiff_rods" output="$(arg dlo_node_console_logs)">        
+            <!-- Subscriptions -->
+            <remap from="/$(arg custom_static_particles_odom_topic_prefix)$(arg particle_id)" 
+                to="/$(arg custom_static_particles_odom_topic_prefix)$(arg particle_id)$(arg axis_str)"/>
+
+            <remap from="/$(arg custom_static_particles_cmd_vel_topic_prefix)$(arg particle_id)" 
+                to="/$(arg custom_static_particles_cmd_vel_topic_prefix)$(arg particle_id)$(arg axis_str)"/>
+
+            <remap from="/$(arg change_particle_dynamicity_topic_name)" 
+                to="/$(arg change_particle_dynamicity_topic_name)_$(arg particle_id)$(arg axis_str)"/>
+            
+            <!-- Publishers -->
+            <remap from="/$(arg dlo_state_topic_name)" 
+                to="/$(arg dlo_state_topic_name)_$(arg particle_id)$(arg axis_str)"/>
+        
+            <remap from="/$(arg dlo_markers_topic_name)" 
+                to="/$(arg dlo_markers_topic_name)_$(arg particle_id)$(arg axis_str)"/>
+
+            <remap from="/$(arg rb_markers_topic_name)" 
+                to="/$(arg rb_markers_topic_name)_$(arg particle_id)$(arg axis_str)"/>
+
+            <remap from="/$(arg min_dist_to_rb_topic_name)" 
+                to="/$(arg min_dist_to_rb_topic_name)_$(arg particle_id)$(arg axis_str)"/>
+
+            <remap from="/$(arg min_dist_markers_topic_name)" 
+                to="/$(arg min_dist_markers_topic_name)_$(arg particle_id)$(arg axis_str)"/>
+
+            <!-- Parameters -->
+            <rosparam param="dlo_visualization_mode"                    subst_value="true">1</rosparam>
+            <rosparam param="line_marker_scale_multiplier"              subst_value="true">8.0</rosparam>
+            <rosparam param="line_marker_color_rgba"                    subst_value="true">[0.0, 0.0, 1.0, 0.6]</rosparam>
+            <rosparam param="rb_visualization_mode"                     subst_value="true">-1</rosparam>
+            <rosparam param="min_dist_line_marker_scale_multiplier"     subst_value="true">1.0</rosparam>
+            <rosparam param="min_dist_line_marker_color_rgba"           subst_value="true">[0.0, 0.0, 1.0, 1.0]</rosparam>
+
+        </node>
+
+    </group>
+
+</launch>
