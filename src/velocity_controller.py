@@ -4,6 +4,7 @@ import sys
 import rospy
 import numpy as np
 import time
+import math
 
 from geometry_msgs.msg import Twist, Point, Quaternion, Pose
 from nav_msgs.msg import Odometry
@@ -11,13 +12,14 @@ from visualization_msgs.msg import Marker
 from std_msgs.msg import Float32, Float32MultiArray
 
 from dlo_simulator_stiff_rods.msg import SegmentStateArray
+from dlo_simulator_stiff_rods.msg import MinDistanceDataArray
 
 from std_srvs.srv import SetBool, SetBoolResponse
 from std_srvs.srv import Empty, EmptyResponse
 
 import tf.transformations as tf_trans
 
-# import cvxpy as cp
+import cvxpy as cp
 
 def format_number(n, digits=4):
     # Round to the specified number of decimal digits
@@ -108,6 +110,11 @@ class VelocityControllerNode:
         # Particle/Segment ids of the tip points of the tent pole 
         # to be placed into the grommets
         self.tip_particles = rospy.get_param("~tip_particles", [0,39])
+        
+        self.obstacle_avoidance_enabled = rospy.get_param("~obstacle_avoidance_enabled", True)
+
+        # Offset distance from the obstacles
+        self.d_obstacle_offset = rospy.get_param("~d_obstacle_offset", 0.05)
 
         # Grommet poses as targets for the tip points
         # Each element holds [[x,y,z],[Rx,Ry,Rz(euler angles in degrees)]]
@@ -118,9 +125,12 @@ class VelocityControllerNode:
         for i, particle in enumerate(self.tip_particles):
             self.target_poses[particle] = self.calculate_target_pose(target_poses_basic[i])
 
+        ## ----------------------------------------------------------------------------------------
+        ## SETUP FOR DEFORMABLE OBJECT STATE READINGS FROM SIMULATION PERTURBATIONS
         self.initial_values_set = False  # Initialization state variable
 
         self.deformable_object_state_topic_name = rospy.get_param("/dlo_state_topic_name") # subscribed
+        # this is also like prefix to the perturbed particles' new states
 
         # Dictionaries that will hold the state of the custom_static_particles and tip_particles
         self.particle_positions = {}
@@ -184,9 +194,56 @@ class VelocityControllerNode:
             self.subs_state_dth_y[particle] = rospy.Subscriber(state_dth_y_topic_name, SegmentStateArray, self.state_array_dth_y_callback, particle, queue_size=10)
             self.subs_state_dth_z[particle] = rospy.Subscriber(state_dth_z_topic_name, SegmentStateArray, self.state_array_dth_z_callback, particle, queue_size=10)
         
+        ## ----------------------------------------------------------------------------------------
+        ## SETUP FOR MINIMUM DISTANCE READINGS FROM SIMULATION PERTURBATIONS
+        self.min_distance_topic_name = rospy.get_param("/min_dist_to_rb_topic_name") # subscribed, 
+        # this is also like prefix to the perturbed particles' new minimum distances
 
+        # Initialize the minimum distance as infinity
+        self.min_distance = float('inf')
+
+        # Subscriber to figure out the current deformable object minimum distances to the rigid bodies in the scene 
+        self.sub_min_distance = rospy.Subscriber(self.min_distance_topic_name, MinDistanceDataArray, self.min_distance_array_callback, queue_size=10)
+
+        # Subscribers to the particle minimum distances with perturbations      
+        ## We create 6 subscribers for perturbed states of each custom static particle
+        self.subs_min_distance_dx = {}
+        self.subs_min_distance_dy = {}
+        self.subs_min_distance_dz = {}
+        self.subs_min_distance_dth_x = {}
+        self.subs_min_distance_dth_y = {}
+        self.subs_min_distance_dth_z = {}
+
+        # Dictionaries to store minimum distances caused by the perturbation on the custom static particles
+        self.min_distances_dx = {}
+        self.min_distances_dy = {}
+        self.min_distances_dz = {}
+        self.min_distances_dth_x = {}
+        self.min_distances_dth_y = {}
+        self.min_distances_dth_z = {}
+
+        self.min_distances_set_particles = [] # For bookkeeping of which custom static particles are obtained their all perturbed min distance readings at least once.
+
+        ## Create the subscribers to minimum distances with perturbations
+        for particle in self.custom_static_particles:
+            # Prepare the topic names of that particle
+            min_distance_dx_topic_name    = self.min_distance_topic_name + "_" + str(particle) + "_x" 
+            min_distance_dy_topic_name    = self.min_distance_topic_name + "_" + str(particle) + "_y" 
+            min_distance_dz_topic_name    = self.min_distance_topic_name + "_" + str(particle) + "_z" 
+            min_distance_dth_x_topic_name = self.min_distance_topic_name + "_" + str(particle) + "_th_x" 
+            min_distance_dth_y_topic_name = self.min_distance_topic_name + "_" + str(particle) + "_th_y" 
+            min_distance_dth_z_topic_name = self.min_distance_topic_name + "_" + str(particle) + "_th_z" 
         
-        
+            # Create the subscribers (also takes the particle argument)
+            self.subs_min_distance_dx[particle]    = rospy.Subscriber(min_distance_dx_topic_name,    MinDistanceDataArray, self.min_distance_array_dx_callback,    particle, queue_size=10)
+            self.subs_min_distance_dy[particle]    = rospy.Subscriber(min_distance_dy_topic_name,    MinDistanceDataArray, self.min_distance_array_dy_callback,    particle, queue_size=10)
+            self.subs_min_distance_dz[particle]    = rospy.Subscriber(min_distance_dz_topic_name,    MinDistanceDataArray, self.min_distance_array_dz_callback,    particle, queue_size=10)
+            self.subs_min_distance_dth_x[particle] = rospy.Subscriber(min_distance_dth_x_topic_name, MinDistanceDataArray, self.min_distance_array_dth_x_callback, particle, queue_size=10)
+            self.subs_min_distance_dth_y[particle] = rospy.Subscriber(min_distance_dth_y_topic_name, MinDistanceDataArray, self.min_distance_array_dth_y_callback, particle, queue_size=10)
+            self.subs_min_distance_dth_z[particle] = rospy.Subscriber(min_distance_dth_z_topic_name, MinDistanceDataArray, self.min_distance_array_dth_z_callback, particle, queue_size=10)
+
+        ## ----------------------------------------------------------------------------------------
+            
         # Create the (centralized) controller that will publish odom to each follower particle properly        
         # self.nominal_controller = NominalController(self.kp, self.kd, self.pub_rate_odom*2.0)
         
@@ -239,7 +296,7 @@ class VelocityControllerNode:
 
     def is_perturbed_states_set_for_particle(self,particle):
         """
-        Checks if the pertrubed state parameters (dx, dy, dz, dthx, dthy, dthz) are set for a specified particle.
+        Checks if the perturbed state parameters (dx, dy, dz, dthx, dthy, dthz) are set for a specified particle.
         This function determines if the custom static particle has obtained perturbed states along the x, y, z axes at least once.
         If these states are set, the particle is added to the 'states_set_particles' list,
         and the function returns True if the 'self.particle_positions' of that particle is not None. Otherwise, it returns False.
@@ -329,7 +386,8 @@ class VelocityControllerNode:
         """
         Calculates the Jacobian matrix that defines the relation btw. 
         the robot hold points (custom_static_particles) 6DoF poses and
-        the tent pole tip points (tip_particles) 6 DoF poses 
+        the tent pole tip points (tip_particles) 6 DoF poses.
+        The result is a 12x12 matrix for 2 tip and 2 holding point poses. 
         """
         J = np.zeros((6*len(self.tip_particles),6*len(self.custom_static_particles)))
 
@@ -338,7 +396,7 @@ class VelocityControllerNode:
                 
                 # Do not proceed until the initial values have been set
                 if ((not self.is_perturbed_states_set_for_particle(particle))):
-                    rospy.logwarn("[calculate_jacobian func.] particle:" + str(particle) + " state is not published yet or it does not have for perturbed states.")
+                    rospy.logwarn("[calculate_jacobian_tip func.] particle:" + str(particle) + " state is not published yet or it does not have for perturbed states.")
                     continue
 
                 # calculate the pose differences:
@@ -405,6 +463,352 @@ class VelocityControllerNode:
 
         return err
 
+
+    def min_distance_array_callback(self, min_distances_msg):
+        # Set the min distance to infinity
+        new_min_distance = float('inf')
+
+        # Since potentially there are more than one items in the array, 
+        # (due to the fact that there could be more than one rigid body in the scene)
+        # For simplicity we take the minimum of all readings.
+        for min_distance_data in min_distances_msg.data:
+            if min_distance_data.minDistance < new_min_distance:
+                new_min_distance = min_distance_data.minDistance
+
+        # Assign the new min distance reading 
+        if (self.min_distance == float('inf')):
+            self.min_distance = new_min_distance
+        else:
+            # Apply a low pass filter 
+            t = 0.5
+            self.min_distance = t*self.min_distance + (1-t)*new_min_distance
+    
+        # print("min_distance: " + str(self.min_distance))
+
+    def min_distance_array_dx_callback(self, min_distances_msg, perturbed_particle):
+        # Initialize the minimum distance as infinity
+        if not (perturbed_particle in self.min_distances_dx):
+            self.min_distances_dx[perturbed_particle] = float('inf')
+
+        # Set the min distance to infinity
+        new_min_distance = float('inf')
+
+        # Since potentially there are more than one items in the array, 
+        # (due to the fact that there could be more than one rigid body in the scene)
+        # For simplicity we take the minimum of all readings.
+        for min_distance_data in min_distances_msg.data:
+            if min_distance_data.minDistance < new_min_distance:
+                new_min_distance = min_distance_data.minDistance
+
+        # Assign the new min distance reading 
+        if (self.min_distances_dx[perturbed_particle] == float('inf')):
+            self.min_distances_dx[perturbed_particle] = new_min_distance
+        else:
+            # Apply a low pass filter 
+            t = 0.5
+            self.min_distances_dx[perturbed_particle] = t*self.min_distances_dx[perturbed_particle] + (1-t)*new_min_distance
+
+        # print("min_distances_dx: " + str(self.min_distances_dx[perturbed_particle]) + ", particle: " + str(perturbed_particle))
+ 
+    def min_distance_array_dy_callback(self, min_distances_msg, perturbed_particle):
+        # Initialize the minimum distance as infinity
+        if not (perturbed_particle in self.min_distances_dy):
+            self.min_distances_dy[perturbed_particle] = float('inf')
+
+        # Set the min distance to infinity
+        new_min_distance = float('inf')
+
+        # Since potentially there are more than one items in the array, 
+        # (due to the fact that there could be more than one rigid body in the scene)
+        # For simplicity we take the minimum of all readings.
+        for min_distance_data in min_distances_msg.data:
+            if min_distance_data.minDistance < new_min_distance:
+                new_min_distance = min_distance_data.minDistance
+
+        # Assign the new min distance reading 
+        if (self.min_distances_dy[perturbed_particle] == float('inf')):
+            self.min_distances_dy[perturbed_particle] = new_min_distance
+        else:
+            # Apply a low pass filter 
+            t = 0.5
+            self.min_distances_dy[perturbed_particle] = t*self.min_distances_dy[perturbed_particle] + (1-t)*new_min_distance
+
+        # print("min_distances_dy: " + str(self.min_distances_dy[perturbed_particle]) + ", particle: " + str(perturbed_particle))
+            
+    def min_distance_array_dz_callback(self, min_distances_msg, perturbed_particle):
+        # Initialize the minimum distance as infinity
+        if not (perturbed_particle in self.min_distances_dz):
+            self.min_distances_dz[perturbed_particle] = float('inf')
+
+        # Set the min distance to infinity
+        new_min_distance = float('inf')
+
+        # Since potentially there are more than one items in the array, 
+        # (due to the fact that there could be more than one rigid body in the scene)
+        # For simplicity we take the minimum of all readings.
+        for min_distance_data in min_distances_msg.data:
+            if min_distance_data.minDistance < new_min_distance:
+                new_min_distance = min_distance_data.minDistance
+
+        # Assign the new min distance reading 
+        if (self.min_distances_dz[perturbed_particle] == float('inf')):
+            self.min_distances_dz[perturbed_particle] = new_min_distance
+        else:
+            # Apply a low pass filter 
+            t = 0.5
+            self.min_distances_dz[perturbed_particle] = t*self.min_distances_dz[perturbed_particle] + (1-t)*new_min_distance
+        
+        # print("min_distances_dz: " + str(self.min_distances_dz[perturbed_particle]) + ", particle: " + str(perturbed_particle))
+
+    def min_distance_array_dth_x_callback(self, min_distances_msg, perturbed_particle):
+        # Initialize the minimum distance as infinity
+        if not (perturbed_particle in self.min_distances_dth_x):
+            self.min_distances_dth_x[perturbed_particle] = float('inf')
+
+        # Set the min distance to infinity
+        new_min_distance = float('inf')
+
+        # Since potentially there are more than one items in the array, 
+        # (due to the fact that there could be more than one rigid body in the scene)
+        # For simplicity we take the minimum of all readings.
+        for min_distance_data in min_distances_msg.data:
+            if min_distance_data.minDistance < new_min_distance:
+                new_min_distance = min_distance_data.minDistance
+
+        # Assign the new min distance reading 
+        if (self.min_distances_dth_x[perturbed_particle] == float('inf')):
+            self.min_distances_dth_x[perturbed_particle] = new_min_distance
+        else:
+            # Apply a low pass filter 
+            t = 0.5
+            self.min_distances_dth_x[perturbed_particle] = t*self.min_distances_dth_x[perturbed_particle] + (1-t)*new_min_distance
+
+        # print("min_distances_dth_x: " + str(self.min_distances_dth_x[perturbed_particle]) + ", particle: " + str(perturbed_particle))
+
+    def min_distance_array_dth_y_callback(self, min_distances_msg, perturbed_particle):
+        # Initialize the minimum distance as infinity
+        if not (perturbed_particle in self.min_distances_dth_y):
+            self.min_distances_dth_y[perturbed_particle] = float('inf')
+
+        # Set the min distance to infinity
+        new_min_distance = float('inf')
+
+        # Since potentially there are more than one items in the array, 
+        # (due to the fact that there could be more than one rigid body in the scene)
+        # For simplicity we take the minimum of all readings.
+        for min_distance_data in min_distances_msg.data:
+            if min_distance_data.minDistance < new_min_distance:
+                new_min_distance = min_distance_data.minDistance
+
+        # Assign the new min distance reading 
+        if (self.min_distances_dth_y[perturbed_particle] == float('inf')):
+            self.min_distances_dth_y[perturbed_particle] = new_min_distance
+        else:
+            # Apply a low pass filter 
+            t = 0.5
+            self.min_distances_dth_y[perturbed_particle] = t*self.min_distances_dth_y[perturbed_particle] + (1-t)*new_min_distance
+
+        # print("min_distances_dth_y: " + str(self.min_distances_dth_y[perturbed_particle]) + ", particle: " + str(perturbed_particle))
+            
+    def min_distance_array_dth_z_callback(self, min_distances_msg, perturbed_particle):
+        # Initialize the minimum distance as infinity
+        if not (perturbed_particle in self.min_distances_dth_z):
+            self.min_distances_dth_z[perturbed_particle] = float('inf')
+
+        # Set the min distance to infinity
+        new_min_distance = float('inf')
+
+        # Since potentially there are more than one items in the array, 
+        # (due to the fact that there could be more than one rigid body in the scene)
+        # For simplicity we take the minimum of all readings.
+        for min_distance_data in min_distances_msg.data:
+            if min_distance_data.minDistance < new_min_distance:
+                new_min_distance = min_distance_data.minDistance
+
+        # Assign the new min distance reading 
+        if (self.min_distances_dth_z[perturbed_particle] == float('inf')):
+            self.min_distances_dth_z[perturbed_particle] = new_min_distance
+        else:
+            # Apply a low pass filter 
+            t = 0.5
+            self.min_distances_dth_z[perturbed_particle] = t*self.min_distances_dth_z[perturbed_particle] + (1-t)*new_min_distance
+
+        # print("min_distances_dth_z: " + str(self.min_distances_dth_z[perturbed_particle]) + ", particle: " + str(perturbed_particle))
+            
+    def is_perturbed_min_distances_set(self, particle):
+        if particle in self.min_distances_set_particles:
+            return True
+        else:
+            check = ((particle in self.min_distances_dx) and  
+                     (particle in self.min_distances_dy) and 
+                     (particle in self.min_distances_dz) and
+                     (particle in self.min_distances_dth_x) and  
+                     (particle in self.min_distances_dth_y) and 
+                     (particle in self.min_distances_dth_z))
+            if check:
+                self.min_distances_set_particles.append(particle)
+                return True
+            else:
+                return False
+
+    def calculate_jacobian_obstacle_min_distance(self):
+        """
+        Calculates the Jacobian matrix that defines the relation btw. 
+        the robot hold points (custom_static_particles) 6DoF poses and
+        the minimum distance to the obstacles. 
+        The result is a row matrix(vector) (e.g. dimension 1x12 for two holding point poses)
+        """
+        J = np.zeros((1,6*len(self.custom_static_particles)))
+
+        for idx_particle, particle in enumerate(self.custom_static_particles):
+            # Do not proceed until the initial values have been set
+            if ((not self.is_perturbed_min_distances_set(particle))):
+                rospy.logwarn("[calculate_jacobian_obstacle_min_distance func.] particle:" + str(particle) + " min distances are not published yet or it does not have for perturbed states.")
+                continue
+
+            # dx direction
+            J[0, 6*idx_particle+0 ] = (self.min_distances_dx[particle] - self.min_distance)/self.delta_x if self.delta_x != 0.0 else 0.0
+            # dy direction
+            J[0, 6*idx_particle+1 ] = (self.min_distances_dy[particle] - self.min_distance)/self.delta_y if self.delta_y != 0.0 else 0.0
+            # dz direction
+            J[0, 6*idx_particle+2 ] = (self.min_distances_dz[particle] - self.min_distance)/self.delta_z if self.delta_z != 0.0 else 0.0
+            # dth_x direction
+            J[0, 6*idx_particle+3 ] = (self.min_distances_dth_x[particle] - self.min_distance)/self.delta_th_x if self.delta_th_x != 0.0 else 0.0
+            # dy direction
+            J[0, 6*idx_particle+4 ] = (self.min_distances_dth_y[particle] - self.min_distance)/self.delta_th_y if self.delta_th_y != 0.0 else 0.0
+            # dz direction
+            J[0, 6*idx_particle+5 ] = (self.min_distances_dth_z[particle] - self.min_distance)/self.delta_th_z if self.delta_th_z != 0.0 else 0.0
+
+        # Replace non-finite elements with 0
+        J[~np.isfinite(J)] = 0
+
+        return J
+
+    def calculate_safe_control_output(self, nominal_u):
+
+        ## ---------------------------------------------------
+        ## Define optimization variables
+        u = cp.Variable(6*len(self.custom_static_particles))
+
+        ## Define weights for control inputs
+        weights = np.ones(6*len(self.custom_static_particles))
+        # Assign less weight on z axis positional motions (i.e make them more dynamic)
+        # weights[0::6] = 0.5 # Note that x axis position is every 1st element of each 6 element sets in the weight vector
+        # weights[1::6] = 0.5 # Note that y axis position is every 2nd element of each 6 element sets in the weight vector
+        weights[2::6] = 0.1 # Note that z axis position is every 3rd element of each 6 element sets in the weight vector
+        # weights[3::6] = 0.8 # Note that x axis rotation is every 4th element of each 6 element sets in the weight vector
+        # weights[4::6] = 0.8 # Note that y axis rotation is every 5th element of each 6 element sets in the weight vector
+        # weights[5::6] = 0.8 # Note that z axis rotation is every 6th element of each 6 element sets in the weight vector
+
+        # Define cost function with weights
+        cost = cp.sum_squares(cp.multiply(weights, u - nominal_u)) / 2.0
+
+        # Initialize the constraints
+        constraints = []
+        ## ---------------------------------------------------
+
+        ## ---------------------------------------------------
+        # DEFINE COLLISION AVOIDANCE CONTROL BARRRIER CONSTRAINT
+        if self.obstacle_avoidance_enabled:
+            h = self.min_distance - self.d_obstacle_offset  # Control Barrier Function (CBF)
+            alpha_h = self.alpha_collision_avoidance(h)
+
+            # # publish h that is the distance to collision for information
+            # # print("h distance to collision: ",str(h))
+            # self.info_h_collision_publisher.publish(Float32(data=h))
+
+            # Calculate the obstacle minimum distance Jacobian 
+            J_obs_min_dist = self.calculate_jacobian_obstacle_min_distance() # 1x12
+
+            # pretty_print_array(J_obs_min_dist, precision=4)
+            # print("---------------------------")
+            
+            # # publish J for information
+            # J_msg = Float32MultiArray(data=np.ravel(J_obs_min_dist))
+            # self.info_J_publisher.publish(J_msg)
+
+            J_tolerance = 0.01
+            if np.any(np.abs(J_obs_min_dist) >= J_tolerance):
+                # Add collision avoidance to the constraints
+                constraints += [J_obs_min_dist @ u >= -alpha_h]
+            else:
+                pretty_print_array(J_obs_min_dist, precision=4)
+                rospy.logwarn("ignored J_obs_min_dist and obstacle constraint is not added")
+        ## ---------------------------------------------------
+
+        ## ---------------------------------------------------
+        ## Add also limit to the feasible u
+        
+        # With using the same limits to both linear and angular velocities
+        # u_max = 0.1
+        # constraints += [cp.norm(u,'inf') <= u_max] # If inf-norm used, the constraint is linear, use OSQP solver (still QP)
+        # # constraints += [cp.norm(u,2)     <= u_max] # If 2-norm is used, the constraint is Quadratic, use CLARABEL or ECOS solver (Not QP anymore, a conic solver is needed)
+
+        # With using the different limits to linear and angular velocities
+        u_linear_max = 0.1
+        u_angular_max = 0.15
+
+        # The following slices select every first 3 elements of each group of 6 in the array u.
+        linear_indices = np.concatenate([np.arange(i, i+3) for i in range(0, 6*len(self.custom_static_particles), 6)])
+        # Apply constraint to linear components
+        constraints += [cp.norm(u[linear_indices],'inf') <= u_linear_max]
+
+        # The following slices select every second 3 elements of each group of 6 in the array u.
+        angular_indices = np.concatenate([np.arange(i+3, i+6) for i in range(0, 6*len(self.custom_static_particles), 6)])
+        # Apply constraint to angular components
+        constraints += [cp.norm(u[angular_indices],'inf') <= u_angular_max]
+
+        ## ---------------------------------------------------
+
+        ## ---------------------------------------------------
+        # Define and solve problem
+        problem = cp.Problem(cp.Minimize(cost), constraints)
+
+        # # For warm-start
+        # if hasattr(self, 'prev_optimal_u'):
+        #     u.value = self.prev_optimal_u
+
+        init_t = time.time() # For timing
+        try:
+            # problem.solve() # Selects automatically
+            problem.solve(solver=cp.CLARABEL) #  
+            # problem.solve(solver=cp.CVXOPT) # (warm start capable)
+            # problem.solve(solver=cp.ECOS) # 
+            # problem.solve(solver=cp.ECOS_BB) # 
+            # problem.solve(solver=cp.GLOP) # NOT SUITABLE
+            # problem.solve(solver=cp.GLPK) # NOT SUITABLE
+            # problem.solve(solver=cp.GUROBI) # 
+            # problem.solve(solver=cp.MOSEK) # Encountered unexpected exception importing solver CBC
+            # problem.solve(solver=cp.OSQP) #  (default) (warm start capable)
+            # problem.solve(solver=cp.PDLP) # NOT SUITABLE
+            # problem.solve(solver=cp.SCIPY) # NOT SUITABLE 
+            # problem.solve(solver=cp.SCS) # (warm start capable)
+
+        except cp.error.SolverError as e:
+            rospy.logwarn("QP solver Could not solve the problem: {}".format(e))
+            # self.prev_optimal_u = None # to reset warm-start
+            return None
+
+        # rospy.logwarn("QP solver calculation time: " + str(1000*(time.time() - init_t)) + " ms.") # For timing
+
+        # Print the available qp solvers
+        # e.g. ['CLARABEL', 'CVXOPT', 'ECOS', 'ECOS_BB', 'GLOP', 'GLPK', 'GLPK_MI', 'GUROBI', 'MOSEK', 'OSQP', 'PDLP', 'SCIPY', 'SCS']
+        rospy.loginfo_once(str(cp.installed_solvers()))
+        # Print the solver used to solve the problem (once)
+        rospy.loginfo_once("Solver used: " + str(problem.solver_stats.solver_name))
+
+        # check if problem is infeasible or unbounded
+        if problem.status in ["infeasible", "unbounded"]:
+            rospy.logwarn("QP solver, The problem is {}.".format(problem.status))
+            # self.prev_optimal_u = None # to reset warm-start
+            return None
+        
+        # # For warm-start in the next iteration
+        # self.prev_optimal_u = u.value
+        
+        # Return optimal u
+        return u.value
+
     def calculate_control_outputs_timer_callback(self,event):
         # Only publish if enabled
         if self.enabled:
@@ -416,52 +820,46 @@ class VelocityControllerNode:
             # pretty_print_array(err_tip)
             # print("---------------------------")
 
+            # # error is np.array, publish its norm for information
+            # err_tip_norm = np.linalg.norm(err_tip)
+            # self.info_pos_error_norm_publishers[particle].publish(Float32(data=pos_error_norm))
+        
             # control_output = self.kp*np.dot(np.linalg.pinv(J_tip), err_tip)
-            control_output = np.dot(np.linalg.pinv(J_tip), err_tip)
+            control_output = np.squeeze(np.dot(np.linalg.pinv(J_tip), err_tip)) # (12,)
 
-            # print(control_output)
+            # Apply the proportinal gains
+            for idx_particle, particle in enumerate(self.custom_static_particles):
+                # Get nominal control output of that particle
+                control_output[6*idx_particle:6*(idx_particle+1)] = self.kp * control_output[6*idx_particle:6*(idx_particle+1)] # nominal
+
+            # print("Nominal control_output")
             # pretty_print_array(control_output)
             # print("---------------------------")
+
+            # # # init_t = time.time()
+            # Calculate safe control output with obstacle avoidance        
+            control_output = self.calculate_safe_control_output(control_output) # safe # (12,)
+            # # # rospy.logwarn("QP solver calculation time: " + str(1000*(time.time() - init_t)) + " ms.")
             
 
-            for idx_particle, particle in enumerate(self.custom_static_particles):
+            # Assign the calculated control inputs
+            for idx_particle, particle in enumerate(self.custom_static_particles):    
+                if control_output is not None:
+                    self.control_outputs[particle] = control_output[6*idx_particle:6*(idx_particle+1)]
+                    # print("Particle " + str(particle) + " u: " + str(self.control_outputs[particle]))
+                else:
+                    self.control_outputs[particle] = None
 
-                self.control_outputs[particle] = self.kp * control_output[6*idx_particle:6*(idx_particle+1),0]
-                # print(self.control_outputs[particle])
-
-
-                # # error is 3D np.array, publish its norm for information
-                # pos_error_norm = np.linalg.norm(pos_error)
-                # self.info_pos_error_norm_publishers[particle].publish(Float32(data=pos_error_norm))
-
-                # # Update the controller terms with the current error and the last executed command
-                # # Get control output from the nominal controller
-                # control_output = self.nominal_controllers[particle].output(pos_error, self.control_outputs[particle]) # nominal
-                # # control_output = np.zeros(3) # disable nominal controller to test only the safe controller
-
-                # # # init_t = time.time()
-
-                
-                # # # rospy.logwarn("QP solver calculation time: " + str(1000*(time.time() - init_t)) + " ms.")
-                # self.control_outputs[particle] = control_output # to test nominal controller only
-
-                # if self.control_outputs[particle] is not None:
-                #     pass
-
-                #     # print("Particle " + str(particle) + " u: " + str(self.control_outputs[particle]))
-
-                #     # rospy.logwarn("control_output:" + str(control_output))
-  
             
             
     def odom_pub_timer_callback(self,event):
         # Only publish if enabled
         if self.enabled:
             for particle in self.custom_static_particles:
-                
                 # Do not proceed until the initial values have been set
                 if ((not (particle in self.particle_positions)) or \
-                    (not self.is_perturbed_states_set_for_particle(particle))):                    
+                    (not self.is_perturbed_states_set_for_particle(particle)) or \
+                    (not self.is_perturbed_min_distances_set(particle))):                    
                     continue
                     
                 if self.control_outputs[particle] is not None:
@@ -485,7 +883,6 @@ class VelocityControllerNode:
 
                     # Convert axis-angle to quaternion
                     delta_orientation = tf_trans.quaternion_about_axis(angle * dt, axis)
-
 
                     # Update the current orientation by multiplying with delta orientation
                     current_orientation = [self.particle_orientations[particle].x, 
@@ -558,7 +955,6 @@ class VelocityControllerNode:
         # Combine position difference and rotation vector into a 6x1 vector
         return np.array([diff_x, diff_y, diff_z] + list(rotation_vector))
     
-
     def calculate_pose_target_error(self, current_pose, target_pose):
         """ 
         Calculates the pose error between the current pose and the target pose.
@@ -604,7 +1000,6 @@ class VelocityControllerNode:
         # return np.array([err_x, err_y, err_z]), rotation_vector
         # Combine position difference and rotation vector into a 6x1 vector
         return np.array([err_x, err_y, err_z] + list(rotation_vector))
-    
     
     def multiply_quaternions(self, q1, q2):
         """
@@ -654,7 +1049,16 @@ class VelocityControllerNode:
         if norm == 0:
             raise ValueError("Cannot normalize a quaternion with zero norm.")
         return quaternion / norm
-        
+
+    def alpha_collision_avoidance(self,h):
+        # calculates the value of extended_class_K function \alpha(h) for COLLISION AVOIDANCE
+        # Piecewise Linear function is used
+
+        c1 = 0.01 # 0.4 # 0.8 # 0.01 # 0.01 # 0.00335 # decrease this if you want to start reacting early to be more safe, (but causes less nominal controller following)
+        c2 = 5.0 # 5.0 # 3.0 # 0.04 # 0.02 # 0.01 # increase this if you want to remove the offset violation more agressively, (but may cause instability due to the discretization if too agressive)
+        alpha_h = c1*(h) if (h) >= 0 else c2*(h)
+        return alpha_h        
+
 
 if __name__ == "__main__":
     rospy.init_node('velocity_controller_node', anonymous=False)

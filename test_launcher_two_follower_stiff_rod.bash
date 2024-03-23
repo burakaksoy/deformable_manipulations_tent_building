@@ -14,7 +14,7 @@ gnome-terminal --tab --title="GUI" --command "bash -c \"source ~/.bashrc; rosrun
 sleep 1s;
 
 # rqt_ez_publisher, to publish to "/space_nav/twist"
-gnome-terminal --tab --title="RQT_EZ_PUBLSHER" --command "bash -c \"source ~/.bashrc; rosrun rosrun rqt_ez_publisher rqt_ez_publisher; exec bash\"";
+gnome-terminal --tab --title="RQT_EZ_PUBLSHER" --command "bash -c \"source ~/.bashrc; sleep 2s; source ~/.bashrc; rosrun rosrun rqt_ez_publisher rqt_ez_publisher; exec bash\"";
 sleep 1s;
 
 gnome-terminal --tab --title="Controller" --command "bash -c \"source ~/.bashrc; roslaunch deformable_manipulations_tent_building velocity_controller.launch; exec bash\"";
@@ -22,10 +22,3 @@ sleep 1s;
 
 # To start the controller, call the service with command:
 # rosservice call /tent_building_velocity_controller/set_enable_controller "data: true" 
-
-
-
-
-
-
-
