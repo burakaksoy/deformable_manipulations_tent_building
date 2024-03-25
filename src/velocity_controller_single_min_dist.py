@@ -199,8 +199,11 @@ class VelocityControllerNode:
         self.min_distance_topic_name = rospy.get_param("/min_dist_to_rb_topic_name") # subscribed, 
         # this is also like prefix to the perturbed particles' new minimum distances
 
+        # Initialize the minimum distance as infinity
+        self.min_distance = float('inf')
+
         # Subscriber to figure out the current deformable object minimum distances to the rigid bodies in the scene 
-        self.sub_min_distance = rospy.Subscriber(self.min_distance_topic_name, MinDistanceDataArray, self.min_distances_array_callback, queue_size=10)
+        self.sub_min_distance = rospy.Subscriber(self.min_distance_topic_name, MinDistanceDataArray, self.min_distance_array_callback, queue_size=10)
 
         # Subscribers to the particle minimum distances with perturbations      
         ## We create 6 subscribers for perturbed states of each custom static particle
@@ -212,7 +215,6 @@ class VelocityControllerNode:
         self.subs_min_distance_dth_z = {}
 
         # Dictionaries to store minimum distances caused by the perturbation on the custom static particles
-        self.min_distances = {}
         self.min_distances_dx = {}
         self.min_distances_dy = {}
         self.min_distances_dz = {}
@@ -221,7 +223,6 @@ class VelocityControllerNode:
         self.min_distances_dth_z = {}
 
         self.min_distances_set_particles = [] # For bookkeeping of which custom static particles are obtained their all perturbed min distance readings at least once.
-        self.min_distances_set_particles_obstacles = [] 
 
         ## Create the subscribers to minimum distances with perturbations
         for particle in self.custom_static_particles:
@@ -395,7 +396,7 @@ class VelocityControllerNode:
                 
                 # Do not proceed until the initial values have been set
                 if ((not self.is_perturbed_states_set_for_particle(particle))):
-                    rospy.logwarn_throttle(1,"[calculate_jacobian_tip func.] particle: " + str(particle) + " state is not published yet or it does not have for perturbed states.")
+                    rospy.logwarn("[calculate_jacobian_tip func.] particle:" + str(particle) + " state is not published yet or it does not have for perturbed states.")
                     continue
 
                 # calculate the pose differences:
@@ -449,7 +450,7 @@ class VelocityControllerNode:
         for idx_tip, tip in enumerate(self.tip_particles):
             # Do not proceed until the initial values have been set
             if not (tip in self.particle_positions):
-                rospy.logwarn("Tip particle: " + str(tip) + " state is not obtained yet.")
+                rospy.logwarn("Tip particle:" + str(tip) + " state is not obtained yet.")
                 continue
 
             current_pose = Pose()
@@ -463,189 +464,176 @@ class VelocityControllerNode:
         return err
 
 
-    def min_distances_array_callback(self, min_distances_msg):
-        # Create a set to track the IDs in the current message
-        current_ids = set()
+    def min_distance_array_callback(self, min_distances_msg):
+        # Set the min distance to infinity
+        new_min_distance = float('inf')
 
-        # Iterate over the incoming message and update the dictionary
-        for data in min_distances_msg.data:
-            rigid_body_index = data.index2
+        # Since potentially there are more than one items in the array, 
+        # (due to the fact that there could be more than one rigid body in the scene)
+        # For simplicity we take the minimum of all readings.
+        for min_distance_data in min_distances_msg.data:
+            if min_distance_data.minDistance < new_min_distance:
+                new_min_distance = min_distance_data.minDistance
 
-            current_ids.add(rigid_body_index)
-            if rigid_body_index not in self.min_distances or self.min_distances[rigid_body_index] == float('inf'):
-                # Initialize new ID or update 'inf' value with current minDistance
-                self.min_distances[rigid_body_index] = data.minDistance
-            else:
-                # Apply low pass filter for existing ID
-                t = 0.5
-                self.min_distances[rigid_body_index] = t*self.min_distances[rigid_body_index] + (1-t)*data.minDistance
-
-        # Set values to float('inf') for IDs not in current message
-        for key in self.min_distances:
-            if key not in current_ids:
-                self.min_distances[key] = float('inf')
+        # Assign the new min distance reading 
+        if (self.min_distance == float('inf')):
+            self.min_distance = new_min_distance
+        else:
+            # Apply a low pass filter 
+            t = 0.5
+            self.min_distance = t*self.min_distance + (1-t)*new_min_distance
+    
+        # print("min_distance: " + str(self.min_distance))
 
     def min_distance_array_dx_callback(self, min_distances_msg, perturbed_particle):
+        # Initialize the minimum distance as infinity
         if not (perturbed_particle in self.min_distances_dx):
-            self.min_distances_dx[perturbed_particle] = {}
+            self.min_distances_dx[perturbed_particle] = float('inf')
 
-        # Create a set to track the IDs in the current message
-        current_ids = set()
+        # Set the min distance to infinity
+        new_min_distance = float('inf')
 
-        # Iterate over the incoming message and update the dictionary
-        for data in min_distances_msg.data:
-            rigid_body_index = data.index2
+        # Since potentially there are more than one items in the array, 
+        # (due to the fact that there could be more than one rigid body in the scene)
+        # For simplicity we take the minimum of all readings.
+        for min_distance_data in min_distances_msg.data:
+            if min_distance_data.minDistance < new_min_distance:
+                new_min_distance = min_distance_data.minDistance
 
-            current_ids.add(rigid_body_index)
-            if rigid_body_index not in self.min_distances_dx[perturbed_particle] or \
-                self.min_distances_dx[perturbed_particle][rigid_body_index] == float('inf'):
-                # Initialize new ID or update 'inf' value with current minDistance
-                self.min_distances_dx[perturbed_particle][rigid_body_index] = data.minDistance
-            else:
-                # Apply low pass filter for existing ID
-                t = 0.5
-                self.min_distances_dx[perturbed_particle][rigid_body_index] = t*self.min_distances_dx[perturbed_particle][rigid_body_index]\
-                                                                                + (1-t)*data.minDistance
+        # Assign the new min distance reading 
+        if (self.min_distances_dx[perturbed_particle] == float('inf')):
+            self.min_distances_dx[perturbed_particle] = new_min_distance
+        else:
+            # Apply a low pass filter 
+            t = 0.5
+            self.min_distances_dx[perturbed_particle] = t*self.min_distances_dx[perturbed_particle] + (1-t)*new_min_distance
 
-        # Set values to float('inf') for IDs not in current message
-        for key in self.min_distances_dx[perturbed_particle]:
-            if key not in current_ids:
-                self.min_distances_dx[perturbed_particle][key] = float('inf')
+        # print("min_distances_dx: " + str(self.min_distances_dx[perturbed_particle]) + ", particle: " + str(perturbed_particle))
  
     def min_distance_array_dy_callback(self, min_distances_msg, perturbed_particle):
+        # Initialize the minimum distance as infinity
         if not (perturbed_particle in self.min_distances_dy):
-            self.min_distances_dy[perturbed_particle] = {}
+            self.min_distances_dy[perturbed_particle] = float('inf')
 
-        # Create a set to track the IDs in the current message
-        current_ids = set()
+        # Set the min distance to infinity
+        new_min_distance = float('inf')
 
-        # Iterate over the incoming message and update the dictionary
-        for data in min_distances_msg.data:
-            rigid_body_index = data.index2
+        # Since potentially there are more than one items in the array, 
+        # (due to the fact that there could be more than one rigid body in the scene)
+        # For simplicity we take the minimum of all readings.
+        for min_distance_data in min_distances_msg.data:
+            if min_distance_data.minDistance < new_min_distance:
+                new_min_distance = min_distance_data.minDistance
 
-            current_ids.add(rigid_body_index)
-            if rigid_body_index not in self.min_distances_dy[perturbed_particle] or \
-                self.min_distances_dy[perturbed_particle][rigid_body_index] == float('inf'):
-                # Initialize new ID or update 'inf' value with current minDistance
-                self.min_distances_dy[perturbed_particle][rigid_body_index] = data.minDistance
-            else:
-                # Apply low pass filter for existing ID
-                t = 0.5
-                self.min_distances_dy[perturbed_particle][rigid_body_index] = t*self.min_distances_dy[perturbed_particle][rigid_body_index]\
-                                                                                + (1-t)*data.minDistance
+        # Assign the new min distance reading 
+        if (self.min_distances_dy[perturbed_particle] == float('inf')):
+            self.min_distances_dy[perturbed_particle] = new_min_distance
+        else:
+            # Apply a low pass filter 
+            t = 0.5
+            self.min_distances_dy[perturbed_particle] = t*self.min_distances_dy[perturbed_particle] + (1-t)*new_min_distance
 
-        # Set values to float('inf') for IDs not in current message
-        for key in self.min_distances_dy[perturbed_particle]:
-            if key not in current_ids:
-                self.min_distances_dy[perturbed_particle][key] = float('inf')
-      
+        # print("min_distances_dy: " + str(self.min_distances_dy[perturbed_particle]) + ", particle: " + str(perturbed_particle))
+            
     def min_distance_array_dz_callback(self, min_distances_msg, perturbed_particle):
+        # Initialize the minimum distance as infinity
         if not (perturbed_particle in self.min_distances_dz):
-            self.min_distances_dz[perturbed_particle] = {}
+            self.min_distances_dz[perturbed_particle] = float('inf')
 
-        # Create a set to track the IDs in the current message
-        current_ids = set()
+        # Set the min distance to infinity
+        new_min_distance = float('inf')
 
-        # Iterate over the incoming message and update the dictionary
-        for data in min_distances_msg.data:
-            rigid_body_index = data.index2
+        # Since potentially there are more than one items in the array, 
+        # (due to the fact that there could be more than one rigid body in the scene)
+        # For simplicity we take the minimum of all readings.
+        for min_distance_data in min_distances_msg.data:
+            if min_distance_data.minDistance < new_min_distance:
+                new_min_distance = min_distance_data.minDistance
 
-            current_ids.add(rigid_body_index)
-            if rigid_body_index not in self.min_distances_dz[perturbed_particle] or \
-                self.min_distances_dz[perturbed_particle][rigid_body_index] == float('inf'):
-                # Initialize new ID or update 'inf' value with current minDistance
-                self.min_distances_dz[perturbed_particle][rigid_body_index] = data.minDistance
-            else:
-                # Apply low pass filter for existing ID
-                t = 0.5
-                self.min_distances_dz[perturbed_particle][rigid_body_index] = t*self.min_distances_dz[perturbed_particle][rigid_body_index]\
-                                                                                 + (1-t)*data.minDistance
-
-        # Set values to float('inf') for IDs not in current message
-        for key in self.min_distances_dz[perturbed_particle]:
-            if key not in current_ids:
-                self.min_distances_dz[perturbed_particle][key] = float('inf')
+        # Assign the new min distance reading 
+        if (self.min_distances_dz[perturbed_particle] == float('inf')):
+            self.min_distances_dz[perturbed_particle] = new_min_distance
+        else:
+            # Apply a low pass filter 
+            t = 0.5
+            self.min_distances_dz[perturbed_particle] = t*self.min_distances_dz[perturbed_particle] + (1-t)*new_min_distance
+        
+        # print("min_distances_dz: " + str(self.min_distances_dz[perturbed_particle]) + ", particle: " + str(perturbed_particle))
 
     def min_distance_array_dth_x_callback(self, min_distances_msg, perturbed_particle):
+        # Initialize the minimum distance as infinity
         if not (perturbed_particle in self.min_distances_dth_x):
-            self.min_distances_dth_x[perturbed_particle] = {}
+            self.min_distances_dth_x[perturbed_particle] = float('inf')
 
-        # Create a set to track the IDs in the current message
-        current_ids = set()
+        # Set the min distance to infinity
+        new_min_distance = float('inf')
 
-        # Iterate over the incoming message and update the dictionary
-        for data in min_distances_msg.data:
-            rigid_body_index = data.index2
+        # Since potentially there are more than one items in the array, 
+        # (due to the fact that there could be more than one rigid body in the scene)
+        # For simplicity we take the minimum of all readings.
+        for min_distance_data in min_distances_msg.data:
+            if min_distance_data.minDistance < new_min_distance:
+                new_min_distance = min_distance_data.minDistance
 
-            current_ids.add(rigid_body_index)
-            if rigid_body_index not in self.min_distances_dth_x[perturbed_particle] or \
-                self.min_distances_dth_x[perturbed_particle][rigid_body_index] == float('inf'):
-                # Initialize new ID or update 'inf' value with current minDistance
-                self.min_distances_dth_x[perturbed_particle][rigid_body_index] = data.minDistance
-            else:
-                # Apply low pass filter for existing ID
-                t = 0.5
-                self.min_distances_dth_x[perturbed_particle][rigid_body_index] = t*self.min_distances_dth_x[perturbed_particle][rigid_body_index]\
-                                                                                 + (1-t)*data.minDistance
+        # Assign the new min distance reading 
+        if (self.min_distances_dth_x[perturbed_particle] == float('inf')):
+            self.min_distances_dth_x[perturbed_particle] = new_min_distance
+        else:
+            # Apply a low pass filter 
+            t = 0.5
+            self.min_distances_dth_x[perturbed_particle] = t*self.min_distances_dth_x[perturbed_particle] + (1-t)*new_min_distance
 
-        # Set values to float('inf') for IDs not in current message
-        for key in self.min_distances_dth_x[perturbed_particle]:
-            if key not in current_ids:
-                self.min_distances_dth_x[perturbed_particle][key] = float('inf')
+        # print("min_distances_dth_x: " + str(self.min_distances_dth_x[perturbed_particle]) + ", particle: " + str(perturbed_particle))
 
     def min_distance_array_dth_y_callback(self, min_distances_msg, perturbed_particle):
+        # Initialize the minimum distance as infinity
         if not (perturbed_particle in self.min_distances_dth_y):
-            self.min_distances_dth_y[perturbed_particle] = {}
+            self.min_distances_dth_y[perturbed_particle] = float('inf')
 
-        # Create a set to track the IDs in the current message
-        current_ids = set()
+        # Set the min distance to infinity
+        new_min_distance = float('inf')
 
-        # Iterate over the incoming message and update the dictionary
-        for data in min_distances_msg.data:
-            rigid_body_index = data.index2
+        # Since potentially there are more than one items in the array, 
+        # (due to the fact that there could be more than one rigid body in the scene)
+        # For simplicity we take the minimum of all readings.
+        for min_distance_data in min_distances_msg.data:
+            if min_distance_data.minDistance < new_min_distance:
+                new_min_distance = min_distance_data.minDistance
 
-            current_ids.add(rigid_body_index)
-            if rigid_body_index not in self.min_distances_dth_y[perturbed_particle] or \
-                self.min_distances_dth_y[perturbed_particle][rigid_body_index] == float('inf'):
-                # Initialize new ID or update 'inf' value with current minDistance
-                self.min_distances_dth_y[perturbed_particle][rigid_body_index] = data.minDistance
-            else:
-                # Apply low pass filter for existing ID
-                t = 0.5
-                self.min_distances_dth_y[perturbed_particle][rigid_body_index] = t*self.min_distances_dth_y[perturbed_particle][rigid_body_index]\
-                                                                                 + (1-t)*data.minDistance
+        # Assign the new min distance reading 
+        if (self.min_distances_dth_y[perturbed_particle] == float('inf')):
+            self.min_distances_dth_y[perturbed_particle] = new_min_distance
+        else:
+            # Apply a low pass filter 
+            t = 0.5
+            self.min_distances_dth_y[perturbed_particle] = t*self.min_distances_dth_y[perturbed_particle] + (1-t)*new_min_distance
 
-        # Set values to float('inf') for IDs not in current message
-        for key in self.min_distances_dth_y[perturbed_particle]:
-            if key not in current_ids:
-                self.min_distances_dth_y[perturbed_particle][key] = float('inf')
+        # print("min_distances_dth_y: " + str(self.min_distances_dth_y[perturbed_particle]) + ", particle: " + str(perturbed_particle))
             
     def min_distance_array_dth_z_callback(self, min_distances_msg, perturbed_particle):
+        # Initialize the minimum distance as infinity
         if not (perturbed_particle in self.min_distances_dth_z):
-            self.min_distances_dth_z[perturbed_particle] = {}
+            self.min_distances_dth_z[perturbed_particle] = float('inf')
 
-        # Create a set to track the IDs in the current message
-        current_ids = set()
+        # Set the min distance to infinity
+        new_min_distance = float('inf')
 
-        # Iterate over the incoming message and update the dictionary
-        for data in min_distances_msg.data:
-            rigid_body_index = data.index2
+        # Since potentially there are more than one items in the array, 
+        # (due to the fact that there could be more than one rigid body in the scene)
+        # For simplicity we take the minimum of all readings.
+        for min_distance_data in min_distances_msg.data:
+            if min_distance_data.minDistance < new_min_distance:
+                new_min_distance = min_distance_data.minDistance
 
-            current_ids.add(rigid_body_index)
-            if rigid_body_index not in self.min_distances_dth_z[perturbed_particle] or \
-                self.min_distances_dth_z[perturbed_particle][rigid_body_index] == float('inf'):
-                # Initialize new ID or update 'inf' value with current minDistance
-                self.min_distances_dth_z[perturbed_particle][rigid_body_index] = data.minDistance
-            else:
-                # Apply low pass filter for existing ID
-                t = 0.5
-                self.min_distances_dth_z[perturbed_particle][rigid_body_index] = t*self.min_distances_dth_z[perturbed_particle][rigid_body_index]\
-                                                                                 + (1-t)*data.minDistance
+        # Assign the new min distance reading 
+        if (self.min_distances_dth_z[perturbed_particle] == float('inf')):
+            self.min_distances_dth_z[perturbed_particle] = new_min_distance
+        else:
+            # Apply a low pass filter 
+            t = 0.5
+            self.min_distances_dth_z[perturbed_particle] = t*self.min_distances_dth_z[perturbed_particle] + (1-t)*new_min_distance
 
-        # Set values to float('inf') for IDs not in current message
-        for key in self.min_distances_dth_z[perturbed_particle]:
-            if key not in current_ids:
-                self.min_distances_dth_z[perturbed_particle][key] = float('inf')
+        # print("min_distances_dth_z: " + str(self.min_distances_dth_z[perturbed_particle]) + ", particle: " + str(perturbed_particle))
             
     def is_perturbed_min_distances_set(self, particle):
         if particle in self.min_distances_set_particles:
@@ -662,28 +650,8 @@ class VelocityControllerNode:
                 return True
             else:
                 return False
-            
-    def is_perturbed_min_distances_set_for_obstacle_id(self, particle, key):
-        if not self.is_perturbed_min_distances_set(particle):
-            return False
 
-        # key here is the rigid body index of the obstacle
-        if (particle, key) in self.min_distances_set_particles_obstacles:
-            return True
-        else:
-            check = ((key in self.min_distances_dx[particle]) and  
-                     (key in self.min_distances_dy[particle]) and 
-                     (key in self.min_distances_dz[particle]) and
-                     (key in self.min_distances_dth_x[particle]) and  
-                     (key in self.min_distances_dth_y[particle]) and 
-                     (key in self.min_distances_dth_z[particle]))
-            if check:
-                self.min_distances_set_particles_obstacles.append((particle, key))
-                return True
-            else:
-                return False
-
-    def calculate_jacobian_obstacle_min_distance(self, key):
+    def calculate_jacobian_obstacle_min_distance(self):
         """
         Calculates the Jacobian matrix that defines the relation btw. 
         the robot hold points (custom_static_particles) 6DoF poses and
@@ -693,24 +661,23 @@ class VelocityControllerNode:
         J = np.zeros((1,6*len(self.custom_static_particles)))
 
         for idx_particle, particle in enumerate(self.custom_static_particles):
-            # Do not proceed if the minimum distance is not set for the obstacle
-            if not self.is_perturbed_min_distances_set_for_obstacle_id(particle, key):
-                rospy.logwarn_throttle(1,"[calculate_jacobian_obstacle_min_distance func.] particle: "+str(particle)+", obstacle index: "+str(key)\
-                              +", min distances are not published yet or it does not have for perturbed states")
+            # Do not proceed until the initial values have been set
+            if ((not self.is_perturbed_min_distances_set(particle))):
+                rospy.logwarn("[calculate_jacobian_obstacle_min_distance func.] particle:" + str(particle) + " min distances are not published yet or it does not have for perturbed states.")
                 continue
 
             # dx direction
-            J[0, 6*idx_particle+0] = (self.min_distances_dx[particle][key] - self.min_distances[key])/self.delta_x if self.delta_x != 0.0 else 0.0
+            J[0, 6*idx_particle+0 ] = (self.min_distances_dx[particle] - self.min_distance)/self.delta_x if self.delta_x != 0.0 else 0.0
             # dy direction
-            J[0, 6*idx_particle+1] = (self.min_distances_dy[particle][key] - self.min_distances[key])/self.delta_y if self.delta_y != 0.0 else 0.0
+            J[0, 6*idx_particle+1 ] = (self.min_distances_dy[particle] - self.min_distance)/self.delta_y if self.delta_y != 0.0 else 0.0
             # dz direction
-            J[0, 6*idx_particle+2] = (self.min_distances_dz[particle][key] - self.min_distances[key])/self.delta_z if self.delta_z != 0.0 else 0.0
+            J[0, 6*idx_particle+2 ] = (self.min_distances_dz[particle] - self.min_distance)/self.delta_z if self.delta_z != 0.0 else 0.0
             # dth_x direction
-            J[0, 6*idx_particle+3] = (self.min_distances_dth_x[particle][key] - self.min_distances[key])/self.delta_th_x if self.delta_th_x != 0.0 else 0.0
+            J[0, 6*idx_particle+3 ] = (self.min_distances_dth_x[particle] - self.min_distance)/self.delta_th_x if self.delta_th_x != 0.0 else 0.0
             # dy direction
-            J[0, 6*idx_particle+4] = (self.min_distances_dth_y[particle][key] - self.min_distances[key])/self.delta_th_y if self.delta_th_y != 0.0 else 0.0
+            J[0, 6*idx_particle+4 ] = (self.min_distances_dth_y[particle] - self.min_distance)/self.delta_th_y if self.delta_th_y != 0.0 else 0.0
             # dz direction
-            J[0, 6*idx_particle+5] = (self.min_distances_dth_z[particle][key] - self.min_distances[key])/self.delta_th_z if self.delta_th_z != 0.0 else 0.0
+            J[0, 6*idx_particle+5 ] = (self.min_distances_dth_z[particle] - self.min_distance)/self.delta_th_z if self.delta_th_z != 0.0 else 0.0
 
         # Replace non-finite elements with 0
         J[~np.isfinite(J)] = 0
@@ -741,36 +708,32 @@ class VelocityControllerNode:
         ## ---------------------------------------------------
 
         ## ---------------------------------------------------
-        # DEFINE COLLISION AVOIDANCE CONTROL BARRIER CONSTRAINTS FOR EACH SCENE MINIMUM DISTANCE READINGS
+        # DEFINE COLLISION AVOIDANCE CONTROL BARRRIER CONSTRAINT
         if self.obstacle_avoidance_enabled:
-            for key in self.min_distances:
-                # key here is the rigid body index of the obstacle
+            h = self.min_distance - self.d_obstacle_offset  # Control Barrier Function (CBF)
+            alpha_h = self.alpha_collision_avoidance(h)
 
-                h = self.min_distances[key] - self.d_obstacle_offset # Control Barrier Function (CBF)
-                alpha_h = self.alpha_collision_avoidance(h)
+            # # publish h that is the distance to collision for information
+            # # print("h distance to collision: ",str(h))
+            # self.info_h_collision_publisher.publish(Float32(data=h))
 
-                # # publish h that is the distance to collision for information
-                # # print("h distance to collision: ",str(h))
-                # self.info_h_collision_publisher.publish(Float32(data=h))
+            # Calculate the obstacle minimum distance Jacobian 
+            J_obs_min_dist = self.calculate_jacobian_obstacle_min_distance() # 1x12
 
-                # Calculate the obstacle minimum distance Jacobian 
-                J_obs_min_dist = self.calculate_jacobian_obstacle_min_distance(key) # 1x12
+            # pretty_print_array(J_obs_min_dist, precision=4)
+            # print("---------------------------")
+            
+            # # publish J for information
+            # J_msg = Float32MultiArray(data=np.ravel(J_obs_min_dist))
+            # self.info_J_publisher.publish(J_msg)
 
-                # pretty_print_array(J_obs_min_dist, precision=4)
-                # print("---------------------------")
-                
-                # # publish J for information
-                # J_msg = Float32MultiArray(data=np.ravel(J_obs_min_dist))
-                # self.info_J_publisher.publish(J_msg)
-
-                J_tolerance = 0.001
-                if np.any(np.abs(J_obs_min_dist) >= J_tolerance):
-                    # Add collision avoidance to the constraints
-                    constraints += [J_obs_min_dist @ u >= -alpha_h]
-                else:
-                    pass
-                    # pretty_print_array(J_obs_min_dist, precision=4)
-                    # rospy.logwarn_throttle(1,"For obstacle index: " + str(key) + ", ignored J_obs_min_dist and obstacle constraint is not added")
+            J_tolerance = 0.01
+            if np.any(np.abs(J_obs_min_dist) >= J_tolerance):
+                # Add collision avoidance to the constraints
+                constraints += [J_obs_min_dist @ u >= -alpha_h]
+            else:
+                pretty_print_array(J_obs_min_dist, precision=4)
+                rospy.logwarn("ignored J_obs_min_dist and obstacle constraint is not added")
         ## ---------------------------------------------------
 
         ## ---------------------------------------------------
@@ -873,12 +836,10 @@ class VelocityControllerNode:
             # pretty_print_array(control_output)
             # print("---------------------------")
 
-            # init_t = time.time()
-                
+            init_t = time.time()
             # Calculate safe control output with obstacle avoidance        
             control_output = self.calculate_safe_control_output(control_output) # safe # (12,)
-            
-            # rospy.logwarn("QP solver calculation time: " + str(1000*(time.time() - init_t)) + " ms.")
+            rospy.logwarn("QP solver calculation time: " + str(1000*(time.time() - init_t)) + " ms.")
             
 
             # Assign the calculated control inputs
@@ -1093,8 +1054,8 @@ class VelocityControllerNode:
         # calculates the value of extended_class_K function \alpha(h) for COLLISION AVOIDANCE
         # Piecewise Linear function is used
 
-        c1 = 0.05 # 0.4 # 0.8 # 0.01 # 0.01 # 0.00335 # decrease this if you want to start reacting early to be more safe, (but causes less nominal controller following)
-        c2 = 2.0 # 5.0 # 3.0 # 0.04 # 0.02 # 0.01 # increase this if you want to remove the offset violation more agressively, (but may cause instability due to the discretization if too agressive)
+        c1 = 0.01 # 0.4 # 0.8 # 0.01 # 0.01 # 0.00335 # decrease this if you want to start reacting early to be more safe, (but causes less nominal controller following)
+        c2 = 5.0 # 5.0 # 3.0 # 0.04 # 0.02 # 0.01 # increase this if you want to remove the offset violation more agressively, (but may cause instability due to the discretization if too agressive)
         alpha_h = c1*(h) if (h) >= 0 else c2*(h)
         return alpha_h        
 
