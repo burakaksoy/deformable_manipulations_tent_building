@@ -1,4 +1,6 @@
-# Controller Gains [x,y,z, Rx,Ry,Rz]
+## -------------------------------------------------------
+## Nominal Velocity controller parameters
+# Nominal Controller Gains [x,y,z, Rx,Ry,Rz]
 # kp: [0.15,0.15,0.1, 0.15,0.15,0.15]
 # kp: [0.15,0.15,0.1, 0.15,0.15,0.15]
 # kp: [0.1,0.1,0.075, 0.15,0.15,0.15]
@@ -17,10 +19,36 @@ tip_particles: [0,39]
 target_poses: [[[-1, -1, 0.14], [5,   0, 90]],
                [[ 1, -1, 0.14], [175, 0, 90]]]
 
+## -------------------------------------------------------
+## Obstacle avoidance parameters
 obstacle_avoidance_enabled: True # default:True 
+
+k_low_pass_min_d: 0.5 # low pass filter coefficient for the ratio of minimum distance values of the previous values (Must be between [0,1])
 
 # offset distance from the obstacles
 d_obstacle_offset: 0.05 # (meter) 
 
-# 
+# alpha(h) function obstacle avoidance coefficients 
+# Piecewise linear function slope coefficients 
+# decrease c1_alpha_obstacle to start reacting early to be more safe, (but causes less nominal controller following)
+# increase c2_alpha_obstacle to remove the offset violation more agressively, (but may cause instability due to the discretization if too agressive)
+c1_alpha_obstacle: 0.05 # 0.05 # for h >= 0 # 0.4 # 0.8 # 0.01 # 0.01 # 0.00335 
+c2_alpha_obstacle: 2.0 # 2.0 # for h < 0 # 5.0 # 3.0 # 0.04 # 0.02 # 0.01 
 
+## -------------------------------------------------------
+## Stress avoidance parameters
+stress_avoidance_enabled: False # default:True 
+
+k_low_pass_ft: 0.9 # low pass filter coefficient for the ratio of ft values of the previous values (Must be between [0,1])
+
+wrench_max: [200.0, 200.0, 200.0, 15.0, 15.0, 15.0] # maximum wrench values for each axis [Fx,Fy,Fz, Tx,Ty,Tz] 
+
+# alpha(h_ft) function robot stress coefficients for each axis [Fx,Fy,Fz, Tx,Ty,Tz]
+# see: https://www.desmos.com/calculator/vh8uei6a98 for the function visualizations
+# c1_alpha_ft: [2.0, 2.0, 2.0, 1.0, 1.0, 1.0]
+# c2_alpha_ft: [0.3, 0.3, 0.3, 0.3, 0.3, 0.3]
+
+c1_alpha_ft: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+c2_alpha_ft: [0.3, 0.3, 0.3, 0.2, 0.2, 0.2]
+c3_alpha_ft: [0.5, 0.5, 0.5, 0.35, 0.35, 0.35] # linear slope if h < 0
+# c3_alpha_ft: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1] # linear slope if h < 0

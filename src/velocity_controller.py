@@ -6,7 +6,7 @@ import numpy as np
 import time
 import math
 
-from geometry_msgs.msg import Twist, Point, Quaternion, Pose
+from geometry_msgs.msg import Twist, Point, Quaternion, Pose, Wrench, Vector3
 from nav_msgs.msg import Odometry
 from visualization_msgs.msg import Marker
 from std_msgs.msg import Float32, Float32MultiArray
@@ -107,14 +107,31 @@ class VelocityControllerNode:
         self.kp = np.array(rospy.get_param("~kp", [1.0,1.0,1.0, 1.0,1.0,1.0]))
         self.kd = np.array(rospy.get_param("~kd", [0.0,0.0,0.0, 0.0,0.0,0.0]))
 
+
+        self.k_low_pass_ft = rospy.get_param("~k_low_pass_ft", 0.9) # low pass filter coefficient for the ft values of the previous values
+        self.k_low_pass_min_d = rospy.get_param("~k_low_pass_min_d", 0.5) # low pass filter coefficient for the minimum distance values of the previous values
+
         # Particle/Segment ids of the tip points of the tent pole 
         # to be placed into the grommets
         self.tip_particles = rospy.get_param("~tip_particles", [0,39])
         
         self.obstacle_avoidance_enabled = rospy.get_param("~obstacle_avoidance_enabled", True)
+        self.stress_avoidance_enabled = rospy.get_param("~stress_avoidance_enabled", True)
 
         # Offset distance from the obstacles
         self.d_obstacle_offset = rospy.get_param("~d_obstacle_offset", 0.05)
+        self.c1_alpha_obstacle = rospy.get_param("~c1_alpha_obstacle", 0.05)
+        self.c2_alpha_obstacle = rospy.get_param("~c2_alpha_obstacle", 2.0)
+
+        # Safe wrench values for the robots, assumed to be fixed and the same everywhere. 
+        # TODO: Make it variable based on the robot kinematics and dynamics in the future.
+        self.wrench_max = np.array(rospy.get_param("~wrench_max", [200.0, 200.0, 200.0, 15.0, 15.0, 15.0]))
+
+        # alpha(h_ft) function robot stress coefficients for each axis [Fx,Fy,Fz, Tx,Ty,Tz]
+        self.c1_alpha_ft = np.array(rospy.get_param("~c1_alpha_ft", [1.0, 1.0, 1.0, 0.5, 0.5, 0.5]))
+        self.c2_alpha_ft = np.array(rospy.get_param("~c2_alpha_ft", [0.5, 0.5, 0.5, 0.5, 0.5, 0.5]))
+        self.c3_alpha_ft = np.array(rospy.get_param("~c3_alpha_ft", [0.8, 0.8, 0.8, 1.0, 1.0, 1.0]))
+
 
         # Grommet poses as targets for the tip points
         # Each element holds [[x,y,z],[Rx,Ry,Rz(euler angles in degrees)]]
@@ -127,7 +144,6 @@ class VelocityControllerNode:
 
         ## ----------------------------------------------------------------------------------------
         ## SETUP FOR DEFORMABLE OBJECT STATE READINGS FROM SIMULATION PERTURBATIONS
-        self.initial_values_set = False  # Initialization state variable
 
         self.deformable_object_state_topic_name = rospy.get_param("/dlo_state_topic_name") # subscribed
         # this is also like prefix to the perturbed particles' new states
@@ -136,6 +152,7 @@ class VelocityControllerNode:
         self.particle_positions = {}
         self.particle_orientations = {}
         self.particle_twists = {}
+        self.particle_wrenches = {}
 
         # Subscriber for deformable object states to figure out the current particle positions
         self.sub_state = rospy.Subscriber(self.deformable_object_state_topic_name, SegmentStateArray, self.state_array_callback, queue_size=10)
@@ -153,26 +170,32 @@ class VelocityControllerNode:
         self.particle_positions_dx = {}
         self.particle_orientations_dx = {}
         self.particle_twists_dx = {}
+        self.particle_wrenches_dx = {}
 
         self.particle_positions_dy = {}
         self.particle_orientations_dy = {}
         self.particle_twists_dy = {}
+        self.particle_wrenches_dy = {}
 
         self.particle_positions_dz = {}
         self.particle_orientations_dz = {}
         self.particle_twists_dz = {}
+        self.particle_wrenches_dz = {}
 
         self.particle_positions_dth_x = {}
         self.particle_orientations_dth_x = {}
         self.particle_twists_dth_x = {}
+        self.particle_wrenches_dth_x = {}
 
         self.particle_positions_dth_y = {}
         self.particle_orientations_dth_y = {}
         self.particle_twists_dth_y = {}
+        self.particle_wrenches_dth_y = {}
 
         self.particle_positions_dth_z = {}
         self.particle_orientations_dth_z = {}
         self.particle_twists_dth_z = {}
+        self.particle_wrenches_dth_z = {}
 
         self.states_set_particles = [] # For bookkeeping of which custom static particles are obtained their all perturbed state readings at least once.
 
@@ -250,8 +273,6 @@ class VelocityControllerNode:
         for particle in self.custom_static_particles:
             self.control_outputs[particle] = np.zeros(6) # initialization for the velocity command
 
-
-
         # Start the control
         self.calculate_control_timer = rospy.Timer(rospy.Duration(1. / self.pub_rate_odom), self.calculate_control_outputs_timer_callback)
         self.odom_pub_timer          = rospy.Timer(rospy.Duration(1. / self.pub_rate_odom), self.odom_pub_timer_callback)
@@ -289,9 +310,49 @@ class VelocityControllerNode:
             self.particle_orientations[particle] = states_msg.states[particle].pose.orientation
             self.particle_twists[particle] = states_msg.states[particle].twist
 
-        if not self.initial_values_set:
-            # After all initial relative positions and orientations have been calculated, set the initialization state variable to True
-            self.initial_values_set = True
+            wrench_array = self.wrench_to_numpy(states_msg.states[particle].wrench)
+            if particle not in self.particle_wrenches:
+                self.particle_wrenches[particle] = wrench_array
+            else:
+                # Apply low-pass filter to the force and torque values
+                self.particle_wrenches[particle] = self.k_low_pass_ft*self.particle_wrenches[particle] + (1 - self.k_low_pass_ft)*wrench_array
+
+    def state_array_dx_callback(self, states_msg, perturbed_particle):
+        self.update_state_arrays(states_msg, perturbed_particle, self.particle_positions_dx, self.particle_orientations_dx, self.particle_twists_dx, self.particle_wrenches_dx)
+
+    def state_array_dy_callback(self, states_msg, perturbed_particle):
+        self.update_state_arrays(states_msg, perturbed_particle, self.particle_positions_dy, self.particle_orientations_dy, self.particle_twists_dy, self.particle_wrenches_dy)
+
+    def state_array_dz_callback(self, states_msg, perturbed_particle):
+        self.update_state_arrays(states_msg, perturbed_particle, self.particle_positions_dz, self.particle_orientations_dz, self.particle_twists_dz, self.particle_wrenches_dz)
+
+    def state_array_dth_x_callback(self, states_msg, perturbed_particle):
+        self.update_state_arrays(states_msg, perturbed_particle, self.particle_positions_dth_x, self.particle_orientations_dth_x, self.particle_twists_dth_x, self.particle_wrenches_dth_x)
+
+    def state_array_dth_y_callback(self, states_msg, perturbed_particle):
+        self.update_state_arrays(states_msg, perturbed_particle, self.particle_positions_dth_y, self.particle_orientations_dth_y, self.particle_twists_dth_y, self.particle_wrenches_dth_y)
+
+    def state_array_dth_z_callback(self, states_msg, perturbed_particle):
+        self.update_state_arrays(states_msg, perturbed_particle, self.particle_positions_dth_z, self.particle_orientations_dth_z, self.particle_twists_dth_z, self.particle_wrenches_dth_z)
+
+    def update_state_arrays(self, states_msg, perturbed_particle, positions_dict, orientations_dict, twists_dict, wrenches_dict):
+        if not (perturbed_particle in positions_dict):
+            positions_dict[perturbed_particle] = {}
+            orientations_dict[perturbed_particle] = {}
+            twists_dict[perturbed_particle] = {}
+            wrenches_dict[perturbed_particle] = {}
+
+        for particle in (self.custom_static_particles + self.tip_particles):
+            positions_dict[perturbed_particle][particle] = states_msg.states[particle].pose.position
+            orientations_dict[perturbed_particle][particle] = states_msg.states[particle].pose.orientation
+            twists_dict[perturbed_particle][particle] = states_msg.states[particle].twist
+
+            wrench_array = self.wrench_to_numpy(states_msg.states[particle].wrench)
+            if particle not in wrenches_dict[perturbed_particle]:
+                wrenches_dict[perturbed_particle][particle] = wrench_array
+            else:
+                # Apply low-pass filter to the force and torque values
+                wrenches_dict[perturbed_particle][particle] = self.k_low_pass_ft*wrenches_dict[perturbed_particle][particle] + (1 - self.k_low_pass_ft)*wrench_array
 
     def is_perturbed_states_set_for_particle(self,particle):
         """
@@ -314,72 +375,6 @@ class VelocityControllerNode:
                 return (particle in self.particle_positions)
             else:
                 return False
-
-    def state_array_dx_callback(self, states_msg, perturbed_particle):
-        if not (perturbed_particle  in self.particle_positions_dx):
-            self.particle_positions_dx[perturbed_particle] = {}
-            self.particle_orientations_dx[perturbed_particle] = {}
-            self.particle_twists_dx[perturbed_particle] = {}
-
-        for particle in (self.custom_static_particles + self.tip_particles):
-            self.particle_positions_dx[perturbed_particle][particle] = states_msg.states[particle].pose.position
-            self.particle_orientations_dx[perturbed_particle][particle] = states_msg.states[particle].pose.orientation
-            self.particle_twists_dx[perturbed_particle][particle] = states_msg.states[particle].twist
-
-    def state_array_dy_callback(self, states_msg, perturbed_particle):
-        if not (perturbed_particle in self.particle_positions_dy):
-            self.particle_positions_dy[perturbed_particle] = {}
-            self.particle_orientations_dy[perturbed_particle] = {}
-            self.particle_twists_dy[perturbed_particle] = {}
-
-        for particle in (self.custom_static_particles + self.tip_particles):
-            self.particle_positions_dy[perturbed_particle][particle] = states_msg.states[particle].pose.position
-            self.particle_orientations_dy[perturbed_particle][particle] = states_msg.states[particle].pose.orientation
-            self.particle_twists_dy[perturbed_particle][particle] = states_msg.states[particle].twist
-
-    def state_array_dz_callback(self, states_msg, perturbed_particle):
-        if not (perturbed_particle in self.particle_positions_dz):
-            self.particle_positions_dz[perturbed_particle] = {}
-            self.particle_orientations_dz[perturbed_particle] = {}
-            self.particle_twists_dz[perturbed_particle] = {}
-
-        for particle in (self.custom_static_particles + self.tip_particles):
-            self.particle_positions_dz[perturbed_particle][particle] = states_msg.states[particle].pose.position
-            self.particle_orientations_dz[perturbed_particle][particle] = states_msg.states[particle].pose.orientation
-            self.particle_twists_dz[perturbed_particle][particle] = states_msg.states[particle].twist
-
-    def state_array_dth_x_callback(self, states_msg, perturbed_particle):
-        if not (perturbed_particle in self.particle_positions_dth_x):
-            self.particle_positions_dth_x[perturbed_particle] = {}
-            self.particle_orientations_dth_x[perturbed_particle] = {}
-            self.particle_twists_dth_x[perturbed_particle] = {}
-
-        for particle in (self.custom_static_particles + self.tip_particles):
-            self.particle_positions_dth_x[perturbed_particle][particle] = states_msg.states[particle].pose.position
-            self.particle_orientations_dth_x[perturbed_particle][particle] = states_msg.states[particle].pose.orientation
-            self.particle_twists_dth_x[perturbed_particle][particle] = states_msg.states[particle].twist
-
-    def state_array_dth_y_callback(self, states_msg, perturbed_particle):
-        if not (perturbed_particle in self.particle_positions_dth_y):
-            self.particle_positions_dth_y[perturbed_particle] = {}
-            self.particle_orientations_dth_y[perturbed_particle] = {}
-            self.particle_twists_dth_y[perturbed_particle] = {}
-
-        for particle in (self.custom_static_particles + self.tip_particles):
-            self.particle_positions_dth_y[perturbed_particle][particle] = states_msg.states[particle].pose.position
-            self.particle_orientations_dth_y[perturbed_particle][particle] = states_msg.states[particle].pose.orientation
-            self.particle_twists_dth_y[perturbed_particle][particle] = states_msg.states[particle].twist
-
-    def state_array_dth_z_callback(self, states_msg, perturbed_particle):
-        if not (perturbed_particle in self.particle_positions_dth_z):
-            self.particle_positions_dth_z[perturbed_particle] = {}
-            self.particle_orientations_dth_z[perturbed_particle] = {}
-            self.particle_twists_dth_z[perturbed_particle] = {}
-
-        for particle in (self.custom_static_particles + self.tip_particles):
-            self.particle_positions_dth_z[perturbed_particle][particle] = states_msg.states[particle].pose.position
-            self.particle_orientations_dth_z[perturbed_particle][particle] = states_msg.states[particle].pose.orientation
-            self.particle_twists_dth_z[perturbed_particle][particle] = states_msg.states[particle].twist
 
     def calculate_jacobian_tip(self):
         """
@@ -462,7 +457,6 @@ class VelocityControllerNode:
 
         return err
 
-
     def min_distances_array_callback(self, min_distances_msg):
         # Create a set to track the IDs in the current message
         current_ids = set()
@@ -477,152 +471,34 @@ class VelocityControllerNode:
                 self.min_distances[rigid_body_index] = data.minDistance
             else:
                 # Apply low pass filter for existing ID
-                t = 0.5
-                self.min_distances[rigid_body_index] = t*self.min_distances[rigid_body_index] + (1-t)*data.minDistance
+                self.min_distances[rigid_body_index] = self.k_low_pass_min_d*self.min_distances[rigid_body_index] + (1-self.k_low_pass_min_d)*data.minDistance
 
         # Set values to float('inf') for IDs not in current message
         for key in self.min_distances:
             if key not in current_ids:
                 self.min_distances[key] = float('inf')
-
+   
     def min_distance_array_dx_callback(self, min_distances_msg, perturbed_particle):
-        if not (perturbed_particle in self.min_distances_dx):
-            self.min_distances_dx[perturbed_particle] = {}
+        self.update_min_distances(self.min_distances_dx, min_distances_msg, perturbed_particle)
 
-        # Create a set to track the IDs in the current message
-        current_ids = set()
-
-        # Iterate over the incoming message and update the dictionary
-        for data in min_distances_msg.data:
-            rigid_body_index = data.index2
-
-            current_ids.add(rigid_body_index)
-            if rigid_body_index not in self.min_distances_dx[perturbed_particle] or \
-                self.min_distances_dx[perturbed_particle][rigid_body_index] == float('inf'):
-                # Initialize new ID or update 'inf' value with current minDistance
-                self.min_distances_dx[perturbed_particle][rigid_body_index] = data.minDistance
-            else:
-                # Apply low pass filter for existing ID
-                t = 0.5
-                self.min_distances_dx[perturbed_particle][rigid_body_index] = t*self.min_distances_dx[perturbed_particle][rigid_body_index]\
-                                                                                + (1-t)*data.minDistance
-
-        # Set values to float('inf') for IDs not in current message
-        for key in self.min_distances_dx[perturbed_particle]:
-            if key not in current_ids:
-                self.min_distances_dx[perturbed_particle][key] = float('inf')
- 
     def min_distance_array_dy_callback(self, min_distances_msg, perturbed_particle):
-        if not (perturbed_particle in self.min_distances_dy):
-            self.min_distances_dy[perturbed_particle] = {}
+        self.update_min_distances(self.min_distances_dy, min_distances_msg, perturbed_particle)
 
-        # Create a set to track the IDs in the current message
-        current_ids = set()
-
-        # Iterate over the incoming message and update the dictionary
-        for data in min_distances_msg.data:
-            rigid_body_index = data.index2
-
-            current_ids.add(rigid_body_index)
-            if rigid_body_index not in self.min_distances_dy[perturbed_particle] or \
-                self.min_distances_dy[perturbed_particle][rigid_body_index] == float('inf'):
-                # Initialize new ID or update 'inf' value with current minDistance
-                self.min_distances_dy[perturbed_particle][rigid_body_index] = data.minDistance
-            else:
-                # Apply low pass filter for existing ID
-                t = 0.5
-                self.min_distances_dy[perturbed_particle][rigid_body_index] = t*self.min_distances_dy[perturbed_particle][rigid_body_index]\
-                                                                                + (1-t)*data.minDistance
-
-        # Set values to float('inf') for IDs not in current message
-        for key in self.min_distances_dy[perturbed_particle]:
-            if key not in current_ids:
-                self.min_distances_dy[perturbed_particle][key] = float('inf')
-      
     def min_distance_array_dz_callback(self, min_distances_msg, perturbed_particle):
-        if not (perturbed_particle in self.min_distances_dz):
-            self.min_distances_dz[perturbed_particle] = {}
-
-        # Create a set to track the IDs in the current message
-        current_ids = set()
-
-        # Iterate over the incoming message and update the dictionary
-        for data in min_distances_msg.data:
-            rigid_body_index = data.index2
-
-            current_ids.add(rigid_body_index)
-            if rigid_body_index not in self.min_distances_dz[perturbed_particle] or \
-                self.min_distances_dz[perturbed_particle][rigid_body_index] == float('inf'):
-                # Initialize new ID or update 'inf' value with current minDistance
-                self.min_distances_dz[perturbed_particle][rigid_body_index] = data.minDistance
-            else:
-                # Apply low pass filter for existing ID
-                t = 0.5
-                self.min_distances_dz[perturbed_particle][rigid_body_index] = t*self.min_distances_dz[perturbed_particle][rigid_body_index]\
-                                                                                 + (1-t)*data.minDistance
-
-        # Set values to float('inf') for IDs not in current message
-        for key in self.min_distances_dz[perturbed_particle]:
-            if key not in current_ids:
-                self.min_distances_dz[perturbed_particle][key] = float('inf')
+        self.update_min_distances(self.min_distances_dz, min_distances_msg, perturbed_particle)
 
     def min_distance_array_dth_x_callback(self, min_distances_msg, perturbed_particle):
-        if not (perturbed_particle in self.min_distances_dth_x):
-            self.min_distances_dth_x[perturbed_particle] = {}
-
-        # Create a set to track the IDs in the current message
-        current_ids = set()
-
-        # Iterate over the incoming message and update the dictionary
-        for data in min_distances_msg.data:
-            rigid_body_index = data.index2
-
-            current_ids.add(rigid_body_index)
-            if rigid_body_index not in self.min_distances_dth_x[perturbed_particle] or \
-                self.min_distances_dth_x[perturbed_particle][rigid_body_index] == float('inf'):
-                # Initialize new ID or update 'inf' value with current minDistance
-                self.min_distances_dth_x[perturbed_particle][rigid_body_index] = data.minDistance
-            else:
-                # Apply low pass filter for existing ID
-                t = 0.5
-                self.min_distances_dth_x[perturbed_particle][rigid_body_index] = t*self.min_distances_dth_x[perturbed_particle][rigid_body_index]\
-                                                                                 + (1-t)*data.minDistance
-
-        # Set values to float('inf') for IDs not in current message
-        for key in self.min_distances_dth_x[perturbed_particle]:
-            if key not in current_ids:
-                self.min_distances_dth_x[perturbed_particle][key] = float('inf')
+        self.update_min_distances(self.min_distances_dth_x, min_distances_msg, perturbed_particle)
 
     def min_distance_array_dth_y_callback(self, min_distances_msg, perturbed_particle):
-        if not (perturbed_particle in self.min_distances_dth_y):
-            self.min_distances_dth_y[perturbed_particle] = {}
+        self.update_min_distances(self.min_distances_dth_y, min_distances_msg, perturbed_particle)
 
-        # Create a set to track the IDs in the current message
-        current_ids = set()
-
-        # Iterate over the incoming message and update the dictionary
-        for data in min_distances_msg.data:
-            rigid_body_index = data.index2
-
-            current_ids.add(rigid_body_index)
-            if rigid_body_index not in self.min_distances_dth_y[perturbed_particle] or \
-                self.min_distances_dth_y[perturbed_particle][rigid_body_index] == float('inf'):
-                # Initialize new ID or update 'inf' value with current minDistance
-                self.min_distances_dth_y[perturbed_particle][rigid_body_index] = data.minDistance
-            else:
-                # Apply low pass filter for existing ID
-                t = 0.5
-                self.min_distances_dth_y[perturbed_particle][rigid_body_index] = t*self.min_distances_dth_y[perturbed_particle][rigid_body_index]\
-                                                                                 + (1-t)*data.minDistance
-
-        # Set values to float('inf') for IDs not in current message
-        for key in self.min_distances_dth_y[perturbed_particle]:
-            if key not in current_ids:
-                self.min_distances_dth_y[perturbed_particle][key] = float('inf')
-            
     def min_distance_array_dth_z_callback(self, min_distances_msg, perturbed_particle):
-        if not (perturbed_particle in self.min_distances_dth_z):
-            self.min_distances_dth_z[perturbed_particle] = {}
+        self.update_min_distances(self.min_distances_dth_z, min_distances_msg, perturbed_particle)
+
+    def update_min_distances(self, min_distances, min_distances_msg, perturbed_particle):
+        if perturbed_particle not in min_distances:
+            min_distances[perturbed_particle] = {}
 
         # Create a set to track the IDs in the current message
         current_ids = set()
@@ -632,21 +508,18 @@ class VelocityControllerNode:
             rigid_body_index = data.index2
 
             current_ids.add(rigid_body_index)
-            if rigid_body_index not in self.min_distances_dth_z[perturbed_particle] or \
-                self.min_distances_dth_z[perturbed_particle][rigid_body_index] == float('inf'):
+            if rigid_body_index not in min_distances[perturbed_particle] or min_distances[perturbed_particle][rigid_body_index] == float('inf'):
                 # Initialize new ID or update 'inf' value with current minDistance
-                self.min_distances_dth_z[perturbed_particle][rigid_body_index] = data.minDistance
+                min_distances[perturbed_particle][rigid_body_index] = data.minDistance
             else:
                 # Apply low pass filter for existing ID
-                t = 0.5
-                self.min_distances_dth_z[perturbed_particle][rigid_body_index] = t*self.min_distances_dth_z[perturbed_particle][rigid_body_index]\
-                                                                                 + (1-t)*data.minDistance
+                min_distances[perturbed_particle][rigid_body_index] = self.k_low_pass_min_d*min_distances[perturbed_particle][rigid_body_index] + (1 - self.k_low_pass_min_d)*data.minDistance
 
         # Set values to float('inf') for IDs not in current message
-        for key in self.min_distances_dth_z[perturbed_particle]:
+        for key in min_distances[perturbed_particle]:
             if key not in current_ids:
-                self.min_distances_dth_z[perturbed_particle][key] = float('inf')
-            
+                min_distances[perturbed_particle][key] = float('inf')
+
     def is_perturbed_min_distances_set(self, particle):
         if particle in self.min_distances_set_particles:
             return True
@@ -717,6 +590,49 @@ class VelocityControllerNode:
 
         return J
 
+    def calculate_jacobian_ft(self):
+        """
+        Calculates the Jacobian matrix that defines the relation btw.
+        the robot hold points (custom_static_particles) 6DoF poses and
+        the forces and torques applied by the robots.
+        The result is a 12x12 matrix for 2 holding point poses.
+        """
+        J = np.zeros((6*len(self.custom_static_particles),6*len(self.custom_static_particles)))
+
+        for idx_particle1, particle1 in enumerate(self.custom_static_particles):
+            for idx_particle, particle in enumerate(self.custom_static_particles):
+                # Do not proceed until the initial values have been set
+                if ((not self.is_perturbed_states_set_for_particle(particle))):
+                    rospy.logwarn_throttle(1,"[calculate_jacobian_ft func.] particle: " + str(particle) + " state is not published yet or it does not have for perturbed states.")
+                    continue
+
+                # calculate the wrench differences:
+                # btw. the current holding point wrench and the perturbated holding point wrench caused by the perturbation of custom_static_particle pose in each direction
+
+                # Note that the forces and torques are negated to calculate the wrenches needed to be applied by the robots.
+                current_wrench = -self.particle_wrenches[particle1]
+                
+                # dx direction
+                perturbed_wrench = -self.particle_wrenches_dx[particle][particle1]
+                J[ (6*idx_particle1) : (6*(idx_particle1+1)) , 6*idx_particle+0 ] = (perturbed_wrench-current_wrench)/self.delta_x
+                # dy direction
+                perturbed_wrench = -self.particle_wrenches_dy[particle][particle1]
+                J[ (6*idx_particle1) : (6*(idx_particle1+1)) , 6*idx_particle+1 ] = (perturbed_wrench-current_wrench)/self.delta_y
+                # dz direction
+                perturbed_wrench = -self.particle_wrenches_dz[particle][particle1]
+                J[ (6*idx_particle1) : (6*(idx_particle1+1)) , 6*idx_particle+2 ] = (perturbed_wrench-current_wrench)/self.delta_z
+                # dth_x direction
+                perturbed_wrench = -self.particle_wrenches_dth_x[particle][particle1]
+                J[ (6*idx_particle1) : (6*(idx_particle1+1)) , 6*idx_particle+3 ] = (perturbed_wrench-current_wrench)/self.delta_th_x
+                # dy direction
+                perturbed_wrench = -self.particle_wrenches_dth_y[particle][particle1]
+                J[ (6*idx_particle1) : (6*(idx_particle1+1)) , 6*idx_particle+4 ] = (perturbed_wrench-current_wrench)/self.delta_th_y
+                # dz direction
+                perturbed_wrench = -self.particle_wrenches_dth_z[particle][particle1]
+                J[ (6*idx_particle1) : (6*(idx_particle1+1)) , 6*idx_particle+5 ] = (perturbed_wrench-current_wrench)/self.delta_th_z            
+
+        return J
+
     def calculate_safe_control_output(self, nominal_u):
 
         ## ---------------------------------------------------
@@ -772,6 +688,32 @@ class VelocityControllerNode:
                     # pretty_print_array(J_obs_min_dist, precision=4)
                     # rospy.logwarn_throttle(1,"For obstacle index: " + str(key) + ", ignored J_obs_min_dist and obstacle constraint is not added")
         ## ---------------------------------------------------
+                
+        ## ---------------------------------------------------
+        # DEFINE STRESS CONTROL BARRIER CONSTRAINTS 
+        if self.stress_avoidance_enabled:
+            
+            h_ft = np.zeros(6*len(self.custom_static_particles)) # Control Barrier Function (CBF) for the forces and torques
+            alpha_h_ft = np.zeros(6*len(self.custom_static_particles)) # alpha for the forces and torques
+            sign_ft = np.zeros(6*len(self.custom_static_particles)) # sign for the forces and torques
+
+            for idx_particle, particle in enumerate(self.custom_static_particles):
+                
+                h_ft[6*idx_particle:6*(idx_particle+1)] = self.wrench_max - np.abs(self.particle_wrenches[particle]) # h_ft = wrench_max - |wrench|
+                alpha_h_ft[6*idx_particle:6*(idx_particle+1)] = self.alpha_robot_stress(h_ft[6*idx_particle:6*(idx_particle+1)])
+                sign_ft[6*idx_particle:6*(idx_particle+1)] = np.sign(self.particle_wrenches[particle])
+
+            # Calculate the forces and torques Jacobian
+            J_ft = self.calculate_jacobian_ft() # 12x12
+
+            # pretty_print_array(J_ft, precision=2)
+            # print("---------------------------")
+
+            # Mutiply the sign of the wrenches elementwise with the matrix multiplication of the Jacobian with the control input
+            # to obtain the forces and torques
+            # Add stress avoidance to the constraints
+            # constraints += [cp.multiply(-sign_ft, (J_ft @ u)) >= -alpha_h_ft]
+        ## ---------------------------------------------------
 
         ## ---------------------------------------------------
         ## Add also limit to the feasible u
@@ -805,7 +747,7 @@ class VelocityControllerNode:
         # if hasattr(self, 'prev_optimal_u'):
         #     u.value = self.prev_optimal_u
 
-        init_t = time.time() # For timing
+        # init_t = time.time() # For timing
         try:
             # problem.solve() # Selects automatically
             problem.solve(solver=cp.CLARABEL) #  
@@ -946,8 +888,17 @@ class VelocityControllerNode:
                 else:
                     self.control_outputs[particle] = np.zeros(6)
 
+    
+    def wrench_to_numpy(self, wrench):
+        """
+        Converts a ROS wrench message to a numpy array.
 
-
+        :param wrench: The wrench (force and torque) in ROS message format.
+        :return: A numpy array representing the wrench.
+        """
+        # Combine force and torque arrays
+        return np.array([wrench.force.x, wrench.force.y, wrench.force.z, wrench.torque.x, wrench.torque.y, wrench.torque.z])
+    
     def calculate_pose_difference(self, current_pose, perturbed_pose):
         """ 
         Calculates the pose difference between the current pose and the perturbed pose.
@@ -1092,11 +1043,64 @@ class VelocityControllerNode:
     def alpha_collision_avoidance(self,h):
         # calculates the value of extended_class_K function \alpha(h) for COLLISION AVOIDANCE
         # Piecewise Linear function is used
-
-        c1 = 0.05 # 0.4 # 0.8 # 0.01 # 0.01 # 0.00335 # decrease this if you want to start reacting early to be more safe, (but causes less nominal controller following)
-        c2 = 2.0 # 5.0 # 3.0 # 0.04 # 0.02 # 0.01 # increase this if you want to remove the offset violation more agressively, (but may cause instability due to the discretization if too agressive)
-        alpha_h = c1*(h) if (h) >= 0 else c2*(h)
+        alpha_h = self.c1_alpha_obstacle*h if h >= 0 else self.c2_alpha_obstacle*h
         return alpha_h        
+    
+    # def alpha_robot_stress(self,h):
+    #     # calculates the value of extended_class_K function \alpha(h) for ROBOT STRESS
+    #     # Piecewise Linear function is used
+    #     # h is 6x1 vector
+    #     # returns 6x1 alpha_h vector
+
+    #     # initialize the alpha_h vector
+    #     alpha_h = np.zeros(6)
+
+    #     c1f = 0.4 #  # used for forces
+    #     c2f = 0.4 # 
+
+    #     c1t = 0.4 #  # used for torques
+    #     c2t = 0.4 # 
+
+    #     # Make the first 3 elements of h multiplied by c1f or c2f
+    #     alpha_h[:3] = np.where(h[:3] >= 0, c1f*h[:3], c2f*h[:3])
+    #     # Make the second 3 elements of h multiplied by c1t or c2t
+    #     alpha_h[3:] = np.where(h[3:] >= 0, c1t*h[3:], c2t*h[3:])
+
+    #     return alpha_h
+    
+    # def alpha_robot_stress(self,h):
+    #     # calculates the value of extended_class_K function \alpha(h) for ROBOT STRESS
+    #     # Piecewise Linear function is used
+    #     # h is 6x1 vector
+    #     # returns 6x1 alpha_h vector
+    #     # see: https://www.desmos.com/calculator/vh8uei6a98 for the function visualizations
+    
+
+    #     # TODO: For h values greater or equal to 0
+    #     alpha_h = (self.c1_alpha_ft * h) / (self.wrench_max - h) ** self.c2_alpha_ft
+    #     # TODO: For h values less than 0
+    #     alpha_h = (self.c3_alpha_ft * h)
+
+    #     return alpha_h
+    
+    def alpha_robot_stress(self, h):
+        # Initialize alpha_h with zeros
+        alpha_h = np.zeros(h.shape)
+
+        # Boolean masks for the conditions
+        condition_positive_or_zero = h >= 0
+        condition_negative = h < 0
+
+        # Calculate for h values greater or equal to 0
+        # Apply the calculation only where the condition is True
+        alpha_h[condition_positive_or_zero] = (self.c1_alpha_ft[condition_positive_or_zero] * h[condition_positive_or_zero]) / \
+                                            (self.wrench_max[condition_positive_or_zero] - h[condition_positive_or_zero]) ** self.c2_alpha_ft[condition_positive_or_zero]
+
+        # Calculate for h values less than 0
+        # Apply the calculation only where the condition is True
+        alpha_h[condition_negative] = self.c3_alpha_ft[condition_negative] * h[condition_negative]
+
+        return alpha_h
 
 
 if __name__ == "__main__":

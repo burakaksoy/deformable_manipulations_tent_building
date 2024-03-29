@@ -112,6 +112,7 @@ class VelocityControllerNode:
         self.tip_particles = rospy.get_param("~tip_particles", [0,39])
         
         self.obstacle_avoidance_enabled = rospy.get_param("~obstacle_avoidance_enabled", True)
+        self.stress_avoidance_enabled = rospy.get_param("~stress_avoidance_enabled", True)
 
         # Offset distance from the obstacles
         self.d_obstacle_offset = rospy.get_param("~d_obstacle_offset", 0.05)
@@ -768,7 +769,7 @@ class VelocityControllerNode:
         # if hasattr(self, 'prev_optimal_u'):
         #     u.value = self.prev_optimal_u
 
-        init_t = time.time() # For timing
+        # init_t = time.time() # For timing
         try:
             # problem.solve() # Selects automatically
             problem.solve(solver=cp.CLARABEL) #  
