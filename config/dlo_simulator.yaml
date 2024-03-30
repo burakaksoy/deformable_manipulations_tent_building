@@ -26,8 +26,8 @@ use_zero_stretch_stiffness: true
 # and dlo_zero_stretch_stiffness parameter will be used as a scalar multiplier
 
 # Global artificial velocity damping coefficients. Defaults to 0.0. 
-global_damp_coeff_v: 5.9e-1 # 0.0 # 5.9e-1 # 2.1e-4; // 0.9e-3
-global_damp_coeff_w: 0.9e-3 # 0.0 # 0.9e-3 # 2.1e-4;
+global_damp_coeff_v: 1.1e-0 # 1.1e-0 # 9.9e-1 # 5.9e-1 # 0.0 # 5.9e-1 # 2.1e-4; // 0.9e-3
+global_damp_coeff_w: 1.1e-0 # 0.9e-1 # 0.9e-2 # 0.9e-3 # 0.0 # 0.9e-3 # 2.1e-4;
 
 # DLO Initial Transformations (By Default, the dlo is laying in +y-axis to -y-axis direction centered at the origin)
 # initial_height: 0.0 # initial dlo height from ground (m) (Deprecated, use dlo_translation instead)

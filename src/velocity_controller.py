@@ -283,6 +283,11 @@ class VelocityControllerNode:
 
     def set_enable_controller(self, request):
         self.enabled = request.data
+
+        if not self.enabled:
+            # Stop the particles
+            self.odom_publishers_publish_zero_velocities()
+
         return SetBoolResponse(True, 'Successfully set enabled state to {}'.format(self.enabled))
 
     def calculate_target_pose(self, target_pose_basic):
@@ -829,7 +834,7 @@ class VelocityControllerNode:
                     self.control_outputs[particle] = control_output[6*idx_particle:6*(idx_particle+1)]
                     # print("Particle " + str(particle) + " u: " + str(self.control_outputs[particle]))
                 else:
-                    self.control_outputs[particle] = None
+                    self.control_outputs[particle] = np.zeros(6) # None
 
             
             
@@ -897,7 +902,33 @@ class VelocityControllerNode:
                 else:
                     self.control_outputs[particle] = np.zeros(6)
 
-    
+    def odom_publishers_publish_zero_velocities(self):
+        """
+        This is a helper function that can be used to publish zero velocities for all particles.
+        Publishes zero velocities for all particles.
+        Useful for stopping the particles when the controller is disabled.
+        """
+        for particle in self.custom_static_particles:
+            # Prepare Odometry message
+            odom = Odometry()
+            odom.header.stamp = rospy.Time.now()
+            odom.header.frame_id = "map"
+
+            # Assign the current position and orientation
+            odom.pose.pose.position = self.particle_positions[particle]
+            odom.pose.pose.orientation = self.particle_orientations[particle]
+
+            # Assign zero velocities
+            odom.twist.twist.linear.x = 0.0
+            odom.twist.twist.linear.y = 0.0
+            odom.twist.twist.linear.z = 0.0
+            odom.twist.twist.angular.x = 0.0
+            odom.twist.twist.angular.y = 0.0
+            odom.twist.twist.angular.z = 0.0
+
+            # Publish
+            self.odom_publishers[particle].publish(odom)
+
     def wrench_to_numpy(self, wrench):
         """
         Converts a ROS wrench message to a numpy array.
