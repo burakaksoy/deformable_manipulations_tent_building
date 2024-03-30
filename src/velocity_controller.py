@@ -479,7 +479,7 @@ class VelocityControllerNode:
                 self.min_distances[rigid_body_index] = self.k_low_pass_min_d*self.min_distances[rigid_body_index] + (1-self.k_low_pass_min_d)*data.minDistance
 
         # Set values to float('inf') for IDs not in current message
-        for key in self.min_distances:
+        for key in list(self.min_distances.keys()):
             if key not in current_ids:
                 self.min_distances[key] = float('inf')
    
@@ -521,7 +521,7 @@ class VelocityControllerNode:
                 min_distances[perturbed_particle][rigid_body_index] = self.k_low_pass_min_d*min_distances[perturbed_particle][rigid_body_index] + (1 - self.k_low_pass_min_d)*data.minDistance
 
         # Set values to float('inf') for IDs not in current message
-        for key in min_distances[perturbed_particle]:
+        for key in list(min_distances[perturbed_particle].keys()):
             if key not in current_ids:
                 min_distances[perturbed_particle][key] = float('inf')
 
@@ -664,7 +664,7 @@ class VelocityControllerNode:
         ## ---------------------------------------------------
         # DEFINE COLLISION AVOIDANCE CONTROL BARRIER CONSTRAINTS FOR EACH SCENE MINIMUM DISTANCE READINGS
         if self.obstacle_avoidance_enabled:
-            for key in self.min_distances:
+            for key in list(self.min_distances.keys()):
                 # key here is the rigid body index of the obstacle
 
                 h = self.min_distances[key] - self.d_obstacle_offset # Control Barrier Function (CBF)
