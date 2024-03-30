@@ -840,7 +840,8 @@ class VelocityControllerNode:
                 # Do not proceed until the initial values have been set
                 if ((not (particle in self.particle_positions)) or \
                     (not self.is_perturbed_states_set_for_particle(particle)) or \
-                    (not self.is_perturbed_min_distances_set(particle))):                    
+                    (not self.is_perturbed_min_distances_set(particle))):   
+                    # print("---------------------------")
                     continue
                     
                 if self.control_outputs[particle] is not None:
@@ -879,9 +880,17 @@ class VelocityControllerNode:
                     odom.pose.pose.orientation.z = new_orientation[2]
                     odom.pose.pose.orientation.w = new_orientation[3]
 
+                    # Assign the linear and angular velocities to the Odometry message
+                    odom.twist.twist.linear.x = self.control_outputs[particle][0]
+                    odom.twist.twist.linear.y = self.control_outputs[particle][1]
+                    odom.twist.twist.linear.z = self.control_outputs[particle][2]
+                    odom.twist.twist.angular.x = self.control_outputs[particle][3]
+                    odom.twist.twist.angular.y = self.control_outputs[particle][4]
+                    odom.twist.twist.angular.z = self.control_outputs[particle][5]
+
                     # Update the pose of the particle 
-                    self.particle_positions[particle] = odom.pose.pose.position
-                    self.particle_orientations[particle] = odom.pose.pose.orientation
+                    # self.particle_positions[particle] = odom.pose.pose.position
+                    # self.particle_orientations[particle] = odom.pose.pose.orientation
 
                     # Publish
                     self.odom_publishers[particle].publish(odom)
