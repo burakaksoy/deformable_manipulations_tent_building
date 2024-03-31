@@ -58,7 +58,7 @@
         <rosparam param="line_marker_scale_multiplier"              subst_value="true">8.0</rosparam>
         <rosparam param="line_marker_color_rgba"                    subst_value="true">[0.0, 0.0, 0.0, 1.0]</rosparam>
         <rosparam param="frame_marker_scale"                        subst_value="true">0.003</rosparam>
-        <rosparam param="frame_marker_axis_length"                  subst_value="true">0.06</rosparam>
+        <rosparam param="frame_marker_axis_length"                  subst_value="true">0.1</rosparam>
 
         <rosparam param="rb_visualization_mode"                     subst_value="true">2</rosparam>
         <rosparam param="rb_markers_topic_name"                     subst_value="true">rigid_body_markers</rosparam>

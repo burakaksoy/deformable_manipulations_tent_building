@@ -20,6 +20,10 @@
     
     <arg name="dlo_node_console_logs"  default="log"/>
 
+
+    <arg name="line_marker_scale_multiplier"  default="2.0"/>
+    <arg name="line_marker_alpha"  default="1.0"/>
+
     <!-- x -->
     <group>
         <arg name="axis" value="x" />
@@ -69,8 +73,8 @@
 
             <!-- Parameters -->
             <rosparam param="dlo_visualization_mode"                    subst_value="true">1</rosparam>
-            <rosparam param="line_marker_scale_multiplier"              subst_value="true">8.0</rosparam>
-            <rosparam param="line_marker_color_rgba"                    subst_value="true">[1.0, 0.0, 0.0, 0.6]</rosparam>
+            <rosparam param="line_marker_scale_multiplier"              subst_value="true">$(arg line_marker_scale_multiplier)</rosparam>
+            <rosparam param="line_marker_color_rgba"                    subst_value="true">[1.0, 0.0, 0.0, $(arg line_marker_alpha)]</rosparam>
             <rosparam param="rb_visualization_mode"                     subst_value="true">-1</rosparam>
             <rosparam param="min_dist_line_marker_scale_multiplier"     subst_value="true">1.0</rosparam>
             <rosparam param="min_dist_line_marker_color_rgba"           subst_value="true">[1.0, 0.0, 0.0, 1.0]</rosparam>
@@ -128,8 +132,8 @@
 
             <!-- Parameters -->
             <rosparam param="dlo_visualization_mode"                    subst_value="true">1</rosparam>
-            <rosparam param="line_marker_scale_multiplier"              subst_value="true">8.0</rosparam>
-            <rosparam param="line_marker_color_rgba"                    subst_value="true">[0.0, 1.0, 0.0, 0.6]</rosparam>
+            <rosparam param="line_marker_scale_multiplier"              subst_value="true">$(arg line_marker_scale_multiplier)</rosparam>
+            <rosparam param="line_marker_color_rgba"                    subst_value="true">[0.0, 1.0, 0.0, $(arg line_marker_alpha)]</rosparam>
             <rosparam param="rb_visualization_mode"                     subst_value="true">-1</rosparam>
             <rosparam param="min_dist_line_marker_scale_multiplier"     subst_value="true">1.0</rosparam>
             <rosparam param="min_dist_line_marker_color_rgba"           subst_value="true">[0.0, 1.0, 0.0, 1.0]</rosparam>
@@ -187,8 +191,8 @@
 
             <!-- Parameters -->
             <rosparam param="dlo_visualization_mode"                    subst_value="true">1</rosparam>
-            <rosparam param="line_marker_scale_multiplier"              subst_value="true">8.0</rosparam>
-            <rosparam param="line_marker_color_rgba"                    subst_value="true">[0.0, 0.0, 1.0, 0.6]</rosparam>
+            <rosparam param="line_marker_scale_multiplier"              subst_value="true">$(arg line_marker_scale_multiplier)</rosparam>
+            <rosparam param="line_marker_color_rgba"                    subst_value="true">[0.0, 0.0, 1.0, $(arg line_marker_alpha)]</rosparam>
             <rosparam param="rb_visualization_mode"                     subst_value="true">-1</rosparam>
             <rosparam param="min_dist_line_marker_scale_multiplier"     subst_value="true">1.0</rosparam>
             <rosparam param="min_dist_line_marker_color_rgba"           subst_value="true">[0.0, 0.0, 1.0, 1.0]</rosparam>
@@ -246,8 +250,8 @@
 
             <!-- Parameters -->
             <rosparam param="dlo_visualization_mode"                    subst_value="true">1</rosparam>
-            <rosparam param="line_marker_scale_multiplier"              subst_value="true">8.0</rosparam>
-            <rosparam param="line_marker_color_rgba"                    subst_value="true">[1.0, 0.0, 0.0, 0.6]</rosparam>
+            <rosparam param="line_marker_scale_multiplier"              subst_value="true">$(arg line_marker_scale_multiplier)</rosparam>
+            <rosparam param="line_marker_color_rgba"                    subst_value="true">[1.0, 0.0, 0.0, $(arg line_marker_alpha)]</rosparam>
             <rosparam param="rb_visualization_mode"                     subst_value="true">-1</rosparam>
             <rosparam param="min_dist_line_marker_scale_multiplier"     subst_value="true">1.0</rosparam>
             <rosparam param="min_dist_line_marker_color_rgba"           subst_value="true">[1.0, 0.0, 0.0, 1.0]</rosparam>
@@ -306,8 +310,8 @@
 
             <!-- Parameters -->
             <rosparam param="dlo_visualization_mode"                    subst_value="true">1</rosparam>
-            <rosparam param="line_marker_scale_multiplier"              subst_value="true">8.0</rosparam>
-            <rosparam param="line_marker_color_rgba"                    subst_value="true">[0.0, 1.0, 0.0, 0.6]</rosparam>
+            <rosparam param="line_marker_scale_multiplier"              subst_value="true">$(arg line_marker_scale_multiplier)</rosparam>
+            <rosparam param="line_marker_color_rgba"                    subst_value="true">[0.0, 1.0, 0.0, $(arg line_marker_alpha)]</rosparam>
             <rosparam param="rb_visualization_mode"                     subst_value="true">-1</rosparam>
             <rosparam param="min_dist_line_marker_scale_multiplier"     subst_value="true">1.0</rosparam>
             <rosparam param="min_dist_line_marker_color_rgba"           subst_value="true">[0.0, 1.0, 0.0, 1.0]</rosparam>
@@ -365,8 +369,8 @@
 
             <!-- Parameters -->
             <rosparam param="dlo_visualization_mode"                    subst_value="true">1</rosparam>
-            <rosparam param="line_marker_scale_multiplier"              subst_value="true">8.0</rosparam>
-            <rosparam param="line_marker_color_rgba"                    subst_value="true">[0.0, 0.0, 1.0, 0.6]</rosparam>
+            <rosparam param="line_marker_scale_multiplier"              subst_value="true">$(arg line_marker_scale_multiplier)</rosparam>
+            <rosparam param="line_marker_color_rgba"                    subst_value="true">[0.0, 0.0, 1.0, $(arg line_marker_alpha)]</rosparam>
             <rosparam param="rb_visualization_mode"                     subst_value="true">-1</rosparam>
             <rosparam param="min_dist_line_marker_scale_multiplier"     subst_value="true">1.0</rosparam>
             <rosparam param="min_dist_line_marker_color_rgba"           subst_value="true">[0.0, 0.0, 1.0, 1.0]</rosparam>

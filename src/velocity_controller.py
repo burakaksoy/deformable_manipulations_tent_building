@@ -717,7 +717,7 @@ class VelocityControllerNode:
             # Mutiply the sign of the wrenches elementwise with the matrix multiplication of the Jacobian with the control input
             # to obtain the forces and torques
             # Add stress avoidance to the constraints
-            # constraints += [cp.multiply(-sign_ft, (J_ft @ u)) >= -alpha_h_ft]
+            constraints += [cp.multiply(-sign_ft, (J_ft @ u)) >= -alpha_h_ft]
         ## ---------------------------------------------------
 
         ## ---------------------------------------------------
@@ -1086,58 +1086,34 @@ class VelocityControllerNode:
         alpha_h = self.c1_alpha_obstacle*h if h >= 0 else self.c2_alpha_obstacle*h
         return alpha_h        
     
-    # def alpha_robot_stress(self,h):
-    #     # calculates the value of extended_class_K function \alpha(h) for ROBOT STRESS
-    #     # Piecewise Linear function is used
-    #     # h is 6x1 vector
-    #     # returns 6x1 alpha_h vector
-
-    #     # initialize the alpha_h vector
-    #     alpha_h = np.zeros(6)
-
-    #     c1f = 0.4 #  # used for forces
-    #     c2f = 0.4 # 
-
-    #     c1t = 0.4 #  # used for torques
-    #     c2t = 0.4 # 
-
-    #     # Make the first 3 elements of h multiplied by c1f or c2f
-    #     alpha_h[:3] = np.where(h[:3] >= 0, c1f*h[:3], c2f*h[:3])
-    #     # Make the second 3 elements of h multiplied by c1t or c2t
-    #     alpha_h[3:] = np.where(h[3:] >= 0, c1t*h[3:], c2t*h[3:])
-
-    #     return alpha_h
-    
-    # def alpha_robot_stress(self,h):
-    #     # calculates the value of extended_class_K function \alpha(h) for ROBOT STRESS
-    #     # Piecewise Linear function is used
-    #     # h is 6x1 vector
-    #     # returns 6x1 alpha_h vector
-    #     # see: https://www.desmos.com/calculator/vh8uei6a98 for the function visualizations
-    
-
-    #     # TODO: For h values greater or equal to 0
-    #     alpha_h = (self.c1_alpha_ft * h) / (self.wrench_max - h) ** self.c2_alpha_ft
-    #     # TODO: For h values less than 0
-    #     alpha_h = (self.c3_alpha_ft * h)
-
-    #     return alpha_h
-    
     def alpha_robot_stress(self, h):
+        """
+        Calculates the value of extended_class_K function \alpha(h) for ROBOT STRESS.
+        Returns 6x1 alpha_h vector.
+        Note that h is 6x1 vector and adjusted to be less than or equal to the wrench_max (h_ft = wrench_max - |wrench|).
+        Piecewise Linear function is used when h is less than 0,
+        when h is greater or equal to 0 a nonlinear function is used.
+        See: https://www.desmos.com/calculator/zm01kmphoa for the function visualizations
+        """
+        
+
         # Initialize alpha_h with zeros
         alpha_h = np.zeros(h.shape)
 
         # Boolean masks for the conditions
         condition_positive_or_zero = h >= 0
         condition_negative = h < 0
+        condition_close_to_limit = (self.wrench_max - h) < 1e-6  # Add an epsilon threshold to avoid division by zero
 
-        # Calculate for h values greater or equal to 0
-        # Apply the calculation only where the condition is True
-        alpha_h[condition_positive_or_zero] = (self.c1_alpha_ft[condition_positive_or_zero] * h[condition_positive_or_zero]) / \
-                                            (self.wrench_max[condition_positive_or_zero] - h[condition_positive_or_zero]) ** self.c2_alpha_ft[condition_positive_or_zero]
+        # Default values for when h is close to wrench_max
+        alpha_h[condition_close_to_limit] = float('inf')  # Assign a default value or handle appropriately
+
+        # Calculate for h values greater or equal to 0, excluding values close to the limit
+        valid_condition_positive_or_zero = condition_positive_or_zero & ~condition_close_to_limit
+        alpha_h[valid_condition_positive_or_zero] = (self.c1_alpha_ft[valid_condition_positive_or_zero] * h[valid_condition_positive_or_zero]) / \
+                                                    (self.wrench_max[valid_condition_positive_or_zero] - h[valid_condition_positive_or_zero]) ** self.c2_alpha_ft[valid_condition_positive_or_zero]
 
         # Calculate for h values less than 0
-        # Apply the calculation only where the condition is True
         alpha_h[condition_negative] = self.c3_alpha_ft[condition_negative] * h[condition_negative]
 
         return alpha_h

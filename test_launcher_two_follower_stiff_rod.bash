@@ -18,10 +18,10 @@ sleep 1s;
 gnome-terminal --tab --title="RQT_EZ_PUBLSHER" --command "bash -c \"source ~/.bashrc; rosrun rqt_ez_publisher rqt_ez_publisher; exec bash\"";
 sleep 1s;
 
-gnome-terminal --tab --title="Controller" --command "bash -c \"source ~/.bashrc; roslaunch deformable_manipulations_tent_building velocity_controller.launch; exec bash\"";
+gnome-terminal --tab --title="PlotJuggler" --command  "bash -c \"source ~/.bashrc; rosrun plotjuggler plotjuggler --layout ~/catkin_ws_deformable/src/deformable_manipulations_tent_building/plotjuggler/dlo_sim_FT_limits_test_plotjuggler_real_time.xml; exec bash\"";
 sleep 1s;
 
-gnome-terminal --title="PlotJuggler" --command  "bash -c \"source ~/.bashrc; rosrun plotjuggler plotjuggler --layout ~/catkin_ws_deformable/src/deformable_manipulations_tent_building/plotjuggler/dlo_sim_FT_limits_test_plotjuggler_real_time.xml; exec bash\"";
+gnome-terminal --tab --title="Controller" --command "bash -c \"source ~/.bashrc; roslaunch deformable_manipulations_tent_building velocity_controller.launch; exec bash\"";
 sleep 1s;
 
 # gnome-terminal --tab --title="Controller" --command "bash -c \"source ~/.bashrc; roslaunch deformable_manipulations_tent_building velocity_controller_single_min_dist.launch; exec bash\"";
