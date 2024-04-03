@@ -1,5 +1,7 @@
 ## -------------------------------------------------------
 ## Nominal Velocity controller parameters
+nominal_control_enabled: True # default:True
+
 # Nominal Controller Gains [x,y,z, Rx,Ry,Rz]
 # kp: [0.15,0.15,0.1, 0.15,0.15,0.15]
 # kp: [0.15,0.15,0.1, 0.15,0.15,0.15]
@@ -19,21 +21,34 @@ tip_particles: [0,39]
 target_poses: [[[-1, -1, 0.14], [5,   0, 90]],
                [[ 1, -1, 0.14], [175, 0, 90]]]
 
+# Maximum velocity limits for each robot
+# Any velocity command exceeding these limits will be scaled down to these values
+max_linear_velocity: 0.1 # [m/s]
+max_angular_velocity: 0.15 # [rad/s]
+
 ## -------------------------------------------------------
 ## Obstacle avoidance parameters
 obstacle_avoidance_enabled: True # default:True 
 
-k_low_pass_min_d: 0.5 # low pass filter coefficient for the ratio of minimum distance values of the previous values (Must be between [0,1])
+k_low_pass_min_d: 0.1 # low pass filter coefficient for the ratio of minimum distance values of the previous values (Must be between [0,1])
 
 # offset distance from the obstacles
-d_obstacle_offset: 0.1 # (meter) 
+d_obstacle_offset: 0.05 # (meter) 
 
-# alpha(h) function obstacle avoidance coefficients 
-# Piecewise linear function slope coefficients 
-# decrease c1_alpha_obstacle to start reacting early to be more safe, (but causes less nominal controller following)
-# increase c2_alpha_obstacle to remove the offset violation more agressively, (but may cause instability due to the discretization if too agressive)
-c1_alpha_obstacle: 0.05 # 0.05 # for h >= 0 # 0.4 # 0.8 # 0.01 # 0.01 # 0.00335 
-c2_alpha_obstacle: 2.0 # 2.0 # for h < 0 # 5.0 # 3.0 # 0.04 # 0.02 # 0.01 
+d_obstacle_freezone: 2.0 # (meter) # further than this distance, no obstacles considered by the controller 
+
+# # alpha(h) function obstacle avoidance coefficients 
+# # Piecewise linear function slope coefficients 
+# # decrease c1_alpha_obstacle to start reacting early to be more safe, (but causes less nominal controller following)
+# # increase c2_alpha_obstacle to remove the offset violation more agressively, (but may cause instability due to the discretization if too agressive)
+# c1_alpha_obstacle: 0.05 # 0.05 # for h >= 0 # 0.4 # 0.8 # 0.01 # 0.01 # 0.00335 
+# c2_alpha_obstacle: 2.0 # 2.0 # for h < 0 # 5.0 # 3.0 # 0.04 # 0.02 # 0.01 
+
+# alpha(h) function obstacle avoidance coefficients NEW
+# see: https://www.desmos.com/calculator/hc6lc7nzkk for the function visualizations
+c1_alpha_obstacle: 0.25 # 0.08 # Decrease this to start reacting early 
+c2_alpha_obstacle: 4.0 # 1.16 # 
+c3_alpha_obstacle: 2.0 # linear slope if h < 0 # Increase this to remove the offset violation more agressively
 
 ## -------------------------------------------------------
 ## Stress avoidance parameters
@@ -41,24 +56,15 @@ stress_avoidance_enabled: True # default:True
 
 k_low_pass_ft: 0.9 # low pass filter coefficient for the ratio of ft values of the previous values (Must be between [0,1])
 
-wrench_max: [200.0, 200.0, 200.0, 15.0, 15.0, 15.0] # maximum wrench values for each axis [Fx,Fy,Fz, Tx,Ty,Tz] 
+wrench_max: [200.0, 200.0, 200.0, 15.0, 15.0, 15.0] # maximum wrench values for each axis [Fx,Fy,Fz, Tx,Ty,Tz] for the Control Barrier Functions (CBF)s. 
+w_stress_offset: [30.0, 30.0, 30.0, 2.25, 2.25, 2.25] # offset values for the stress violation for each axis [Fx,Fy,Fz, Tx,Ty,Tz]
 
 # alpha(h_ft) function robot stress coefficients for each axis [Fx,Fy,Fz, Tx,Ty,Tz]
-# see: https://www.desmos.com/calculator/zm01kmphoa for the function visualizations
+# see: https://www.desmos.com/calculator/hc6lc7nzkk for the function visualizations
+# c1_alpha_ft: [0.1, 0.1, 0.1, 0.01, 0.01, 0.01] # Decrease this to start reacting early  
+c1_alpha_ft: [9, 9, 9, 0.6, 0.6, 0.6] # Decrease this to start reacting early  
+# c1_alpha_ft: [150, 150, 150, 20, 20, 20] # Decrease this to start reacting early  
+c2_alpha_ft: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0] # DO NOT CHANGE FROM 1.0. EXPERIMENTAL
+c3_alpha_ft: [10.0, 10.0, 10.0, 30.0, 30.0, 30.0] # linear slope if h < 0 # Increase this to remove the offset violation more agressively
 
-# c1_alpha_ft: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
-# c2_alpha_ft: [0.3, 0.3, 0.3, 0.615, 0.615, 0.615]
-# c3_alpha_ft: [0.5, 0.5, 0.5, 6.667, 6.667, 6.667] # linear slope if h < 0 
-
-# TOO RELAXED
-# c1_alpha_ft: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
-# c2_alpha_ft: [0.1, 0.1, 0.1, 0.2, 0.2, 0.2]
-# c3_alpha_ft: [0.02625, 0.02625, 0.02625, 0.35, 0.35, 0.35] # linear slope if h < 0 
-
-c1_alpha_ft: [110.3, 110.3, 110.3, 7.57, 7.57, 7.57] 
-c2_alpha_ft: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0] 
-c3_alpha_ft: [1.0, 1.0, 1.0, 2.0, 2.0, 2.0] # linear slope if h < 0 
-
-# c1_alpha_ft: [69.0, 69.0, 69.0, 4.6, 4.6, 4.6] 
-# c2_alpha_ft: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0] 
-# c3_alpha_ft: [0.73, 0.73, 0.73, 1.34, 1.34, 1.34] # linear slope if h < 0 
+## -------------------------------------------------------

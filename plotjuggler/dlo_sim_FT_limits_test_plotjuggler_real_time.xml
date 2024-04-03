@@ -1,13 +1,13 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <root>
- <tabbed_widget parent="main_window" name="Main Window">
+ <tabbed_widget name="Main Window" parent="main_window">
   <Tab containers="1" tab_name="tab1">
    <Container>
-    <DockSplitter orientation="-" sizes="0.500559;0.499441" count="2">
+    <DockSplitter orientation="-" sizes="0.5;0.5" count="2">
      <DockSplitter orientation="|" sizes="0.500317;0.499683" count="2">
       <DockArea name="...">
-       <plot style="Lines" mode="TimeSeries" flip_y="false" flip_x="false">
-        <range right="1711834034.880085" left="1711833983.921509" top="220.000000" bottom="-220.000000"/>
+       <plot style="Lines" mode="TimeSeries" flip_x="false" flip_y="false">
+        <range top="220.000000" left="1712052010.887534" bottom="-220.000000" right="1712052070.871350"/>
         <limitY min="-220" max="220"/>
         <curve color="#1f77b4" name="/dlo_state/states[5]/wrench/force/x"/>
         <curve color="#d62728" name="/dlo_state/states[5]/wrench/force/y"/>
@@ -15,8 +15,8 @@
        </plot>
       </DockArea>
       <DockArea name="...">
-       <plot style="Lines" mode="TimeSeries" flip_y="false" flip_x="false">
-        <range right="1711834034.880085" left="1711833983.921509" top="220.000000" bottom="-220.000000"/>
+       <plot style="Lines" mode="TimeSeries" flip_x="false" flip_y="false">
+        <range top="220.000000" left="1712052010.887534" bottom="-220.000000" right="1712052070.871350"/>
         <limitY min="-220" max="220"/>
         <curve color="#17becf" name="/dlo_state/states[34]/wrench/force/x"/>
         <curve color="#bcbd22" name="/dlo_state/states[34]/wrench/force/y"/>
@@ -24,10 +24,10 @@
        </plot>
       </DockArea>
      </DockSplitter>
-     <DockSplitter orientation="|" sizes="0.502222;0.497778" count="2">
+     <DockSplitter orientation="|" sizes="0.500317;0.499683" count="2">
       <DockArea name="...">
-       <plot style="Lines" mode="TimeSeries" flip_y="false" flip_x="false">
-        <range right="1711834034.880085" left="1711833983.921509" top="20.000000" bottom="-20.000000"/>
+       <plot style="Lines" mode="TimeSeries" flip_x="false" flip_y="false">
+        <range top="20.000000" left="1712052010.887534" bottom="-20.000000" right="1712052070.871350"/>
         <limitY min="-20" max="20"/>
         <curve color="#ff7f0e" name="/dlo_state/states[5]/wrench/torque/x"/>
         <curve color="#f14cc1" name="/dlo_state/states[5]/wrench/torque/y"/>
@@ -35,8 +35,8 @@
        </plot>
       </DockArea>
       <DockArea name="...">
-       <plot style="Lines" mode="TimeSeries" flip_y="false" flip_x="false">
-        <range right="1711834034.880085" left="1711833983.921509" top="20.000000" bottom="-20.000000"/>
+       <plot style="Lines" mode="TimeSeries" flip_x="false" flip_y="false">
+        <range top="20.000000" left="1712052010.887534" bottom="-20.000000" right="1712052070.871350"/>
         <limitY min="-20" max="20"/>
         <curve color="#d62728" name="/dlo_state/states[34]/wrench/torque/x"/>
         <curve color="#1ac938" name="/dlo_state/states[34]/wrench/torque/y"/>
@@ -53,8 +53,8 @@
      <DockSplitter orientation="|" sizes="0.500317;0.499683" count="2">
       <DockSplitter orientation="-" sizes="0.500559;0.499441" count="2">
        <DockArea name="...">
-        <plot style="Lines" mode="TimeSeries" flip_y="false" flip_x="false">
-         <range right="1711834034.880085" left="1711833983.921509" top="220.000000" bottom="-220.000000"/>
+        <plot style="Lines" mode="TimeSeries" flip_x="false" flip_y="false">
+         <range top="220.000000" left="1712052010.887534" bottom="-220.000000" right="1712052070.871350"/>
          <limitY min="-220" max="220"/>
          <curve color="#1f77b4" name="/dlo_state/states[5]/wrench/force/xfiltered"/>
          <curve color="#d62728" name="/dlo_state/states[5]/wrench/force/yfiltered"/>
@@ -62,9 +62,9 @@
         </plot>
        </DockArea>
        <DockArea name="...">
-        <plot style="Lines" mode="TimeSeries" flip_y="false" flip_x="false">
-         <range right="1711834034.880085" left="1711833983.921509" top="20.000000" bottom="-20.000000"/>
-         <limitY min="-20" max="20"/>
+        <plot style="Lines" mode="TimeSeries" flip_x="false" flip_y="false">
+         <range top="17.000000" left="1712052010.887534" bottom="-17.000000" right="1712052070.871350"/>
+         <limitY min="-17" max="17"/>
          <curve color="#ff7f0e" name="/dlo_state/states[5]/wrench/torque/xfiltered"/>
          <curve color="#f14cc1" name="/dlo_state/states[5]/wrench/torque/yfiltered"/>
          <curve color="#9467bd" name="/dlo_state/states[5]/wrench/torque/zfiltered"/>
@@ -73,8 +73,8 @@
       </DockSplitter>
       <DockSplitter orientation="-" sizes="0.500559;0.499441" count="2">
        <DockArea name="...">
-        <plot style="Lines" mode="TimeSeries" flip_y="false" flip_x="false">
-         <range right="1711834034.880085" left="1711833983.921509" top="220.000000" bottom="-220.000000"/>
+        <plot style="Lines" mode="TimeSeries" flip_x="false" flip_y="false">
+         <range top="220.000000" left="1712052010.887534" bottom="-220.000000" right="1712052070.871350"/>
          <limitY min="-220" max="220"/>
          <curve color="#17becf" name="/dlo_state/states[34]/wrench/force/xfiltered"/>
          <curve color="#bcbd22" name="/dlo_state/states[34]/wrench/force/yfiltered"/>
@@ -82,9 +82,9 @@
         </plot>
        </DockArea>
        <DockArea name="...">
-        <plot style="Lines" mode="TimeSeries" flip_y="false" flip_x="false">
-         <range right="1711834034.880085" left="1711833983.921509" top="20.000000" bottom="-20.000000"/>
-         <limitY min="-20" max="20"/>
+        <plot style="Lines" mode="TimeSeries" flip_x="false" flip_y="false">
+         <range top="17.000000" left="1712052010.887534" bottom="-17.000000" right="1712052070.871350"/>
+         <limitY min="-17" max="17"/>
          <curve color="#d62728" name="/dlo_state/states[34]/wrench/torque/xfiltered"/>
          <curve color="#1ac938" name="/dlo_state/states[34]/wrench/torque/yfiltered"/>
          <curve color="#ff7f0e" name="/dlo_state/states[34]/wrench/torque/zfiltered"/>
@@ -95,47 +95,47 @@
     </DockSplitter>
    </Container>
   </Tab>
+  <Tab containers="1" tab_name="tab3">
+   <Container>
+    <DockSplitter orientation="-" sizes="1" count="1">
+     <DockArea name="...">
+      <plot style="Lines" mode="TimeSeries" flip_x="false" flip_y="false">
+       <range top="1.000000" left="1712052010.882686" bottom="0.000000" right="1712052070.861829"/>
+       <limitY min="0" max="1"/>
+       <curve color="#f14cc1" name="/tent_building_velocity_controller/info_stress_avoidance_performance/data"/>
+      </plot>
+     </DockArea>
+    </DockSplitter>
+   </Container>
+  </Tab>
   <Tab containers="1" tab_name="tab2">
    <Container>
     <DockSplitter orientation="-" sizes="1" count="1">
-     <DockSplitter orientation="|" sizes="0.500317;0.499683" count="2">
+     <DockSplitter orientation="|" sizes="0.500267;0.499733" count="2">
+      <DockArea name="...">
+       <plot style="Lines" mode="TimeSeries" flip_x="false" flip_y="false">
+        <range top="1.000000" left="1712052010.882686" bottom="0.000000" right="1712052070.871350"/>
+        <limitY min="0" max="1"/>
+        <curve color="#f14cc1" name="/tent_building_velocity_controller/info_stress_avoidance_performance/data"/>
+       </plot>
+      </DockArea>
       <DockSplitter orientation="-" sizes="0.500559;0.499441" count="2">
        <DockArea name="...">
-        <plot style="Lines" mode="TimeSeries" flip_y="false" flip_x="false">
-         <range right="1711834034.880085" left="1711833983.921509" top="220.000000" bottom="-220.000000"/>
+        <plot style="Lines" mode="TimeSeries" flip_x="false" flip_y="false">
+         <range top="220.000000" left="1712052010.882686" bottom="-220.000000" right="1712052070.871350"/>
          <limitY min="-220" max="220"/>
-         <curve color="#ff7f0e" name="/dlo_state/states[5]/wrench/force/x_filtered05"/>
-         <curve color="#f14cc1" name="/dlo_state/states[5]/wrench/force/y_filtered05"/>
-         <curve color="#9467bd" name="/dlo_state/states[5]/wrench/force/z_filtered05"/>
+         <curve color="#1f77b4" name="/dlo_state/states[5]/wrench/force/xfiltered"/>
+         <curve color="#d62728" name="/dlo_state/states[5]/wrench/force/yfiltered"/>
+         <curve color="#1ac938" name="/dlo_state/states[5]/wrench/force/zfiltered"/>
         </plot>
        </DockArea>
        <DockArea name="...">
-        <plot style="Lines" mode="TimeSeries" flip_y="false" flip_x="false">
-         <range right="1711834034.880085" left="1711833983.921509" top="20.000000" bottom="-20.000000"/>
-         <limitY min="-20" max="20"/>
-         <curve color="#1f77b4" name="/dlo_state/states[5]/wrench/torque/x_filtered05"/>
-         <curve color="#d62728" name="/dlo_state/states[5]/wrench/torque/y_filtered05"/>
-         <curve color="#1ac938" name="/dlo_state/states[5]/wrench/torque/z_filtered05"/>
-        </plot>
-       </DockArea>
-      </DockSplitter>
-      <DockSplitter orientation="-" sizes="0.500559;0.499441" count="2">
-       <DockArea name="...">
-        <plot style="Lines" mode="TimeSeries" flip_y="false" flip_x="false">
-         <range right="1711834034.880085" left="1711833983.921509" top="220.000000" bottom="-220.000000"/>
-         <limitY min="-220" max="220"/>
-         <curve color="#17becf" name="/dlo_state/states[34]/wrench/force/x_filtered05"/>
-         <curve color="#bcbd22" name="/dlo_state/states[34]/wrench/force/y_filtered05"/>
-         <curve color="#1f77b4" name="/dlo_state/states[34]/wrench/force/z_filtered05"/>
-        </plot>
-       </DockArea>
-       <DockArea name="...">
-        <plot style="Lines" mode="TimeSeries" flip_y="false" flip_x="false">
-         <range right="1711834034.880085" left="1711833983.921509" top="20.000000" bottom="-20.000000"/>
-         <limitY min="-20" max="20"/>
-         <curve color="#d62728" name="/dlo_state/states[34]/wrench/torque/x_filtered05"/>
-         <curve color="#1ac938" name="/dlo_state/states[34]/wrench/torque/y_filtered05"/>
-         <curve color="#ff7f0e" name="/dlo_state/states[34]/wrench/torque/z_filtered05"/>
+        <plot style="Lines" mode="TimeSeries" flip_x="false" flip_y="false">
+         <range top="16.000000" left="1712052010.882686" bottom="-16.000000" right="1712052070.871350"/>
+         <limitY min="-16" max="16"/>
+         <curve color="#ff7f0e" name="/dlo_state/states[5]/wrench/torque/xfiltered"/>
+         <curve color="#f14cc1" name="/dlo_state/states[5]/wrench/torque/yfiltered"/>
+         <curve color="#9467bd" name="/dlo_state/states[5]/wrench/torque/zfiltered"/>
         </plot>
        </DockArea>
       </DockSplitter>
@@ -150,7 +150,7 @@
  <!-- - - - - - - - - - - - - - - -->
  <Plugins>
   <plugin ID="DataLoad CSV">
-   <parameters delimiter="0" time_axis=""/>
+   <parameters time_axis="" delimiter="0"/>
   </plugin>
   <plugin ID="DataLoad MCAP"/>
   <plugin ID="DataLoad ROS bags">
@@ -168,7 +168,7 @@
    <max_array_size value="100"/>
    <boolean_strings_to_number value="true"/>
    <remove_suffix_from_strings value="true"/>
-   <selected_topics value="/dlo_state"/>
+   <selected_topics value="/dlo_state;/tent_building_velocity_controller/info_stress_avoidance_performance;/tent_building_velocity_controller/info_wildcard_array;/tent_building_velocity_controller/info_wildcard_scalar"/>
   </plugin>
   <plugin ID="UDP Server"/>
   <plugin ID="WebSocket Server"/>
@@ -188,6 +188,19 @@
  <previouslyLoaded_Streamer name="ROS Topic Subscriber"/>
  <!-- - - - - - - - - - - - - - - -->
  <customMathEquations>
+  <snippet name="/dlo_state/states[5]/wrench/force/y_filtered05">
+   <global>prev = nil
+t = 0.5</global>
+   <function>if (prev == nil) then
+    prev = value
+    return value
+end
+
+filtered_value = t * prev + (1 - t) * value
+prev = filtered_value
+return filtered_value</function>
+   <linked_source>/dlo_state/states[5]/wrench/force/y</linked_source>
+  </snippet>
   <snippet name="/dlo_state/states[34]/wrench/torque/zfiltered_filtered05">
    <global>prev = nil
 t = 0.5</global>
@@ -201,7 +214,7 @@ prev = filtered_value
 return filtered_value</function>
    <linked_source>/dlo_state/states[34]/wrench/torque/zfiltered</linked_source>
   </snippet>
-  <snippet name="/dlo_state/states[34]/wrench/torque/yfiltered_filtered05">
+  <snippet name="/dlo_state/states[34]/wrench/force/x_filtered05">
    <global>prev = nil
 t = 0.5</global>
    <function>if (prev == nil) then
@@ -212,9 +225,9 @@ end
 filtered_value = t * prev + (1 - t) * value
 prev = filtered_value
 return filtered_value</function>
-   <linked_source>/dlo_state/states[34]/wrench/torque/yfiltered</linked_source>
+   <linked_source>/dlo_state/states[34]/wrench/force/x</linked_source>
   </snippet>
-  <snippet name="/dlo_state/states[34]/wrench/torque/z_filtered05">
+  <snippet name="/dlo_state/states[5]/wrench/torque/x_filtered05">
    <global>prev = nil
 t = 0.5</global>
    <function>if (prev == nil) then
@@ -225,33 +238,7 @@ end
 filtered_value = t * prev + (1 - t) * value
 prev = filtered_value
 return filtered_value</function>
-   <linked_source>/dlo_state/states[34]/wrench/torque/z</linked_source>
-  </snippet>
-  <snippet name="/dlo_state/states[34]/wrench/torque/y_filtered05">
-   <global>prev = nil
-t = 0.5</global>
-   <function>if (prev == nil) then
-    prev = value
-    return value
-end
-
-filtered_value = t * prev + (1 - t) * value
-prev = filtered_value
-return filtered_value</function>
-   <linked_source>/dlo_state/states[34]/wrench/torque/y</linked_source>
-  </snippet>
-  <snippet name="/dlo_state/states[34]/wrench/torque/x_filtered05">
-   <global>prev = nil
-t = 0.5</global>
-   <function>if (prev == nil) then
-    prev = value
-    return value
-end
-
-filtered_value = t * prev + (1 - t) * value
-prev = filtered_value
-return filtered_value</function>
-   <linked_source>/dlo_state/states[34]/wrench/torque/x</linked_source>
+   <linked_source>/dlo_state/states[5]/wrench/torque/x</linked_source>
   </snippet>
   <snippet name="/dlo_state/states[34]/wrench/force/zfiltered_filtered05">
    <global>prev = nil
@@ -266,7 +253,7 @@ prev = filtered_value
 return filtered_value</function>
    <linked_source>/dlo_state/states[34]/wrench/force/zfiltered</linked_source>
   </snippet>
-  <snippet name="/dlo_state/states[5]/wrench/force/x_filtered05">
+  <snippet name="/dlo_state/states[34]/wrench/torque/x_filtered05">
    <global>prev = nil
 t = 0.5</global>
    <function>if (prev == nil) then
@@ -277,11 +264,11 @@ end
 filtered_value = t * prev + (1 - t) * value
 prev = filtered_value
 return filtered_value</function>
-   <linked_source>/dlo_state/states[5]/wrench/force/x</linked_source>
+   <linked_source>/dlo_state/states[34]/wrench/torque/x</linked_source>
   </snippet>
-  <snippet name="/dlo_state/states[5]/wrench/torque/yfiltered">
+  <snippet name="/dlo_state/states[34]/wrench/torque/yfiltered_filtered05">
    <global>prev = nil
-t = 0.9</global>
+t = 0.5</global>
    <function>if (prev == nil) then
     prev = value
     return value
@@ -290,7 +277,7 @@ end
 filtered_value = t * prev + (1 - t) * value
 prev = filtered_value
 return filtered_value</function>
-   <linked_source>/dlo_state/states[5]/wrench/torque/y</linked_source>
+   <linked_source>/dlo_state/states[34]/wrench/torque/yfiltered</linked_source>
   </snippet>
   <snippet name="/dlo_state/states[5]/wrench/force/xfiltered">
    <global>prev = nil
@@ -305,9 +292,9 @@ prev = filtered_value
 return filtered_value</function>
    <linked_source>/dlo_state/states[5]/wrench/force/x</linked_source>
   </snippet>
-  <snippet name="/dlo_state/states[34]/wrench/force/yfiltered">
+  <snippet name="/dlo_state/states[34]/wrench/force/z_filtered05">
    <global>prev = nil
-t = 0.9</global>
+t = 0.5</global>
    <function>if (prev == nil) then
     prev = value
     return value
@@ -316,11 +303,11 @@ end
 filtered_value = t * prev + (1 - t) * value
 prev = filtered_value
 return filtered_value</function>
-   <linked_source>/dlo_state/states[34]/wrench/force/y</linked_source>
+   <linked_source>/dlo_state/states[34]/wrench/force/z</linked_source>
   </snippet>
-  <snippet name="/dlo_state/states[34]/wrench/torque/xfiltered">
+  <snippet name="/dlo_state/states[34]/wrench/torque/xfiltered_filtered05">
    <global>prev = nil
-t = 0.9</global>
+t = 0.5</global>
    <function>if (prev == nil) then
     prev = value
     return value
@@ -329,7 +316,33 @@ end
 filtered_value = t * prev + (1 - t) * value
 prev = filtered_value
 return filtered_value</function>
-   <linked_source>/dlo_state/states[34]/wrench/torque/x</linked_source>
+   <linked_source>/dlo_state/states[34]/wrench/torque/xfiltered</linked_source>
+  </snippet>
+  <snippet name="/dlo_state/states[5]/wrench/torque/zfiltered_filtered05">
+   <global>prev = nil
+t = 0.5</global>
+   <function>if (prev == nil) then
+    prev = value
+    return value
+end
+
+filtered_value = t * prev + (1 - t) * value
+prev = filtered_value
+return filtered_value</function>
+   <linked_source>/dlo_state/states[5]/wrench/torque/zfiltered</linked_source>
+  </snippet>
+  <snippet name="/dlo_state/states[5]/wrench/force/xfiltered_filtered05">
+   <global>prev = nil
+t = 0.5</global>
+   <function>if (prev == nil) then
+    prev = value
+    return value
+end
+
+filtered_value = t * prev + (1 - t) * value
+prev = filtered_value
+return filtered_value</function>
+   <linked_source>/dlo_state/states[5]/wrench/force/xfiltered</linked_source>
   </snippet>
   <snippet name="/dlo_state/states[5]/wrench/force/yfiltered">
    <global>prev = nil
@@ -344,46 +357,7 @@ prev = filtered_value
 return filtered_value</function>
    <linked_source>/dlo_state/states[5]/wrench/force/y</linked_source>
   </snippet>
-  <snippet name="/dlo_state/states[5]/wrench/force/zfiltered">
-   <global>prev = nil
-t = 0.9</global>
-   <function>if (prev == nil) then
-    prev = value
-    return value
-end
-
-filtered_value = t * prev + (1 - t) * value
-prev = filtered_value
-return filtered_value</function>
-   <linked_source>/dlo_state/states[5]/wrench/force/z</linked_source>
-  </snippet>
-  <snippet name="/dlo_state/states[5]/wrench/torque/xfiltered">
-   <global>prev = nil
-t = 0.9</global>
-   <function>if (prev == nil) then
-    prev = value
-    return value
-end
-
-filtered_value = t * prev + (1 - t) * value
-prev = filtered_value
-return filtered_value</function>
-   <linked_source>/dlo_state/states[5]/wrench/torque/x</linked_source>
-  </snippet>
-  <snippet name="/dlo_state/states[5]/wrench/torque/zfiltered">
-   <global>prev = nil
-t = 0.9</global>
-   <function>if (prev == nil) then
-    prev = value
-    return value
-end
-
-filtered_value = t * prev + (1 - t) * value
-prev = filtered_value
-return filtered_value</function>
-   <linked_source>/dlo_state/states[5]/wrench/torque/z</linked_source>
-  </snippet>
-  <snippet name="/dlo_state/states[5]/wrench/force/z_filtered05">
+  <snippet name="/dlo_state/states[34]/wrench/force/yfiltered_filtered05">
    <global>prev = nil
 t = 0.5</global>
    <function>if (prev == nil) then
@@ -394,22 +368,9 @@ end
 filtered_value = t * prev + (1 - t) * value
 prev = filtered_value
 return filtered_value</function>
-   <linked_source>/dlo_state/states[5]/wrench/force/z</linked_source>
+   <linked_source>/dlo_state/states[34]/wrench/force/yfiltered</linked_source>
   </snippet>
-  <snippet name="/dlo_state/states[34]/wrench/force/xfiltered">
-   <global>prev = nil
-t = 0.9</global>
-   <function>if (prev == nil) then
-    prev = value
-    return value
-end
-
-filtered_value = t * prev + (1 - t) * value
-prev = filtered_value
-return filtered_value</function>
-   <linked_source>/dlo_state/states[34]/wrench/force/x</linked_source>
-  </snippet>
-  <snippet name="/dlo_state/states[5]/wrench/force/yfiltered_filtered05">
+  <snippet name="/dlo_state/states[34]/wrench/force/xfiltered_filtered05">
    <global>prev = nil
 t = 0.5</global>
    <function>if (prev == nil) then
@@ -420,7 +381,46 @@ end
 filtered_value = t * prev + (1 - t) * value
 prev = filtered_value
 return filtered_value</function>
-   <linked_source>/dlo_state/states[5]/wrench/force/yfiltered</linked_source>
+   <linked_source>/dlo_state/states[34]/wrench/force/xfiltered</linked_source>
+  </snippet>
+  <snippet name="/dlo_state/states[5]/wrench/torque/y_filtered05">
+   <global>prev = nil
+t = 0.5</global>
+   <function>if (prev == nil) then
+    prev = value
+    return value
+end
+
+filtered_value = t * prev + (1 - t) * value
+prev = filtered_value
+return filtered_value</function>
+   <linked_source>/dlo_state/states[5]/wrench/torque/y</linked_source>
+  </snippet>
+  <snippet name="/dlo_state/states[5]/wrench/torque/xfiltered_filtered05">
+   <global>prev = nil
+t = 0.5</global>
+   <function>if (prev == nil) then
+    prev = value
+    return value
+end
+
+filtered_value = t * prev + (1 - t) * value
+prev = filtered_value
+return filtered_value</function>
+   <linked_source>/dlo_state/states[5]/wrench/torque/xfiltered</linked_source>
+  </snippet>
+  <snippet name="/dlo_state/states[5]/wrench/force/zfiltered_filtered05">
+   <global>prev = nil
+t = 0.5</global>
+   <function>if (prev == nil) then
+    prev = value
+    return value
+end
+
+filtered_value = t * prev + (1 - t) * value
+prev = filtered_value
+return filtered_value</function>
+   <linked_source>/dlo_state/states[5]/wrench/force/zfiltered</linked_source>
   </snippet>
   <snippet name="/dlo_state/states[5]/wrench/torque/z_filtered05">
    <global>prev = nil
@@ -461,7 +461,7 @@ prev = filtered_value
 return filtered_value</function>
    <linked_source>/dlo_state/states[34]/wrench/torque/z</linked_source>
   </snippet>
-  <snippet name="/dlo_state/states[5]/wrench/force/y_filtered05">
+  <snippet name="/dlo_state/states[34]/wrench/force/y_filtered05">
    <global>prev = nil
 t = 0.5</global>
    <function>if (prev == nil) then
@@ -472,9 +472,9 @@ end
 filtered_value = t * prev + (1 - t) * value
 prev = filtered_value
 return filtered_value</function>
-   <linked_source>/dlo_state/states[5]/wrench/force/y</linked_source>
+   <linked_source>/dlo_state/states[34]/wrench/force/y</linked_source>
   </snippet>
-  <snippet name="/dlo_state/states[5]/wrench/torque/x_filtered05">
+  <snippet name="/dlo_state/states[34]/wrench/torque/z_filtered05">
    <global>prev = nil
 t = 0.5</global>
    <function>if (prev == nil) then
@@ -485,9 +485,9 @@ end
 filtered_value = t * prev + (1 - t) * value
 prev = filtered_value
 return filtered_value</function>
-   <linked_source>/dlo_state/states[5]/wrench/torque/x</linked_source>
+   <linked_source>/dlo_state/states[34]/wrench/torque/z</linked_source>
   </snippet>
-  <snippet name="/dlo_state/states[34]/wrench/force/x_filtered05">
+  <snippet name="/dlo_state/states[34]/wrench/torque/y_filtered05">
    <global>prev = nil
 t = 0.5</global>
    <function>if (prev == nil) then
@@ -498,61 +498,9 @@ end
 filtered_value = t * prev + (1 - t) * value
 prev = filtered_value
 return filtered_value</function>
-   <linked_source>/dlo_state/states[34]/wrench/force/x</linked_source>
+   <linked_source>/dlo_state/states[34]/wrench/torque/y</linked_source>
   </snippet>
-  <snippet name="/dlo_state/states[5]/wrench/torque/y_filtered05">
-   <global>prev = nil
-t = 0.5</global>
-   <function>if (prev == nil) then
-    prev = value
-    return value
-end
-
-filtered_value = t * prev + (1 - t) * value
-prev = filtered_value
-return filtered_value</function>
-   <linked_source>/dlo_state/states[5]/wrench/torque/y</linked_source>
-  </snippet>
-  <snippet name="/dlo_state/states[5]/wrench/force/zfiltered_filtered05">
-   <global>prev = nil
-t = 0.5</global>
-   <function>if (prev == nil) then
-    prev = value
-    return value
-end
-
-filtered_value = t * prev + (1 - t) * value
-prev = filtered_value
-return filtered_value</function>
-   <linked_source>/dlo_state/states[5]/wrench/force/zfiltered</linked_source>
-  </snippet>
-  <snippet name="/dlo_state/states[5]/wrench/torque/xfiltered_filtered05">
-   <global>prev = nil
-t = 0.5</global>
-   <function>if (prev == nil) then
-    prev = value
-    return value
-end
-
-filtered_value = t * prev + (1 - t) * value
-prev = filtered_value
-return filtered_value</function>
-   <linked_source>/dlo_state/states[5]/wrench/torque/xfiltered</linked_source>
-  </snippet>
-  <snippet name="/dlo_state/states[34]/wrench/force/yfiltered_filtered05">
-   <global>prev = nil
-t = 0.5</global>
-   <function>if (prev == nil) then
-    prev = value
-    return value
-end
-
-filtered_value = t * prev + (1 - t) * value
-prev = filtered_value
-return filtered_value</function>
-   <linked_source>/dlo_state/states[34]/wrench/force/yfiltered</linked_source>
-  </snippet>
-  <snippet name="/dlo_state/states[34]/wrench/torque/yfiltered">
+  <snippet name="/dlo_state/states[5]/wrench/torque/zfiltered">
    <global>prev = nil
 t = 0.9</global>
    <function>if (prev == nil) then
@@ -563,7 +511,124 @@ end
 filtered_value = t * prev + (1 - t) * value
 prev = filtered_value
 return filtered_value</function>
-   <linked_source>/dlo_state/states[34]/wrench/torque/y</linked_source>
+   <linked_source>/dlo_state/states[5]/wrench/torque/z</linked_source>
+  </snippet>
+  <snippet name="/dlo_state/states[5]/wrench/force/x_filtered05">
+   <global>prev = nil
+t = 0.5</global>
+   <function>if (prev == nil) then
+    prev = value
+    return value
+end
+
+filtered_value = t * prev + (1 - t) * value
+prev = filtered_value
+return filtered_value</function>
+   <linked_source>/dlo_state/states[5]/wrench/force/x</linked_source>
+  </snippet>
+  <snippet name="/dlo_state/states[5]/wrench/torque/yfiltered">
+   <global>prev = nil
+t = 0.9</global>
+   <function>if (prev == nil) then
+    prev = value
+    return value
+end
+
+filtered_value = t * prev + (1 - t) * value
+prev = filtered_value
+return filtered_value</function>
+   <linked_source>/dlo_state/states[5]/wrench/torque/y</linked_source>
+  </snippet>
+  <snippet name="/dlo_state/states[5]/wrench/force/z_filtered05">
+   <global>prev = nil
+t = 0.5</global>
+   <function>if (prev == nil) then
+    prev = value
+    return value
+end
+
+filtered_value = t * prev + (1 - t) * value
+prev = filtered_value
+return filtered_value</function>
+   <linked_source>/dlo_state/states[5]/wrench/force/z</linked_source>
+  </snippet>
+  <snippet name="/dlo_state/states[34]/wrench/force/xfiltered">
+   <global>prev = nil
+t = 0.9</global>
+   <function>if (prev == nil) then
+    prev = value
+    return value
+end
+
+filtered_value = t * prev + (1 - t) * value
+prev = filtered_value
+return filtered_value</function>
+   <linked_source>/dlo_state/states[34]/wrench/force/x</linked_source>
+  </snippet>
+  <snippet name="/dlo_state/states[5]/wrench/torque/xfiltered">
+   <global>prev = nil
+t = 0.9</global>
+   <function>if (prev == nil) then
+    prev = value
+    return value
+end
+
+filtered_value = t * prev + (1 - t) * value
+prev = filtered_value
+return filtered_value</function>
+   <linked_source>/dlo_state/states[5]/wrench/torque/x</linked_source>
+  </snippet>
+  <snippet name="/dlo_state/states[5]/wrench/force/zfiltered">
+   <global>prev = nil
+t = 0.9</global>
+   <function>if (prev == nil) then
+    prev = value
+    return value
+end
+
+filtered_value = t * prev + (1 - t) * value
+prev = filtered_value
+return filtered_value</function>
+   <linked_source>/dlo_state/states[5]/wrench/force/z</linked_source>
+  </snippet>
+  <snippet name="/dlo_state/states[34]/wrench/force/yfiltered">
+   <global>prev = nil
+t = 0.9</global>
+   <function>if (prev == nil) then
+    prev = value
+    return value
+end
+
+filtered_value = t * prev + (1 - t) * value
+prev = filtered_value
+return filtered_value</function>
+   <linked_source>/dlo_state/states[34]/wrench/force/y</linked_source>
+  </snippet>
+  <snippet name="/dlo_state/states[34]/wrench/torque/xfiltered">
+   <global>prev = nil
+t = 0.9</global>
+   <function>if (prev == nil) then
+    prev = value
+    return value
+end
+
+filtered_value = t * prev + (1 - t) * value
+prev = filtered_value
+return filtered_value</function>
+   <linked_source>/dlo_state/states[34]/wrench/torque/x</linked_source>
+  </snippet>
+  <snippet name="/dlo_state/states[5]/wrench/force/yfiltered_filtered05">
+   <global>prev = nil
+t = 0.5</global>
+   <function>if (prev == nil) then
+    prev = value
+    return value
+end
+
+filtered_value = t * prev + (1 - t) * value
+prev = filtered_value
+return filtered_value</function>
+   <linked_source>/dlo_state/states[5]/wrench/force/yfiltered</linked_source>
   </snippet>
   <snippet name="/dlo_state/states[5]/wrench/torque/yfiltered_filtered05">
    <global>prev = nil
@@ -578,9 +643,9 @@ prev = filtered_value
 return filtered_value</function>
    <linked_source>/dlo_state/states[5]/wrench/torque/yfiltered</linked_source>
   </snippet>
-  <snippet name="/dlo_state/states[5]/wrench/force/xfiltered_filtered05">
+  <snippet name="/dlo_state/states[34]/wrench/torque/yfiltered">
    <global>prev = nil
-t = 0.5</global>
+t = 0.9</global>
    <function>if (prev == nil) then
     prev = value
     return value
@@ -589,72 +654,7 @@ end
 filtered_value = t * prev + (1 - t) * value
 prev = filtered_value
 return filtered_value</function>
-   <linked_source>/dlo_state/states[5]/wrench/force/xfiltered</linked_source>
-  </snippet>
-  <snippet name="/dlo_state/states[5]/wrench/torque/zfiltered_filtered05">
-   <global>prev = nil
-t = 0.5</global>
-   <function>if (prev == nil) then
-    prev = value
-    return value
-end
-
-filtered_value = t * prev + (1 - t) * value
-prev = filtered_value
-return filtered_value</function>
-   <linked_source>/dlo_state/states[5]/wrench/torque/zfiltered</linked_source>
-  </snippet>
-  <snippet name="/dlo_state/states[34]/wrench/force/xfiltered_filtered05">
-   <global>prev = nil
-t = 0.5</global>
-   <function>if (prev == nil) then
-    prev = value
-    return value
-end
-
-filtered_value = t * prev + (1 - t) * value
-prev = filtered_value
-return filtered_value</function>
-   <linked_source>/dlo_state/states[34]/wrench/force/xfiltered</linked_source>
-  </snippet>
-  <snippet name="/dlo_state/states[34]/wrench/force/y_filtered05">
-   <global>prev = nil
-t = 0.5</global>
-   <function>if (prev == nil) then
-    prev = value
-    return value
-end
-
-filtered_value = t * prev + (1 - t) * value
-prev = filtered_value
-return filtered_value</function>
-   <linked_source>/dlo_state/states[34]/wrench/force/y</linked_source>
-  </snippet>
-  <snippet name="/dlo_state/states[34]/wrench/torque/xfiltered_filtered05">
-   <global>prev = nil
-t = 0.5</global>
-   <function>if (prev == nil) then
-    prev = value
-    return value
-end
-
-filtered_value = t * prev + (1 - t) * value
-prev = filtered_value
-return filtered_value</function>
-   <linked_source>/dlo_state/states[34]/wrench/torque/xfiltered</linked_source>
-  </snippet>
-  <snippet name="/dlo_state/states[34]/wrench/force/z_filtered05">
-   <global>prev = nil
-t = 0.5</global>
-   <function>if (prev == nil) then
-    prev = value
-    return value
-end
-
-filtered_value = t * prev + (1 - t) * value
-prev = filtered_value
-return filtered_value</function>
-   <linked_source>/dlo_state/states[34]/wrench/force/z</linked_source>
+   <linked_source>/dlo_state/states[34]/wrench/torque/y</linked_source>
   </snippet>
  </customMathEquations>
  <snippets/>

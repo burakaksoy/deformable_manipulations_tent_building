@@ -75,6 +75,9 @@ class NominalController:
 class VelocityControllerNode:
     def __init__(self):
         self.enabled = False  # Flag to enable/disable controller
+        self.nominal_control_enabled = rospy.get_param("~nominal_control_enabled", True)
+        self.obstacle_avoidance_enabled = rospy.get_param("~obstacle_avoidance_enabled", True)
+        self.stress_avoidance_enabled = rospy.get_param("~stress_avoidance_enabled", True)
 
         # Create the service server for enable/disable the controller
         self.set_enable_controller_server = rospy.Service('~set_enable_controller', SetBool, self.set_enable_controller)
@@ -86,11 +89,17 @@ class VelocityControllerNode:
         while (not self.custom_static_particles):
             try:
                 self.custom_static_particles = rospy.get_param("/custom_static_particles") # Default static particles 
+                # self.custom_static_particles = [5]
                 self.odom_topic_prefix = rospy.get_param("/custom_static_particles_odom_topic_prefix") # published
             except:
                 rospy.logwarn("No particles obtained from ROS parameters!.")
                 time.sleep(0.5)
         
+        # Create information publishers for the evaluation of the controller
+        self.info_pub_stress_avoidance_performance = rospy.Publisher("~info_stress_avoidance_performance", Float32, queue_size=10)
+        self.info_pub_wildcard_array = rospy.Publisher("~info_wildcard_array", Float32MultiArray, queue_size=10)
+        self.info_pub_wildcard_scalar = rospy.Publisher("~info_wildcard_scalar", Float32, queue_size=10)
+
         # Create an (odom) Publisher for each static particle (i.e. held particles by the robots) as control output to them.
         self.odom_publishers = {}
         for particle in self.custom_static_particles:
@@ -107,29 +116,38 @@ class VelocityControllerNode:
         self.kp = np.array(rospy.get_param("~kp", [1.0,1.0,1.0, 1.0,1.0,1.0]))
         self.kd = np.array(rospy.get_param("~kd", [0.0,0.0,0.0, 0.0,0.0,0.0]))
 
-
         self.k_low_pass_ft = rospy.get_param("~k_low_pass_ft", 0.9) # low pass filter coefficient for the ft values of the previous values
         self.k_low_pass_min_d = rospy.get_param("~k_low_pass_min_d", 0.5) # low pass filter coefficient for the minimum distance values of the previous values
+
+        self.max_linear_velocity = rospy.get_param("~max_linear_velocity", 0.1) # m/s
+        self.max_angular_velocity = rospy.get_param("~max_angular_velocity", 0.15) # rad/s
 
         # Particle/Segment ids of the tip points of the tent pole 
         # to be placed into the grommets
         self.tip_particles = rospy.get_param("~tip_particles", [0,39])
         
-        self.obstacle_avoidance_enabled = rospy.get_param("~obstacle_avoidance_enabled", True)
-        self.stress_avoidance_enabled = rospy.get_param("~stress_avoidance_enabled", True)
-
         # Offset distance from the obstacles
         self.d_obstacle_offset = rospy.get_param("~d_obstacle_offset", 0.05)
+
+        # Obstacle avoidance free zone distance
+        # further than this distance, no obstacles considered by the controller 
+        self.d_obstacle_freezone = rospy.get_param("~d_obstacle_freezone", 2.0)
+
+        # Obstacle avoidance alpha(h_obstacle) function coefficients 
         self.c1_alpha_obstacle = rospy.get_param("~c1_alpha_obstacle", 0.05)
         self.c2_alpha_obstacle = rospy.get_param("~c2_alpha_obstacle", 2.0)
+        self.c3_alpha_obstacle = rospy.get_param("~c3_alpha_obstacle", 2.0)
 
         # Safe wrench values for the robots, assumed to be fixed and the same everywhere. 
         # TODO: Make it variable based on the robot kinematics and dynamics in the future.
         self.wrench_max = np.array(rospy.get_param("~wrench_max", [200.0, 200.0, 200.0, 15.0, 15.0, 15.0]))
 
+        # stress offset values for each axis [Fx,Fy,Fz, Tx,Ty,Tz]
+        self.w_stress_offset = np.array(rospy.get_param("~w_stress_offset", [30.0, 30.0, 30.0, 2.25, 2.25, 2.25])) 
+
         # alpha(h_ft) function robot stress coefficients for each axis [Fx,Fy,Fz, Tx,Ty,Tz]
         self.c1_alpha_ft = np.array(rospy.get_param("~c1_alpha_ft", [1.0, 1.0, 1.0, 0.5, 0.5, 0.5]))
-        self.c2_alpha_ft = np.array(rospy.get_param("~c2_alpha_ft", [0.5, 0.5, 0.5, 0.5, 0.5, 0.5]))
+        self.c2_alpha_ft = np.array(rospy.get_param("~c2_alpha_ft", [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]))
         self.c3_alpha_ft = np.array(rospy.get_param("~c3_alpha_ft", [0.8, 0.8, 0.8, 1.0, 1.0, 1.0]))
 
 
@@ -615,25 +633,25 @@ class VelocityControllerNode:
                 # btw. the current holding point wrench and the perturbated holding point wrench caused by the perturbation of custom_static_particle pose in each direction
 
                 # Note that the forces and torques are negated to calculate the wrenches needed to be applied by the robots.
-                current_wrench = -self.particle_wrenches[particle1]
+                current_wrench = self.particle_wrenches[particle1]
                 
                 # dx direction
-                perturbed_wrench = -self.particle_wrenches_dx[particle][particle1]
+                perturbed_wrench = self.particle_wrenches_dx[particle][particle1]
                 J[ (6*idx_particle1) : (6*(idx_particle1+1)) , 6*idx_particle+0 ] = (perturbed_wrench-current_wrench)/self.delta_x
                 # dy direction
-                perturbed_wrench = -self.particle_wrenches_dy[particle][particle1]
+                perturbed_wrench = self.particle_wrenches_dy[particle][particle1]
                 J[ (6*idx_particle1) : (6*(idx_particle1+1)) , 6*idx_particle+1 ] = (perturbed_wrench-current_wrench)/self.delta_y
                 # dz direction
-                perturbed_wrench = -self.particle_wrenches_dz[particle][particle1]
+                perturbed_wrench = self.particle_wrenches_dz[particle][particle1]
                 J[ (6*idx_particle1) : (6*(idx_particle1+1)) , 6*idx_particle+2 ] = (perturbed_wrench-current_wrench)/self.delta_z
                 # dth_x direction
-                perturbed_wrench = -self.particle_wrenches_dth_x[particle][particle1]
+                perturbed_wrench = self.particle_wrenches_dth_x[particle][particle1]
                 J[ (6*idx_particle1) : (6*(idx_particle1+1)) , 6*idx_particle+3 ] = (perturbed_wrench-current_wrench)/self.delta_th_x
                 # dy direction
-                perturbed_wrench = -self.particle_wrenches_dth_y[particle][particle1]
+                perturbed_wrench = self.particle_wrenches_dth_y[particle][particle1]
                 J[ (6*idx_particle1) : (6*(idx_particle1+1)) , 6*idx_particle+4 ] = (perturbed_wrench-current_wrench)/self.delta_th_y
                 # dz direction
-                perturbed_wrench = -self.particle_wrenches_dth_z[particle][particle1]
+                perturbed_wrench = self.particle_wrenches_dth_z[particle][particle1]
                 J[ (6*idx_particle1) : (6*(idx_particle1+1)) , 6*idx_particle+5 ] = (perturbed_wrench-current_wrench)/self.delta_th_z            
 
         return J
@@ -696,30 +714,36 @@ class VelocityControllerNode:
                 
         ## ---------------------------------------------------
         # DEFINE STRESS CONTROL BARRIER CONSTRAINTS 
+        
+        # Initialize the variables for the stress avoidance
+        h_ft = np.zeros(6*len(self.custom_static_particles)) # Control Barrier Function (CBF) for the forces and torques
+        h_ft_normalized = np.zeros(6*len(self.custom_static_particles)) # CBF normalized values for performance monitoring
+        alpha_h_ft = np.zeros(6*len(self.custom_static_particles)) # alpha for the forces and torques
+        sign_ft = np.zeros(6*len(self.custom_static_particles)) # sign for the forces and torques
+
+        # Calculate the stress avoidance constraints for each custom static particle
+        for idx_particle, particle in enumerate(self.custom_static_particles):
+            h_ft[6*idx_particle:6*(idx_particle+1)] = self.wrench_max - self.w_stress_offset - np.abs(self.particle_wrenches[particle]) # h_ft = wrench_max - wrench_offset - |wrench|
+            h_ft_normalized[6*idx_particle:6*(idx_particle+1)] = (h_ft[6*idx_particle:6*(idx_particle+1)]+self.w_stress_offset)/self.wrench_max
+            alpha_h_ft[6*idx_particle:6*(idx_particle+1)] = self.alpha_robot_stress(h_ft[6*idx_particle:6*(idx_particle+1)])
+            sign_ft[6*idx_particle:6*(idx_particle+1)] = np.sign(self.particle_wrenches[particle])
+
+        # Calculate stress avoidance performance monitoring values
+        self.calculate_and_publish_stress_avoidance_performance(h_ft_normalized)
+
         if self.stress_avoidance_enabled:
-            
-            h_ft = np.zeros(6*len(self.custom_static_particles)) # Control Barrier Function (CBF) for the forces and torques
-            alpha_h_ft = np.zeros(6*len(self.custom_static_particles)) # alpha for the forces and torques
-            sign_ft = np.zeros(6*len(self.custom_static_particles)) # sign for the forces and torques
-
-            for idx_particle, particle in enumerate(self.custom_static_particles):
-                
-                h_ft[6*idx_particle:6*(idx_particle+1)] = self.wrench_max - np.abs(self.particle_wrenches[particle]) # h_ft = wrench_max - |wrench|
-                alpha_h_ft[6*idx_particle:6*(idx_particle+1)] = self.alpha_robot_stress(h_ft[6*idx_particle:6*(idx_particle+1)])
-                sign_ft[6*idx_particle:6*(idx_particle+1)] = np.sign(self.particle_wrenches[particle])
-
             # Calculate the forces and torques Jacobian
             J_ft = self.calculate_jacobian_ft() # 12x12
-
             # pretty_print_array(J_ft, precision=2)
             # print("---------------------------")
 
-            # Mutiply the sign of the wrenches elementwise with the matrix multiplication of the Jacobian with the control input
-            # to obtain the forces and torques
+            # Mutiply the sign of the wrenches elementwise 
+            # with the matrix multiplication of the Jacobian with the control input
+            # to obtain the forces and torques.
             # Add stress avoidance to the constraints
             constraints += [cp.multiply(-sign_ft, (J_ft @ u)) >= -alpha_h_ft]
         ## ---------------------------------------------------
-
+            
         ## ---------------------------------------------------
         ## Add also limit to the feasible u
         
@@ -729,8 +753,8 @@ class VelocityControllerNode:
         # # constraints += [cp.norm(u,2)     <= u_max] # If 2-norm is used, the constraint is Quadratic, use CLARABEL or ECOS solver (Not QP anymore, a conic solver is needed)
 
         # With using the different limits to linear and angular velocities
-        u_linear_max = 0.1
-        u_angular_max = 0.15
+        u_linear_max = self.max_linear_velocity*3.0 # 0.3 # 0.1
+        u_angular_max = self.max_angular_velocity*3.0 # 0.5 # 0.15
 
         # The following slices select every first 3 elements of each group of 6 in the array u.
         linear_indices = np.concatenate([np.arange(i, i+3) for i in range(0, 6*len(self.custom_static_particles), 6)])
@@ -777,7 +801,7 @@ class VelocityControllerNode:
 
         # Print the available qp solvers
         # e.g. ['CLARABEL', 'CVXOPT', 'ECOS', 'ECOS_BB', 'GLOP', 'GLPK', 'GLPK_MI', 'GUROBI', 'MOSEK', 'OSQP', 'PDLP', 'SCIPY', 'SCS']
-        rospy.loginfo_once(str(cp.installed_solvers()))
+        rospy.loginfo_once("Installed solvers:" + str(cp.installed_solvers()))
         # Print the solver used to solve the problem (once)
         rospy.loginfo_once("Solver used: " + str(problem.solver_stats.solver_name))
 
@@ -796,38 +820,40 @@ class VelocityControllerNode:
     def calculate_control_outputs_timer_callback(self,event):
         # Only publish if enabled
         if self.enabled:
-            J_tip = self.calculate_jacobian_tip() # 12x12
-            # pretty_print_array(J_tip)
-            # print("---------------------------")
+            # Calculate the nominal control outputs
+            if self.nominal_control_enabled:
+                J_tip = self.calculate_jacobian_tip() # 12x12
+                # pretty_print_array(J_tip)
+                # print("---------------------------")
 
-            err_tip = self.calculate_error_tip() # 12x1
-            # pretty_print_array(err_tip)
-            # print("---------------------------")
+                err_tip = self.calculate_error_tip() # 12x1
+                # pretty_print_array(err_tip)
+                # print("---------------------------")
 
-            # # error is np.array, publish its norm for information
-            # err_tip_norm = np.linalg.norm(err_tip)
-            # self.info_pos_error_norm_publishers[particle].publish(Float32(data=pos_error_norm))
-        
-            # control_output = self.kp*np.dot(np.linalg.pinv(J_tip), err_tip)
-            control_output = np.squeeze(np.dot(np.linalg.pinv(J_tip), err_tip)) # (12,)
+                # # error is np.array, publish its norm for information
+                # err_tip_norm = np.linalg.norm(err_tip)
+                # self.info_pos_error_norm_publishers[particle].publish(Float32(data=pos_error_norm))
+            
+                # control_output = self.kp*np.dot(np.linalg.pinv(J_tip), err_tip)
+                control_output = np.squeeze(np.dot(np.linalg.pinv(J_tip), err_tip)) # (12,)
 
-            # Apply the proportinal gains
-            for idx_particle, particle in enumerate(self.custom_static_particles):
-                # Get nominal control output of that particle
-                control_output[6*idx_particle:6*(idx_particle+1)] = self.kp * control_output[6*idx_particle:6*(idx_particle+1)] # nominal
+                # Apply the proportinal gains
+                for idx_particle, particle in enumerate(self.custom_static_particles):
+                    # Get nominal control output of that particle
+                    control_output[6*idx_particle:6*(idx_particle+1)] = self.kp * control_output[6*idx_particle:6*(idx_particle+1)] # nominal
+            else:
+                # Set the nominal control output to zero
+                control_output = np.zeros(6*len(self.custom_static_particles))
 
             # print("Nominal control_output")
             # pretty_print_array(control_output)
             # print("---------------------------")
 
-            # init_t = time.time()
-                
+            # init_t = time.time()                
             # Calculate safe control output with obstacle avoidance        
             control_output = self.calculate_safe_control_output(control_output) # safe # (12,)
-            
             # rospy.logwarn("QP solver calculation time: " + str(1000*(time.time() - init_t)) + " ms.")
             
-
             # Assign the calculated control inputs
             for idx_particle, particle in enumerate(self.custom_static_particles):    
                 if control_output is not None:
@@ -858,15 +884,24 @@ class VelocityControllerNode:
                     # dt_check = self.nominal_controllers[particle].get_dt() # 
                     dt = 1./self.pub_rate_odom
 
+                    # Scale down the calculated output if its norm is higher than the specified norm max_u
+                    control_outputs_linear = self.scale_down_vector(self.control_outputs[particle][:3], max_u=self.max_linear_velocity)
+
                     # Control output is the new position
-                    odom.pose.pose.position.x =  self.particle_positions[particle].x + self.control_outputs[particle][0]*dt
-                    odom.pose.pose.position.y =  self.particle_positions[particle].y + self.control_outputs[particle][1]*dt
-                    odom.pose.pose.position.z =  self.particle_positions[particle].z + self.control_outputs[particle][2]*dt
+                    odom.pose.pose.position.x =  self.particle_positions[particle].x + control_outputs_linear[0]*dt
+                    odom.pose.pose.position.y =  self.particle_positions[particle].y + control_outputs_linear[1]*dt
+                    odom.pose.pose.position.z =  self.particle_positions[particle].z + control_outputs_linear[2]*dt
 
                     # The new orientation
                     axis_angle = np.array(self.control_outputs[particle][3:6])
                     angle = np.linalg.norm(axis_angle)
                     axis = axis_angle / angle if (angle > 1e-9) else np.array([0, 0, 1])
+                    
+                    # Scale down the angle as omega.
+                    angle = self.scale_down_vector(angle, max_u=self.max_angular_velocity) if (angle > 1e-9) else angle
+
+                    # Update axis_angle
+                    axis_angle = angle * axis
 
                     # Convert axis-angle to quaternion
                     delta_orientation = tf_trans.quaternion_about_axis(angle * dt, axis)
@@ -886,12 +921,12 @@ class VelocityControllerNode:
                     odom.pose.pose.orientation.w = new_orientation[3]
 
                     # Assign the linear and angular velocities to the Odometry message
-                    odom.twist.twist.linear.x = self.control_outputs[particle][0]
-                    odom.twist.twist.linear.y = self.control_outputs[particle][1]
-                    odom.twist.twist.linear.z = self.control_outputs[particle][2]
-                    odom.twist.twist.angular.x = self.control_outputs[particle][3]
-                    odom.twist.twist.angular.y = self.control_outputs[particle][4]
-                    odom.twist.twist.angular.z = self.control_outputs[particle][5]
+                    odom.twist.twist.linear.x = control_outputs_linear[0]
+                    odom.twist.twist.linear.y = control_outputs_linear[1]
+                    odom.twist.twist.linear.z = control_outputs_linear[2]
+                    odom.twist.twist.angular.x = axis_angle[0]
+                    odom.twist.twist.angular.y = axis_angle[1]
+                    odom.twist.twist.angular.z = axis_angle[2]
 
                     # Update the pose of the particle 
                     # self.particle_positions[particle] = odom.pose.pose.position
@@ -1080,10 +1115,54 @@ class VelocityControllerNode:
             raise ValueError("Cannot normalize a quaternion with zero norm.")
         return quaternion / norm
 
+    def scale_down_vector(self, u, max_u):
+        norm_u = np.linalg.norm(u)
+
+        if norm_u > max_u:
+            u = u / norm_u * max_u
+
+        return u
+
+    def calculate_and_publish_stress_avoidance_performance(self, h_ft_normalized):
+        """
+        Calculates and publishes the performance of the stress avoidance.
+        """
+
+        def f(x, c_p=2.773):
+            """
+            Function to boost values further away from zero.
+            c_p is a constant that determines the steepness of the function, 
+            c_p must be positive for boosting.
+            """
+            return (np.exp(-c_p * x) - 1) / (np.exp(-c_p) - 1)
+
+        # Check if any of the h_ft_normalized values are less than 0
+        if np.any(h_ft_normalized < 0.0):
+            # Publish the performance as 0 if any of the h_ft_normalized values are less than 0
+            performance = 0.0
+        else:
+            # Multiply all the h_ft_normalized values
+            performance = np.prod(h_ft_normalized)
+            # Apply the f(x) function to the product
+            performance = f(performance)
+
+        # Publish the performance
+        self.info_pub_stress_avoidance_performance.publish(Float32(data=performance))
+
     def alpha_collision_avoidance(self,h):
-        # calculates the value of extended_class_K function \alpha(h) for COLLISION AVOIDANCE
-        # Piecewise Linear function is used
-        alpha_h = self.c1_alpha_obstacle*h if h >= 0 else self.c2_alpha_obstacle*h
+        """
+        Calculates the value of extended_class_K function \alpha(h) for COLLISION AVOIDANCE
+        Piecewise Linear function is used when h is less than 0,
+        when h is greater or equal to 0 a nonlinear function is used.
+        See: https://www.desmos.com/calculator/hc6lc7nzkk for the function visualizations
+        """        
+        if (h < 0):
+            alpha_h = self.c3_alpha_obstacle*h
+        elif (h > self.d_obstacle_freezone) or abs(self.d_obstacle_freezone-h) < 1e-6:
+            alpha_h = float('inf')
+        else:
+            alpha_h = (self.c1_alpha_obstacle*h)/(self.d_obstacle_freezone-h)**self.c2_alpha_obstacle
+        
         return alpha_h        
     
     def alpha_robot_stress(self, h):
@@ -1093,10 +1172,8 @@ class VelocityControllerNode:
         Note that h is 6x1 vector and adjusted to be less than or equal to the wrench_max (h_ft = wrench_max - |wrench|).
         Piecewise Linear function is used when h is less than 0,
         when h is greater or equal to 0 a nonlinear function is used.
-        See: https://www.desmos.com/calculator/zm01kmphoa for the function visualizations
+        See: https://www.desmos.com/calculator/hc6lc7nzkk for the function visualizations
         """
-        
-
         # Initialize alpha_h with zeros
         alpha_h = np.zeros(h.shape)
 
@@ -1117,7 +1194,7 @@ class VelocityControllerNode:
         alpha_h[condition_negative] = self.c3_alpha_ft[condition_negative] * h[condition_negative]
 
         return alpha_h
-
+    
 
 if __name__ == "__main__":
     rospy.init_node('velocity_controller_node', anonymous=False)
