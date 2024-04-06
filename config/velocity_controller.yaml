@@ -1,6 +1,9 @@
+nominal_control_enabled: True # default:True
+obstacle_avoidance_enabled: True # default:True 
+stress_avoidance_enabled: True # default:True 
+
 ## -------------------------------------------------------
 ## Nominal Velocity controller parameters
-nominal_control_enabled: True # default:True
 
 # Nominal Controller Gains [x,y,z, Rx,Ry,Rz]
 # kp: [0.15,0.15,0.1, 0.15,0.15,0.15]
@@ -26,9 +29,14 @@ target_poses: [[[-1, -1, 0.14], [5,   0, 90]],
 max_linear_velocity: 0.1 # [m/s]
 max_angular_velocity: 0.15 # [rad/s]
 
+# Acceptable error for the target pose to stop the controller
+# If the average error is less than this value, the controller stops
+acceptable_pos_err_avr_norm: 0.2 # [m] # note: d_obstacle_offset is added to this value
+acceptable_ori_err_avr_norm: 0.1 # [rad] 
+
+
 ## -------------------------------------------------------
 ## Obstacle avoidance parameters
-obstacle_avoidance_enabled: True # default:True 
 
 k_low_pass_min_d: 0.1 # low pass filter coefficient for the ratio of minimum distance values of the previous values (Must be between [0,1])
 
@@ -52,19 +60,26 @@ c3_alpha_obstacle: 2.0 # linear slope if h < 0 # Increase this to remove the off
 
 ## -------------------------------------------------------
 ## Stress avoidance parameters
-stress_avoidance_enabled: True # default:True 
 
 k_low_pass_ft: 0.9 # low pass filter coefficient for the ratio of ft values of the previous values (Must be between [0,1])
 
 wrench_max: [200.0, 200.0, 200.0, 15.0, 15.0, 15.0] # maximum wrench values for each axis [Fx,Fy,Fz, Tx,Ty,Tz] for the Control Barrier Functions (CBF)s. 
-w_stress_offset: [30.0, 30.0, 30.0, 2.25, 2.25, 2.25] # offset values for the stress violation for each axis [Fx,Fy,Fz, Tx,Ty,Tz]
+# w_stress_offset: [30.0, 30.0, 30.0, 2.25, 2.25, 2.25] # offset values for the stress violation for each axis [Fx,Fy,Fz, Tx,Ty,Tz]
+w_stress_offset: [60.0, 60.0, 60.0, 4.5, 4.5, 4.5] # offset values for the stress violation for each axis [Fx,Fy,Fz, Tx,Ty,Tz]
 
 # alpha(h_ft) function robot stress coefficients for each axis [Fx,Fy,Fz, Tx,Ty,Tz]
 # see: https://www.desmos.com/calculator/hc6lc7nzkk for the function visualizations
 # c1_alpha_ft: [0.1, 0.1, 0.1, 0.01, 0.01, 0.01] # Decrease this to start reacting early  
 c1_alpha_ft: [9, 9, 9, 0.6, 0.6, 0.6] # Decrease this to start reacting early  
-# c1_alpha_ft: [150, 150, 150, 20, 20, 20] # Decrease this to start reacting early  
+# c1_alpha_ft: [150, 150, 150, 20, 20, 20] # Decrease this to start reacting early TOO RELAXED  
+
 c2_alpha_ft: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0] # DO NOT CHANGE FROM 1.0. EXPERIMENTAL
-c3_alpha_ft: [10.0, 10.0, 10.0, 30.0, 30.0, 30.0] # linear slope if h < 0 # Increase this to remove the offset violation more agressively
+
+# c3_alpha_ft: [10.0, 10.0, 10.0, 30.0, 30.0, 30.0] # linear slope if h < 0 # Increase this to remove the offset violation more agressively # SEEMS TOO RELAXED FOR Fx,Fy,Fz
+# c3_alpha_ft: [90.0, 90.0, 90.0, 30.0, 30.0, 30.0] # linear slope if h < 0 # Increase this to remove the offset violation more agressively
+# c3_alpha_ft: [150.0, 150.0, 150.0, 30.0, 30.0, 30.0] # linear slope if h < 0 # Increase this to remove the offset violation more agressively
+c3_alpha_ft: [200.0, 200.0, 200.0, 30.0, 30.0, 30.0] # linear slope if h < 0 # Increase this to remove the offset violation more agressively
+# c3_alpha_ft: [400.0, 400.0, 400.0, 30.0, 30.0, 30.0] # linear slope if h < 0 # Increase this to remove the offset violation more agressively
+# c3_alpha_ft: [70.0, 70.0, 70.0, 90.0, 90.0, 90.0] # SEEMS TOO AGRESSIVE FOR Tx,Ty,Tz
 
 ## -------------------------------------------------------

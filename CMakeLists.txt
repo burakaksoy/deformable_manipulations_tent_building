@@ -4,6 +4,11 @@ project(deformable_manipulations_tent_building)
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
 
+set(MSG_DEPS
+    geometry_msgs
+    std_msgs
+)
+
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
@@ -15,6 +20,8 @@ find_package(catkin REQUIRED COMPONENTS
   tf
   tf2
   visualization_msgs
+  message_generation
+  ${MSG_DEPS}
 )
 
 ## System dependencies are found with CMake's conventions
@@ -50,12 +57,16 @@ find_package(catkin REQUIRED COMPONENTS
 ##   * uncomment the generate_messages entry below
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
+set(MSG_FILES 
+    ControllerStatus.msg
+)
+
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
-# )
+add_message_files(
+  FILES
+  ${MSG_FILES}
+)
+
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -72,10 +83,10 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   geometry_msgs#   std_msgs#   visualization_msgs
-# )
+generate_messages(
+  DEPENDENCIES
+  ${MSG_DEPS}
+)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -111,6 +122,9 @@ catkin_package(
 #  LIBRARIES deformable_manipulations_tent_building
 #  CATKIN_DEPENDS geometry_msgs roscpp rospy std_msgs tf tf2 visualization_msgs
 #  DEPENDS system_lib
+  CATKIN_DEPENDS
+    message_runtime 
+    ${MSG_DEPS} 
 )
 
 ###########

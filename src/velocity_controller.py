@@ -5,6 +5,7 @@ import rospy
 import numpy as np
 import time
 import math
+from datetime import datetime
 
 from geometry_msgs.msg import Twist, Point, Quaternion, Pose, Wrench, Vector3
 from nav_msgs.msg import Odometry
@@ -13,6 +14,8 @@ from std_msgs.msg import Float32, Float32MultiArray
 
 from dlo_simulator_stiff_rods.msg import SegmentStateArray
 from dlo_simulator_stiff_rods.msg import MinDistanceDataArray
+
+from deformable_manipulations_tent_building.msg import ControllerStatus
 
 from std_srvs.srv import SetBool, SetBoolResponse
 from std_srvs.srv import Empty, EmptyResponse
@@ -75,6 +78,14 @@ class NominalController:
 class VelocityControllerNode:
     def __init__(self):
         self.enabled = False  # Flag to enable/disable controller
+
+        # To Store the time when the controller is enabled/disabled
+        self.controller_enabled_time = 0.0
+        self.controller_enabled_time_str = ""
+        self.controller_disabled_time = 0.0
+        # iteration counter for the controller to calculate the average performance
+        self.controller_itr = 0 
+
         self.nominal_control_enabled = rospy.get_param("~nominal_control_enabled", True)
         self.obstacle_avoidance_enabled = rospy.get_param("~obstacle_avoidance_enabled", True)
         self.stress_avoidance_enabled = rospy.get_param("~stress_avoidance_enabled", True)
@@ -96,7 +107,17 @@ class VelocityControllerNode:
                 time.sleep(0.5)
         
         # Create information publishers for the evaluation of the controller
+        self.info_pub_controller_status = rospy.Publisher("~info_controller_status", ControllerStatus, queue_size=10) # Publishes the status of the controller when it is enabled/disabled
+
+        self.info_pub_target_pos_error_avr_norm = rospy.Publisher("~info_target_pos_error_avr_norm", Float32, queue_size=10) # average norm of the target position errors
+        self.info_pub_target_ori_error_avr_norm = rospy.Publisher("~info_target_ori_error_avr_norm", Float32, queue_size=10) # average norm of the target orientation errors
+        
+        self.info_pub_overall_min_distance_collision = rospy.Publisher("~info_overall_min_distance_collision", Float32, queue_size=10)
+        
         self.info_pub_stress_avoidance_performance = rospy.Publisher("~info_stress_avoidance_performance", Float32, queue_size=10)
+        self.info_pub_stress_avoidance_performance_avr = rospy.Publisher("~info_stress_avoidance_performance_avr", Float32, queue_size=10)
+
+
         self.info_pub_wildcard_array = rospy.Publisher("~info_wildcard_array", Float32MultiArray, queue_size=10)
         self.info_pub_wildcard_scalar = rospy.Publisher("~info_wildcard_scalar", Float32, queue_size=10)
 
@@ -122,6 +143,9 @@ class VelocityControllerNode:
         self.max_linear_velocity = rospy.get_param("~max_linear_velocity", 0.1) # m/s
         self.max_angular_velocity = rospy.get_param("~max_angular_velocity", 0.15) # rad/s
 
+        self.acceptable_pos_err_avr_norm = rospy.get_param("~acceptable_pos_err_avr_norm", 0.01) # m
+        self.acceptable_ori_err_avr_norm = rospy.get_param("~acceptable_ori_err_avr_norm", 0.1) # rad
+
         # Particle/Segment ids of the tip points of the tent pole 
         # to be placed into the grommets
         self.tip_particles = rospy.get_param("~tip_particles", [0,39])
@@ -132,6 +156,9 @@ class VelocityControllerNode:
         # Obstacle avoidance free zone distance
         # further than this distance, no obstacles considered by the controller 
         self.d_obstacle_freezone = rospy.get_param("~d_obstacle_freezone", 2.0)
+
+        # Obstacle avoidance performance record variables
+        self.overall_min_distance_collision = float('inf')
 
         # Obstacle avoidance alpha(h_obstacle) function coefficients 
         self.c1_alpha_obstacle = rospy.get_param("~c1_alpha_obstacle", 0.05)
@@ -150,6 +177,10 @@ class VelocityControllerNode:
         self.c2_alpha_ft = np.array(rospy.get_param("~c2_alpha_ft", [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]))
         self.c3_alpha_ft = np.array(rospy.get_param("~c3_alpha_ft", [0.8, 0.8, 0.8, 1.0, 1.0, 1.0]))
 
+        # stress avoidance performance record variables
+        self.stress_avoidance_performance_avr = 0.0
+        self.stress_avoidance_performance_sum = 0.0
+        self.stress_avoidance_performance_ever_zero = False
 
         # Grommet poses as targets for the tip points
         # Each element holds [[x,y,z],[Rx,Ry,Rz(euler angles in degrees)]]
@@ -300,14 +331,79 @@ class VelocityControllerNode:
 
 
     def set_enable_controller(self, request):
-        self.enabled = request.data
+        self.controller_enabler(request.data, cause="manual")
+        return SetBoolResponse(True, 'Successfully set enabled state to {}'.format(request.data))
+    
+    def controller_enabler(self, enable, cause="manual"):
+        self.enabled = enable
 
         if not self.enabled:
             # Stop the particles
             self.odom_publishers_publish_zero_velocities()
 
-        return SetBoolResponse(True, 'Successfully set enabled state to {}'.format(self.enabled))
+        ## Publish the controller status information
+        status_msg = ControllerStatus()
+        # Fill in common fields
+        status_msg.time = rospy.Time.now()  # Example: current time
+        status_msg.cause = cause 
+        status_msg.enabled = enable
 
+        if enable:
+            self.controller_enabled_time = rospy.Time.now()
+            self.controller_enabled_time_str = self.get_system_timestamp()
+            status_msg.total_duration = -1.0  # -1.0 means the controller is still enabled
+            status_msg.rate = -1.0  # -1.0 means the controller is still enabled
+            
+            # Reset the performance metrics
+            self.controller_itr = 0
+            self.stress_avoidance_performance_avr = 0.0
+            self.stress_avoidance_performance_sum = 0.0
+            self.stress_avoidance_performance_ever_zero = False
+            self.overall_min_distance_collision = float('inf')
+
+            status_msg.stress_avoidance_performance_avr = 0.0
+            status_msg.min_distance = float('inf')
+        else:
+            self.controller_disabled_time = rospy.Time.now()
+            # Calculate the duration when the controller is disabled
+            status_msg.total_duration = (self.controller_disabled_time - self.controller_enabled_time).to_sec()
+            status_msg.rate = self.controller_itr / status_msg.total_duration # rate of the controller iterations
+            
+            status_msg.stress_avoidance_performance_avr = self.stress_avoidance_performance_avr
+            status_msg.min_distance = self.overall_min_distance_collision
+
+            # ----------------------------------------------------------------------------------------
+            ## Print the performance metrics suitable for a csv file
+            rospy.loginfo("Controller performance CSV suitable metrics: ")
+            rospy.loginfo("Titles: ft_on, baseline, success, min_distance, rate, duration, stress_avoidance_performance_avr, stress_avoidance_performance_ever_zero, start_time")
+
+            ft_on_str = "1" if self.stress_avoidance_enabled else "0"
+            baseline_str = "1" if not self.stress_avoidance_enabled and not self.obstacle_avoidance_enabled else "0"
+            success_str = "1" if (cause == "automatic") else "0"
+            min_distance_str = str(self.overall_min_distance_collision)
+            rate_str = str(status_msg.rate)
+            duration_str = str(status_msg.total_duration)
+            stress_avoidance_performance_avr_str = str(self.stress_avoidance_performance_avr)
+            stress_avoidance_performance_ever_zero_str = "1" if self.stress_avoidance_performance_ever_zero else "0"
+            # Create start time string with YYYY-MM-DD-Hour-Minute-Seconds format for example 2024-12-31-17-41-34
+            start_time_str = self.controller_enabled_time_str
+
+            csv_line = ",".join([ft_on_str, baseline_str, success_str, min_distance_str, rate_str, duration_str, stress_avoidance_performance_avr_str, stress_avoidance_performance_ever_zero_str, start_time_str])
+            # Print the csv line green color if the controller is successful else red color
+            if (cause == "automatic"):
+                # Print the csv line orange color if stress avoidance performance is ever zero
+                if self.stress_avoidance_performance_ever_zero:
+                    rospy.loginfo("\033[93m" + csv_line + "\033[0m")
+                else:
+                    # Print the csv line green color if the controller is successful and stress avoidance performance is never zero
+                    rospy.loginfo("\033[92m" + csv_line + "\033[0m")
+            else:
+                rospy.loginfo("\033[91m" + csv_line + "\033[0m")
+            # ----------------------------------------------------------------------------------------
+        
+        # Publish the status message
+        self.info_pub_controller_status.publish(status_msg)
+        
     def calculate_target_pose(self, target_pose_basic):
         # target_pose_basic: Holds the target pose as a list formatted as [[x,y,z],[Rx,Ry,Rz(euler angles in degrees)]]
         # This function converts it to a Pose msg
@@ -464,6 +560,9 @@ class VelocityControllerNode:
     def calculate_error_tip(self):
         err = np.zeros((6*len(self.tip_particles),1))
 
+        avr_norm_pos_err = 0.0
+        avr_norm_ori_err = 0.0
+
         for idx_tip, tip in enumerate(self.tip_particles):
             # Do not proceed until the initial values have been set
             if not (tip in self.particle_positions):
@@ -478,7 +577,10 @@ class VelocityControllerNode:
 
             err[(6*idx_tip) : (6*(idx_tip+1)), 0] = self.calculate_pose_target_error(current_pose,target_pose)
 
-        return err
+            avr_norm_pos_err += np.linalg.norm(err[(6*idx_tip) : (6*(idx_tip+1)), 0][0:3])/len(self.tip_particles)
+            avr_norm_ori_err += np.linalg.norm(err[(6*idx_tip) : (6*(idx_tip+1)), 0][3:6])/len(self.tip_particles)
+
+        return err, avr_norm_pos_err, avr_norm_ori_err
 
     def min_distances_array_callback(self, min_distances_msg):
         # Create a set to track the IDs in the current message
@@ -681,17 +783,19 @@ class VelocityControllerNode:
 
         ## ---------------------------------------------------
         # DEFINE COLLISION AVOIDANCE CONTROL BARRIER CONSTRAINTS FOR EACH SCENE MINIMUM DISTANCE READINGS
-        if self.obstacle_avoidance_enabled:
-            for key in list(self.min_distances.keys()):
-                # key here is the rigid body index of the obstacle
+        
+        overall_min_distance = float('inf')
+        for key in list(self.min_distances.keys()):
+            # key here is the rigid body index of the obstacle
 
+            # update the overall minimum distance
+            if self.min_distances[key] < overall_min_distance:
+                overall_min_distance = self.min_distances[key]
+
+            if self.obstacle_avoidance_enabled:
                 h = self.min_distances[key] - self.d_obstacle_offset # Control Barrier Function (CBF)
                 alpha_h = self.alpha_collision_avoidance(h)
-
-                # # publish h that is the distance to collision for information
-                # # print("h distance to collision: ",str(h))
-                # self.info_h_collision_publisher.publish(Float32(data=h))
-
+                
                 # Calculate the obstacle minimum distance Jacobian 
                 J_obs_min_dist = self.calculate_jacobian_obstacle_min_distance(key) # 1x12
 
@@ -704,12 +808,20 @@ class VelocityControllerNode:
 
                 J_tolerance = 0.001
                 if np.any(np.abs(J_obs_min_dist) >= J_tolerance):
-                    # Add collision avoidance to the constraints
-                    constraints += [J_obs_min_dist @ u >= -alpha_h]
+                        # Add collision avoidance to the constraints
+                        constraints += [J_obs_min_dist @ u >= -alpha_h]
                 else:
                     pass
                     # pretty_print_array(J_obs_min_dist, precision=4)
                     # rospy.logwarn_throttle(1,"For obstacle index: " + str(key) + ", ignored J_obs_min_dist and obstacle constraint is not added")
+        
+        # publish the current overall minimum distance to collision for information
+        self.info_pub_overall_min_distance_collision.publish(Float32(data=overall_min_distance))
+        
+        # Update the controller's last enabled period overall minimum distance for the performance monitoring
+        if overall_min_distance < self.overall_min_distance_collision:
+            self.overall_min_distance_collision = overall_min_distance
+
         ## ---------------------------------------------------
                 
         ## ---------------------------------------------------
@@ -820,23 +932,33 @@ class VelocityControllerNode:
     def calculate_control_outputs_timer_callback(self,event):
         # Only publish if enabled
         if self.enabled:
+            # Increment the controller iteration
+            self.controller_itr += 1
+
             # Calculate the nominal control outputs
             if self.nominal_control_enabled:
                 J_tip = self.calculate_jacobian_tip() # 12x12
                 # pretty_print_array(J_tip)
                 # print("---------------------------")
 
-                err_tip = self.calculate_error_tip() # 12x1
+                err_tip, pos_err_avr_norm, ori_err_avr_norm = self.calculate_error_tip() # 12x1, scalar, scalar
                 # pretty_print_array(err_tip)
                 # print("---------------------------")
 
-                # # error is np.array, publish its norm for information
-                # err_tip_norm = np.linalg.norm(err_tip)
-                # self.info_pos_error_norm_publishers[particle].publish(Float32(data=pos_error_norm))
-            
-                # control_output = self.kp*np.dot(np.linalg.pinv(J_tip), err_tip)
-                control_output = np.squeeze(np.dot(np.linalg.pinv(J_tip), err_tip)) # (12,)
+                # publish error norms for information
+                self.info_pub_target_pos_error_avr_norm.publish(Float32(data=pos_err_avr_norm))
+                self.info_pub_target_ori_error_avr_norm.publish(Float32(data=ori_err_avr_norm))
 
+                # Disable the controller if the error is below the threshold
+                if (pos_err_avr_norm < (self.acceptable_pos_err_avr_norm+self.d_obstacle_offset)) and (ori_err_avr_norm < self.acceptable_ori_err_avr_norm):
+                    # call set_enable service to disable the controller
+                    self.controller_enabler(enable=False, cause="automatic")
+                    # Create green colored log info message
+                    rospy.loginfo("\033[92m" + "Error norms are below the thresholds. The controller is disabled." + "\033[0m")
+                    return
+            
+                # Calculate the nominal control output
+                control_output = np.squeeze(np.dot(np.linalg.pinv(J_tip), err_tip)) # (12,)
                 # Apply the proportinal gains
                 for idx_particle, particle in enumerate(self.custom_static_particles):
                     # Get nominal control output of that particle
@@ -944,6 +1066,9 @@ class VelocityControllerNode:
         Useful for stopping the particles when the controller is disabled.
         """
         for particle in self.custom_static_particles:
+            # Set the control outputs to zero
+            self.control_outputs[particle] = np.zeros(6)
+
             # Prepare Odometry message
             odom = Odometry()
             odom.header.stamp = rospy.Time.now()
@@ -1066,6 +1191,13 @@ class VelocityControllerNode:
         # Combine position difference and rotation vector into a 6x1 vector
         return np.array([err_x, err_y, err_z] + list(rotation_vector))
     
+    def get_system_timestamp(self):
+        # Get the current system time
+        now = datetime.now()
+        # Format the datetime object into a string similar to rosbag filenames
+        timestamp = now.strftime("%Y-%m-%d-%H-%M-%S")
+        return timestamp
+
     def multiply_quaternions(self, q1, q2):
         """
         Multiply two quaternions.
@@ -1148,6 +1280,16 @@ class VelocityControllerNode:
 
         # Publish the performance
         self.info_pub_stress_avoidance_performance.publish(Float32(data=performance))
+
+        # Update the performance history
+        self.stress_avoidance_performance_sum += performance
+        self.stress_avoidance_performance_avr = self.stress_avoidance_performance_sum / self.controller_itr
+
+        if performance <= 0.0:
+            self.stress_avoidance_performance_ever_zero = True
+
+        # Publish the average performance
+        self.info_pub_stress_avoidance_performance_avr.publish(Float32(data=self.stress_avoidance_performance_avr))
 
     def alpha_collision_avoidance(self,h):
         """
