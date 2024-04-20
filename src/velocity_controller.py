@@ -93,6 +93,11 @@ class VelocityControllerNode:
         # Create the service server for enable/disable the controller
         self.set_enable_controller_server = rospy.Service('~set_enable_controller', SetBool, self.set_enable_controller)
 
+        # Create service servers for enabling/disabling each feature
+        self.set_nominal_control_server = rospy.Service('~set_nominal_control_enabled', SetBool, self.set_nominal_control_enabled)
+        self.set_obstacle_avoidance_server = rospy.Service('~set_obstacle_avoidance_enabled', SetBool, self.set_obstacle_avoidance_enabled)
+        self.set_stress_avoidance_server = rospy.Service('~set_stress_avoidance_enabled', SetBool, self.set_stress_avoidance_enabled)
+
         self.pub_rate_odom = rospy.get_param("~pub_rate_odom", 50)
 
         self.custom_static_particles = None
@@ -314,6 +319,11 @@ class VelocityControllerNode:
             self.subs_min_distance_dth_z[particle] = rospy.Subscriber(min_distance_dth_z_topic_name, MinDistanceDataArray, self.min_distance_array_dth_z_callback, particle, queue_size=10)
 
         ## ----------------------------------------------------------------------------------------
+
+        # Control output wait timeout
+        self.valid_control_output_wait_timeout = rospy.get_param("~valid_control_output_wait_timeout", 5.0) # seconds
+        # Time when the last control output is valid
+        self.time_last_control_output_is_valid = rospy.Time.now()
             
         # Create the (centralized) controller that will publish odom to each follower particle properly        
         # self.nominal_controller = NominalController(self.kp, self.kd, self.pub_rate_odom*2.0)
@@ -325,8 +335,6 @@ class VelocityControllerNode:
         # Start the control
         self.calculate_control_timer = rospy.Timer(rospy.Duration(1. / self.pub_rate_odom), self.calculate_control_outputs_timer_callback)
         self.odom_pub_timer          = rospy.Timer(rospy.Duration(1. / self.pub_rate_odom), self.odom_pub_timer_callback)
-
-
 
 
 
@@ -374,11 +382,15 @@ class VelocityControllerNode:
 
             # ----------------------------------------------------------------------------------------
             ## Print the performance metrics suitable for a csv file
-            rospy.loginfo("Controller performance CSV suitable metrics: ")
-            rospy.loginfo("Titles: ft_on, baseline, success, min_distance, rate, duration, stress_avoidance_performance_avr, stress_avoidance_performance_ever_zero, start_time")
+            rospy.loginfo("---------------------------- Controller is disabled ----------------------------")
+            rospy.loginfo("Performance metrics (CSV suitable):")
+            rospy.loginfo("Titles: ft_on, collision_on, success, min_distance, rate, duration, stress_avoidance_performance_avr, stress_avoidance_performance_ever_zero, start_time")
+            # print("---------------------------- Controller is disabled ----------------------------")
+            # print("Performance metrics (CSV suitable):")
+            # print("Titles: ft_on, collision_on, success, min_distance, rate, duration, stress_avoidance_performance_avr, stress_avoidance_performance_ever_zero, start_time")
 
             ft_on_str = "1" if self.stress_avoidance_enabled else "0"
-            baseline_str = "1" if not self.stress_avoidance_enabled and not self.obstacle_avoidance_enabled else "0"
+            collision_on_str = "1" if self.obstacle_avoidance_enabled else "0"
             success_str = "1" if (cause == "automatic") else "0"
             min_distance_str = str(self.overall_min_distance_collision)
             rate_str = str(status_msg.rate)
@@ -388,21 +400,42 @@ class VelocityControllerNode:
             # Create start time string with YYYY-MM-DD-Hour-Minute-Seconds format for example 2024-12-31-17-41-34
             start_time_str = self.controller_enabled_time_str
 
-            csv_line = ",".join([ft_on_str, baseline_str, success_str, min_distance_str, rate_str, duration_str, stress_avoidance_performance_avr_str, stress_avoidance_performance_ever_zero_str, start_time_str])
+            csv_line = "Result: " + ",".join([ft_on_str, collision_on_str, success_str, min_distance_str, rate_str, duration_str, stress_avoidance_performance_avr_str, stress_avoidance_performance_ever_zero_str, start_time_str])
             # Print the csv line green color if the controller is successful else red color
             if (cause == "automatic"):
                 # Print the csv line orange color if stress avoidance performance is ever zero
                 if self.stress_avoidance_performance_ever_zero:
-                    rospy.loginfo("\033[93m" + csv_line + "\033[0m")
+                    # rospy.loginfo("\033[93m" + csv_line + "\033[0m")
+                    rospy.loginfo(csv_line)
+                    # print(csv_line)
                 else:
                     # Print the csv line green color if the controller is successful and stress avoidance performance is never zero
-                    rospy.loginfo("\033[92m" + csv_line + "\033[0m")
+                    # rospy.loginfo("\033[92m" + csv_line + "\033[0m")
+                    rospy.loginfo(csv_line)
+                    # print(csv_line)
             else:
-                rospy.loginfo("\033[91m" + csv_line + "\033[0m")
+                # rospy.loginfo("\033[91m" + csv_line + "\033[0m")
+                rospy.loginfo(csv_line)
+                # print(csv_line)
             # ----------------------------------------------------------------------------------------
         
         # Publish the status message
         self.info_pub_controller_status.publish(status_msg)
+
+    def set_nominal_control_enabled(self, request):
+        self.nominal_control_enabled = request.data
+        rospy.loginfo("Nominal control enabled state set to {}".format(request.data))
+        return SetBoolResponse(True, 'Successfully set nominal control enabled state to {}'.format(request.data))
+
+    def set_obstacle_avoidance_enabled(self, request):
+        self.obstacle_avoidance_enabled = request.data
+        rospy.loginfo("Obstacle avoidance enabled state set to {}".format(request.data))
+        return SetBoolResponse(True, 'Successfully set obstacle avoidance enabled state to {}'.format(request.data))
+
+    def set_stress_avoidance_enabled(self, request):
+        self.stress_avoidance_enabled = request.data
+        rospy.loginfo("Stress avoidance enabled state set to {}".format(request.data))
+        return SetBoolResponse(True, 'Successfully set stress avoidance enabled state to {}'.format(request.data))
         
     def calculate_target_pose(self, target_pose_basic):
         # target_pose_basic: Holds the target pose as a list formatted as [[x,y,z],[Rx,Ry,Rz(euler angles in degrees)]]
@@ -759,23 +792,9 @@ class VelocityControllerNode:
         return J
 
     def calculate_safe_control_output(self, nominal_u):
-
         ## ---------------------------------------------------
         ## Define optimization variables
         u = cp.Variable(6*len(self.custom_static_particles))
-
-        ## Define weights for control inputs
-        weights = np.ones(6*len(self.custom_static_particles))
-        # Assign less weight on z axis positional motions (i.e make them more dynamic)
-        # weights[0::6] = 0.5 # Note that x axis position is every 1st element of each 6 element sets in the weight vector
-        # weights[1::6] = 0.5 # Note that y axis position is every 2nd element of each 6 element sets in the weight vector
-        weights[2::6] = 0.1 # Note that z axis position is every 3rd element of each 6 element sets in the weight vector
-        # weights[3::6] = 0.8 # Note that x axis rotation is every 4th element of each 6 element sets in the weight vector
-        # weights[4::6] = 0.8 # Note that y axis rotation is every 5th element of each 6 element sets in the weight vector
-        # weights[5::6] = 0.8 # Note that z axis rotation is every 6th element of each 6 element sets in the weight vector
-
-        # Define cost function with weights
-        cost = cp.sum_squares(cp.multiply(weights, u - nominal_u)) / 2.0
 
         # Initialize the constraints
         constraints = []
@@ -841,7 +860,7 @@ class VelocityControllerNode:
             sign_ft[6*idx_particle:6*(idx_particle+1)] = np.sign(self.particle_wrenches[particle])
 
         # Calculate stress avoidance performance monitoring values
-        self.calculate_and_publish_stress_avoidance_performance(h_ft_normalized)
+        stress_avoidance_performance = self.calculate_and_publish_stress_avoidance_performance(h_ft_normalized)
 
         if self.stress_avoidance_enabled:
             # Calculate the forces and torques Jacobian
@@ -865,8 +884,8 @@ class VelocityControllerNode:
         # # constraints += [cp.norm(u,2)     <= u_max] # If 2-norm is used, the constraint is Quadratic, use CLARABEL or ECOS solver (Not QP anymore, a conic solver is needed)
 
         # With using the different limits to linear and angular velocities
-        u_linear_max = self.max_linear_velocity*3.0 # 0.3 # 0.1
-        u_angular_max = self.max_angular_velocity*3.0 # 0.5 # 0.15
+        u_linear_max = self.max_linear_velocity*6.0 # 0.3 # 0.1
+        u_angular_max = self.max_angular_velocity*6.0 # 0.5 # 0.15
 
         # The following slices select every first 3 elements of each group of 6 in the array u.
         linear_indices = np.concatenate([np.arange(i, i+3) for i in range(0, 6*len(self.custom_static_particles), 6)])
@@ -879,19 +898,47 @@ class VelocityControllerNode:
         constraints += [cp.norm(u[angular_indices],'inf') <= u_angular_max]
 
         ## ---------------------------------------------------
+        
+        ## ---------------------------------------------------
+        # Define the problem
+        
+        ## Define weights for control inputs
+        weights = np.ones(6*len(self.custom_static_particles))
+        # Assign less weight on z axis positional motions (i.e make them more dynamic)
+        
+        ## Note that x axis position is every 1st element of each 6 element sets in the weight vector
+        # weights[0::6] = 0.5 
+        ## Note that y axis position is every 2nd element of each 6 element sets in the weight vector
+        # weights[1::6] = 0.5 
+        ## Note that z axis position is every 3rd element of each 6 element sets in the weight vector
+        # weights[2::6] = 0.1 
+        weights[2::6] = self.calculate_cost_weight_z_pos(stress_avoidance_performance, overall_min_distance-self.d_obstacle_offset)
+        
+        ## Note that x axis rotation is every 4th element of each 6 element sets in the weight vector
+        # weights[3::6] = 0.8
+        ## Note that y axis rotation is every 5th element of each 6 element sets in the weight vector
+        # weights[4::6] = 0.8
+        ## Note that z axis rotation is every 6th element of each 6 element sets in the weight vector
+        # weights[5::6] = 0.8
+
+        # Define cost function with weights
+        cost = cp.sum_squares(cp.multiply(weights, u - nominal_u)) / 2.0
+        
+        problem = cp.Problem(cp.Minimize(cost), constraints)
+        ## ---------------------------------------------------
 
         ## ---------------------------------------------------
-        # Define and solve problem
-        problem = cp.Problem(cp.Minimize(cost), constraints)
+        # Solve the problem
 
-        # # For warm-start
+        # # # For warm-start
         # if hasattr(self, 'prev_optimal_u'):
         #     u.value = self.prev_optimal_u
 
         # init_t = time.time() # For timing
         try:
             # problem.solve() # Selects automatically
-            problem.solve(solver=cp.CLARABEL) #  
+            # problem.solve(solver=cp.CLARABEL) #  
+            # problem.solve(solver=cp.CLARABEL, tol_gap_abs=1e-4, tol_gap_rel=1e-4, tol_feas=1e-4) #  
             # problem.solve(solver=cp.CVXOPT) # (warm start capable)
             # problem.solve(solver=cp.ECOS) # 
             # problem.solve(solver=cp.ECOS_BB) # 
@@ -899,7 +946,9 @@ class VelocityControllerNode:
             # problem.solve(solver=cp.GLPK) # NOT SUITABLE
             # problem.solve(solver=cp.GUROBI) # 
             # problem.solve(solver=cp.MOSEK) # Encountered unexpected exception importing solver CBC
-            # problem.solve(solver=cp.OSQP) #  (default) (warm start capable)
+            # problem.solve(solver=cp.OSQP, eps_abs=1e-4, eps_rel=1e-4, time_limit=(3./ self.pub_rate_odom), warm_starting=True) #  (default) (warm start capable)
+            # problem.solve(solver=cp.OSQP, eps_abs=1e-5, eps_rel=1e-3) #  (default) (warm start capable)
+            problem.solve(solver=cp.OSQP) #  (default) (warm start capable)
             # problem.solve(solver=cp.PDLP) # NOT SUITABLE
             # problem.solve(solver=cp.SCIPY) # NOT SUITABLE 
             # problem.solve(solver=cp.SCS) # (warm start capable)
@@ -925,6 +974,7 @@ class VelocityControllerNode:
         
         # # For warm-start in the next iteration
         # self.prev_optimal_u = u.value
+        ## ---------------------------------------------------
         
         # Return optimal u
         return u.value
@@ -954,7 +1004,8 @@ class VelocityControllerNode:
                     # call set_enable service to disable the controller
                     self.controller_enabler(enable=False, cause="automatic")
                     # Create green colored log info message
-                    rospy.loginfo("\033[92m" + "Error norms are below the thresholds. The controller is disabled." + "\033[0m")
+                    # rospy.loginfo("\033[92m" + "Error norms are below the thresholds. The controller is disabled." + "\033[0m")
+                    rospy.loginfo("Error norms are below the thresholds. The controller is disabled.")
                     return
             
                 # Calculate the nominal control output
@@ -981,8 +1032,21 @@ class VelocityControllerNode:
                 if control_output is not None:
                     self.control_outputs[particle] = control_output[6*idx_particle:6*(idx_particle+1)]
                     # print("Particle " + str(particle) + " u: " + str(self.control_outputs[particle]))
+
+                    # Take a note of the time when the control output is calculated
+                    self.time_last_control_output_is_valid = rospy.Time.now()
+
                 else:
                     self.control_outputs[particle] = np.zeros(6) # None
+                    
+                    # check if the control output is None for a long time
+                    if (rospy.Time.now() - self.time_last_control_output_is_valid).to_sec() > self.valid_control_output_wait_timeout:
+                        # call set_enable service to disable the controller
+                        self.controller_enabler(enable=False, cause="QP solver error")
+                        # Create red colored log info message
+                        # rospy.logerr("\033[91m" + "The controller is disabled due to the QP solver error." + "\033[0m")
+                        rospy.logerr("The controller is disabled due to the QP solver error.")
+                        return
 
             
             
@@ -1255,6 +1319,36 @@ class VelocityControllerNode:
 
         return u
 
+    def calculate_cost_weight_z_pos(self, stress_avoidance_performance, overall_min_distance):
+        """
+        Calculates the weight for the z position control based on the stress avoidance performance and the overall minimum distance to collision.
+        """
+        # Weight limits
+        w_max = 1.0
+        w_min = 0.05
+
+        # Compute the geometric mean of the stress avoidance performance and the overall minimum distance to collision
+        # Below, both values are in the range [0, 1].
+        w = np.sqrt(stress_avoidance_performance * min(1.0, max(0.0, overall_min_distance / self.d_obstacle_freezone)))
+
+        ## Compute the weight in the range [w_min, w_max] 
+        # OPTION 1:
+        # w_boost = 0.95 # must be in the range [0, 1]
+        # weight = (w_max - w_min)*(w**w_boost) + w_min 
+
+        # OPTION 2: 
+        # See: https://www.desmos.com/calculator/obvcltohjs for the function visualizations
+        # Sigmoid adjustment
+        k = 20  # Steepness of the sigmoid function transition
+        d = 0.4  # Midpoint of the sigmoid function
+        # Compute the sigmoid function to smooth transition
+        s = 1 / (1 + np.exp(-k * (w - d)))
+        weight = (w_max - w_min) * (w + (1 - w) * s) + w_min
+
+        # rospy.loginfo("Weight for z position control: " + str(weight))
+
+        return weight
+
     def calculate_and_publish_stress_avoidance_performance(self, h_ft_normalized):
         """
         Calculates and publishes the performance of the stress avoidance.
@@ -1290,6 +1384,7 @@ class VelocityControllerNode:
 
         # Publish the average performance
         self.info_pub_stress_avoidance_performance_avr.publish(Float32(data=self.stress_avoidance_performance_avr))
+        return performance
 
     def alpha_collision_avoidance(self,h):
         """
