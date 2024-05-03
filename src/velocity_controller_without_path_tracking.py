@@ -7,8 +7,8 @@ import time
 import math
 from datetime import datetime
 
-from geometry_msgs.msg import Twist, Point, PointStamped, Quaternion, Pose, PoseStamped, Wrench, Vector3
-from nav_msgs.msg import Odometry, Path
+from geometry_msgs.msg import Twist, Point, Quaternion, Pose, Wrench, Vector3
+from nav_msgs.msg import Odometry
 from visualization_msgs.msg import Marker
 from std_msgs.msg import Float32, Float32MultiArray
 
@@ -26,8 +26,6 @@ import cvxpy as cp
 
 import threading
 
-from scipy.spatial import KDTree
-
 # Set print options to reduce precision and increase line width
 np.set_printoptions(precision=2, linewidth=200)
 
@@ -41,11 +39,46 @@ def format_number(n, digits=4):
         return '0'
     return formatted
 
+# def pretty_print_array(arr, digits=4):
+#     np.set_printoptions(formatter={'float': lambda x: format_number(x, digits)}, 
+#                         linewidth=150, 
+#                         suppress=True)  # Suppress small numbers
+#     print(arr)
+
 def pretty_print_array(arr, precision=2, width=5):
     format_spec = f"{{:>{width}.{precision}f}}"
     for row in arr:
         print(" ".join(format_spec.format(value) if value != 0 else " " * width for value in row))
 
+class NominalController:
+    def __init__(self, Kp=1.0, Kd=0.0, MAX_TIMESTEP = 0.1):
+        # PD gains
+        self.Kp = np.array(Kp)
+        self.Kd = np.array(Kd)
+
+        self.last_time = None # time.time()
+
+        # Velocity commands will only be considered if they are spaced closer than MAX_TIMESTEP
+        self.MAX_TIMESTEP = MAX_TIMESTEP
+
+    def output(self, error, vel):
+        # Calculate the output
+        output = self.Kp * error - self.Kd * vel
+
+        return output
+    
+    def get_dt(self):
+        current_time = time.time()
+        if self.last_time:
+            dt = current_time - self.last_time
+            self.last_time = current_time
+            if dt > self.MAX_TIMESTEP:
+                dt = 0.0
+                rospy.logwarn("Controller took more time than specified MAX_TIMESTEP duration, resetting to 0.")
+            return dt
+        else:
+            self.last_time = current_time
+            return 0.0
         
 class VelocityControllerNode:
     def __init__(self):
@@ -166,7 +199,7 @@ class VelocityControllerNode:
         
         self.target_poses = {} # Each item will be a Pose() msg class
         for i, particle in enumerate(self.tip_particles):
-            self.target_poses[particle] = self.calculate_pose_msg(target_poses_basic[i])
+            self.target_poses[particle] = self.calculate_target_pose(target_poses_basic[i])
 
         ## ----------------------------------------------------------------------------------------
         ## SETUP FOR DEFORMABLE OBJECT STATE READINGS FROM SIMULATION PERTURBATIONS
@@ -292,63 +325,6 @@ class VelocityControllerNode:
 
         ## ----------------------------------------------------------------------------------------
 
-        ## ----------------------------------------------------------------------------------------
-        ### Path planning parameters and variables
-        self.path_planning_mockup_enabled = rospy.get_param("~path_planning_mockup_enabled", False)
-        self.path_tracking_control_enabled = rospy.get_param("~path_tracking_control_enabled", True)
-
-        # Waypoints for the mockup path planning
-        # Each element holds [[x,y,z],[Rx,Ry,Rz(euler angles in degrees)]]
-        waypoint_poses_basic =  rospy.get_param("~waypoint_poses", [[[0, -1.0, 0.14], [ 90, 0, 90]], \
-                                                                    [[0,  0.5, 1.10], [-90, 0, 90]], \
-                                                                    [[0,  1.5, 1.10], [-90, 0, 90]]])
-        self.waypoint_poses = [self.calculate_pose_msg(pose_basic) for pose_basic in waypoint_poses_basic]
-        
-        # Create variables to hold the planned path 
-        self.reset_planned_path_variables()
-
-        # Path Tracking Controller gains  [x,y,z, Rx,Ry,Rz]
-        self.kp_path_tracking = np.array(rospy.get_param("~kp_path_tracking", [1.0,1.0,1.0, 1.0,1.0,1.0]))
-        self.kd_path_tracking = np.array(rospy.get_param("~kd_path_tracking", [0.0,0.0,0.0, 0.0,0.0,0.0]))
-
-        # Path tracking switch off parameters used in the sigmoid function
-        # The sigmoid function is used to switch off the path tracking controller smoothly to the nominal controller
-        # when the robot is close to the end of path. See: https://www.desmos.com/calculator/exgon3okr6
-        self.d_path_tracking_switch_off_distance = rospy.get_param("~d_path_tracking_switch_off_distance", 0.75)
-        self.k_path_tracking_switch_off_smoothness = rospy.get_param("~k_path_tracking_switch_off_smoothness", 20.0)
-
-        # Add the described parameters below:
-        # Feedforward velocity scale factors for the path tracking controller
-        # These values are multiplied with the maximum velocity limits to scale down the velocity commands of the path tracking
-        # They are in the range of [0,1]. If the value is 1.0, the maximum velocity limits are used as the feedforward velocity commands.
-        # path_tracking_feedforward_linear_velocity_scale_factor: 0.5
-        # path_tracking_feedforward_angular_velocity_scale_factor: 0.5
-        self.path_tracking_feedforward_linear_velocity_scale_factor = rospy.get_param("~path_tracking_feedforward_linear_velocity_scale_factor", 0.5)
-        self.path_tracking_feedforward_angular_velocity_scale_factor = rospy.get_param("~path_tracking_feedforward_angular_velocity_scale_factor", 0.5)
-        
-        if self.path_planning_mockup_enabled:
-            # Create the information publishers for the centroid pose of the particles        
-            self.info_pub_centroid_pose_of_particles = rospy.Publisher("~info_centroid_pose_of_particles", Odometry, queue_size=10)
-            self.info_pub_centroid_pose_of_particles_projected_on_path = rospy.Publisher("~info_centroid_pose_of_particles_projected_on_path", Odometry, queue_size=10)
-            self.info_pub_planned_path_current_target_point = rospy.Publisher("~info_planned_path_current_target_point", PointStamped, queue_size=10)
-
-            # Create the planned path publisher
-            self.path_pub = rospy.Publisher("~planned_path", Path, queue_size=10)
-            
-            # Create the planned path publisher for the particles
-            # Create the information publishers for the current target point of the planned path
-            self.path_pub_particles = {}
-            self.info_pub_planned_path_current_target_point_particles = {}
-
-            for particle in self.custom_static_particles:
-                self.path_pub_particles[particle] = rospy.Publisher("~planned_path_particle_" + str(particle), Path, queue_size=10)
-                self.info_pub_planned_path_current_target_point_particles[particle] = rospy.Publisher("~info_planned_path_current_target_point_particle_" + str(particle), PointStamped, queue_size=10)
-
-            # Create timer to publish centroid pose of the particles
-            self.update_path_status_timer = rospy.Timer(rospy.Duration(1. / self.pub_rate_odom), self.update_path_status_timer_callback)
-
-        ## ----------------------------------------------------------------------------------------
-
         # Control output wait timeout
         self.valid_control_output_wait_timeout = rospy.get_param("~valid_control_output_wait_timeout", 5.0) # seconds
         if self.valid_control_output_wait_timeout <= 0.0:
@@ -358,6 +334,8 @@ class VelocityControllerNode:
         # Time when the last control output is valid
         self.time_last_control_output_is_valid = rospy.Time.now()
             
+        # Create the (centralized) controller that will publish odom to each follower particle properly        
+        # self.nominal_controller = NominalController(self.kp, self.kd, self.pub_rate_odom*2.0)
         
         self.control_outputs = {} 
         for particle in self.custom_static_particles:
@@ -459,10 +437,6 @@ class VelocityControllerNode:
                 rospy.loginfo(csv_line)
                 # print(csv_line)
             # ----------------------------------------------------------------------------------------
-
-            # Reset the planned path variables
-            self.reset_planned_path_variables()
-
         
         # Publish the status message
         self.info_pub_controller_status.publish(status_msg)
@@ -482,12 +456,12 @@ class VelocityControllerNode:
         rospy.loginfo("Stress avoidance enabled state set to {}".format(request.data))
         return SetBoolResponse(True, 'Successfully set stress avoidance enabled state to {}'.format(request.data))
         
-    def calculate_pose_msg(self, pose_basic):
-        # pose_basic: Holds the target pose as a list formatted as [[x,y,z],[Rx,Ry,Rz(euler angles in degrees)]]
+    def calculate_target_pose(self, target_pose_basic):
+        # target_pose_basic: Holds the target pose as a list formatted as [[x,y,z],[Rx,Ry,Rz(euler angles in degrees)]]
         # This function converts it to a Pose msg
 
-        # Extract position and orientation from pose_basic
-        position_data, orientation_data = pose_basic
+        # Extract position and orientation from target_pose_basic
+        position_data, orientation_data = target_pose_basic
 
         # Convert orientation from Euler angles (degrees) to radians
         orientation_radians = np.deg2rad(orientation_data)
@@ -496,10 +470,10 @@ class VelocityControllerNode:
         quaternion_orientation = tf_trans.quaternion_from_euler(*orientation_radians)
 
         # Prepare the pose msg
-        pose_msg = Pose()
-        pose_msg.position = Point(*position_data)
-        pose_msg.orientation = Quaternion(*quaternion_orientation)
-        return pose_msg
+        target_pose = Pose()
+        target_pose.position = Point(*position_data)
+        target_pose.orientation = Quaternion(*quaternion_orientation)
+        return target_pose
 
     def state_array_callback(self, states_msg):
         for particle in (self.custom_static_particles + self.tip_particles):
@@ -657,35 +631,6 @@ class VelocityControllerNode:
 
             avr_norm_pos_err += np.linalg.norm(err[(6*idx_tip) : (6*(idx_tip+1)), 0][0:3])/len(self.tip_particles)
             avr_norm_ori_err += np.linalg.norm(err[(6*idx_tip) : (6*(idx_tip+1)), 0][3:6])/len(self.tip_particles)
-
-        return err, avr_norm_pos_err, avr_norm_ori_err
-    
-    def calculate_path_tracking_error(self):
-        err = np.zeros((6*len(self.custom_static_particles),1))
-
-        avr_norm_pos_err = 0.0
-        avr_norm_ori_err = 0.0
-
-        for idx_particle, particle in enumerate(self.custom_static_particles):
-            # Do not proceed until the initial values have been set
-            if not self.is_perturbed_states_set_for_particle(particle):
-                rospy.logwarn("Particle: " + str(particle) + " state is not obtained yet.")
-                continue
-
-            if particle not in self.planned_path_current_target_poses_of_particles:
-                rospy.logwarn("Particle: " + str(particle) + " planned path is not obtained yet.")
-                continue
-
-            current_pose = Pose()
-            current_pose.position = self.particle_positions[particle]
-            current_pose.orientation = self.particle_orientations[particle]
-
-            target_pose = self.planned_path_current_target_poses_of_particles[particle]
-
-            err[(6*idx_particle) : (6*(idx_particle+1)), 0] = self.calculate_pose_target_error(current_pose,target_pose)
-
-            avr_norm_pos_err += np.linalg.norm(err[(6*idx_particle) : (6*(idx_particle+1)), 0][0:3])/len(self.custom_static_particles)
-            avr_norm_ori_err += np.linalg.norm(err[(6*idx_particle) : (6*(idx_particle+1)), 0][3:6])/len(self.custom_static_particles)
 
         return err, avr_norm_pos_err, avr_norm_ori_err
 
@@ -936,12 +881,6 @@ class VelocityControllerNode:
         # Calculate stress avoidance performance monitoring values
         stress_avoidance_performance = self.calculate_and_publish_stress_avoidance_performance(h_ft_normalized)
 
-        if stress_avoidance_performance <= 0.0:
-                # Stop the controller if the stress avoidance performance is zero
-                # self.controller_enabler(enable=False, cause="Stress avoidance hit zero.")
-                rospy.logwarn("Stress avoidance hit zero.")
-                # return None
-
         if self.stress_avoidance_enabled:
             # Calculate the forces and torques Jacobian
             J_ft = self.calculate_jacobian_ft() # 12x12
@@ -955,6 +894,12 @@ class VelocityControllerNode:
             # print("sign_ft:")
             # print(sign_ft)
             # print("-------------------------------------------------------")
+
+            if stress_avoidance_performance <= 0.0:
+                # Stop the controller if the stress avoidance performance is zero
+                # self.controller_enabler(enable=False, cause="Stress avoidance hit zero.")
+                rospy.logwarn("Stress avoidance hit zero.")
+                # return None
 
             # Mutiply the sign of the wrenches elementwise 
             # with the matrix multiplication of the Jacobian with the control input
@@ -1066,122 +1011,8 @@ class VelocityControllerNode:
         
         # Return optimal u
         return u.value
-        
-    def calculate_nominal_control_output(self):
-        # Initiate the nominal control output to zero
-        control_output = np.zeros(6*len(self.custom_static_particles))
-
-        # Calculate the nominal control outputs
-        if self.nominal_control_enabled:
-            J_tip = self.calculate_jacobian_tip() # 12x12
-            # pretty_print_array(J_tip)
-            # print("---------------------------")
-
-            err_tip, pos_err_avr_norm, ori_err_avr_norm = self.calculate_error_tip() # 12x1, scalar, scalar
-            # pretty_print_array(err_tip)
-            # print("---------------------------")
-
-            # publish error norms for information
-            self.info_pub_target_pos_error_avr_norm.publish(Float32(data=pos_err_avr_norm))
-            self.info_pub_target_ori_error_avr_norm.publish(Float32(data=ori_err_avr_norm))
-
-            # Disable the controller if the error is below the threshold
-            if (pos_err_avr_norm < (self.acceptable_pos_err_avr_norm+self.d_obstacle_offset)) \
-                and (ori_err_avr_norm < self.acceptable_ori_err_avr_norm):
-                # call set_enable service to disable the controller
-                self.controller_enabler(enable=False, cause="automatic")
-                # Create green colored log info message
-                # rospy.loginfo("\033[92m" + "Error norms are below the thresholds. The controller is disabled." + "\033[0m")
-                rospy.loginfo("Error norms are below the thresholds.")
-                return
-        
-            # Calculate the nominal control output
-            control_output = np.squeeze(np.dot(np.linalg.pinv(J_tip), err_tip)) # (12,)
-            # Apply the proportinal gains
-            for idx_particle, particle in enumerate(self.custom_static_particles):
-                # Get nominal control output of that particle
-                control_output[6*idx_particle:6*(idx_particle+1)] = self.kp * control_output[6*idx_particle:6*(idx_particle+1)] # nominal
-
-        return control_output
-
-    def calculate_path_tracking_control_output(self):
-        # Initiate the path tracking control output to zero
-        control_output = np.zeros(6*len(self.custom_static_particles))
-
-        # Calculate the path tracking control outputs
-        if self.path_tracking_control_enabled and self.planned_path_current_target_velocities_of_particles:
-            # Calculate the error between the current pose and the target pose of the particles
-            err_path_tracking, pos_err_avr_norm, ori_err_avr_norm = self.calculate_path_tracking_error() # 12x1, scalar, scalar
-            # pretty_print_array(err_path_tracking)
-            # print("---------------------------")
-
-            # # publish error norms for information TODO
-            # self.info_pub_path_tracking_pos_error_avr_norm.publish(Float32(data=pos_err_avr_norm))
-            # self.info_pub_path_tracking_ori_error_avr_norm.publish(Float32(data=ori_err_avr_norm))
-
-            control_output = np.squeeze(err_path_tracking) # (12,)
-
-            # Print orientation error tracking only elements 4th 5th 6th every 6 elements
-            # print(np.rad2deg(control_output[np.r_[3:6, 9:12]]))
-
-            for idx_particle, particle in enumerate(self.custom_static_particles):
-                # Get nominal control output of that particle and Apply the proportinal gains
-                control_output[6*idx_particle:6*(idx_particle+1)] = self.kp_path_tracking * control_output[6*idx_particle:6*(idx_particle+1)] 
-
-                # Feed forward control with the velocity profile of the path
-                control_output_feedforward = self.planned_path_current_target_velocities_of_particles[particle]
-
-                # Apply the feedforward control
-                control_output[6*idx_particle:6*(idx_particle+1)] += control_output_feedforward
-
-        return control_output
-    
-    def blend_control_outputs(self, nominal_u, path_tracking_u):
-        """
-        Blends the nominal and path tracking control outputs using a sigmoid function.
-        The blending weight is calculated based on the distance to the path completion.
-        The blending weight is in the range [0,1] and it is calculated using a sigmoid function.
-        The sigmoid function is defined as:
-        weight = 1.0 / (1.0 + np.exp(-k*(d-d0)))
-        where k is the smoothness parameter and d0 is the distance to the path completion when the weight is 0.5.
-        The blending is performed as:
-        control_output = (1.0 - weight)*nominal_u + weight*path_tracking_u
-        """        
-        ## Calculate a weight for blending the control outputs in the range [0,1]
-
-        ## Centroid distance to the path completion
-        # l_path = self.planned_path_cumulative_lengths[-1] # path length
-        # d_to_complete = (1.0 - self.planned_path_completion_rate) * l_path # distance to path completion
-        # print("d_to_complete (centroid): " + str(d_to_complete))
-
-        ## Calculate average distance to complete from particle paths:
-        d_to_complete = 0.0
-        n = 0
-        for particle, path_lengths_particle in self.planned_path_cumulative_lengths_of_particles.items():
-            l_path_particle = path_lengths_particle[-1]
-            d_to_complete += (1.0 - self.planned_path_completion_rate) * l_path_particle
-            # Print below the particle, d_to_complete
-            # print("Particle: " + str(particle) + ", d_to_complete: " + str(d_to_complete))
-            n += 1
-        
-        if n == 0:
-            rospy.logwarn("There is no particle path to calculate the distance to the path completion.")
-            d_to_complete = float('inf')
-        else:
-            d_to_complete /= n
-        # print("d_to_complete (average particles): " + str(d_to_complete))
-
-        # Use sigmoid fucntion to calculate the weight
-        weight = 1.0 / (1.0 + np.exp(-self.k_path_tracking_switch_off_smoothness * (d_to_complete - self.d_path_tracking_switch_off_distance)))
-        # print("weight: " + str(weight))
-        
-        return (1.0 - weight)*nominal_u + weight*path_tracking_u
 
     def calculate_control_outputs_timer_callback(self,event):
-        """
-        Calculates the control outputs (self.control_outputs) for the custom static particles.
-        """
-
         # if self.proceed_event.is_set():
         #     # print("Executing control calculations...")
         #     self.enabled = True
@@ -1191,26 +1022,42 @@ class VelocityControllerNode:
             # Increment the controller iteration
             self.controller_itr += 1
 
-            # Calculate the nominal control output
-            nominal_control_output = self.calculate_nominal_control_output() # (12,)
-            # print("Nominal control_output")
-            # pretty_print_array(nominal_control_output)
-            # print("---------------------------")
-
-            if self.planned_path and self.path_tracking_control_enabled:
-                # Calculate path tracking control output
-                path_tracking_control_output = self.calculate_path_tracking_control_output() # (12,)
-                # print("Path tracking control_output")
-                # print(path_tracking_control_output)
+            # Calculate the nominal control outputs
+            if self.nominal_control_enabled:
+                J_tip = self.calculate_jacobian_tip() # 12x12
+                # pretty_print_array(J_tip)
                 # print("---------------------------")
 
-                if self.nominal_control_enabled:
-                    # Blend the nominal and path tracking control outputs
-                    control_output = self.blend_control_outputs(nominal_control_output, path_tracking_control_output) # (12,)
-                else:
-                    control_output = path_tracking_control_output
+                err_tip, pos_err_avr_norm, ori_err_avr_norm = self.calculate_error_tip() # 12x1, scalar, scalar
+                # pretty_print_array(err_tip)
+                # print("---------------------------")
+
+                # publish error norms for information
+                self.info_pub_target_pos_error_avr_norm.publish(Float32(data=pos_err_avr_norm))
+                self.info_pub_target_ori_error_avr_norm.publish(Float32(data=ori_err_avr_norm))
+
+                # Disable the controller if the error is below the threshold
+                if (pos_err_avr_norm < (self.acceptable_pos_err_avr_norm+self.d_obstacle_offset)) and (ori_err_avr_norm < self.acceptable_ori_err_avr_norm):
+                    # call set_enable service to disable the controller
+                    self.controller_enabler(enable=False, cause="automatic")
+                    # Create green colored log info message
+                    # rospy.loginfo("\033[92m" + "Error norms are below the thresholds. The controller is disabled." + "\033[0m")
+                    rospy.loginfo("Error norms are below the thresholds.")
+                    return
+            
+                # Calculate the nominal control output
+                control_output = np.squeeze(np.dot(np.linalg.pinv(J_tip), err_tip)) # (12,)
+                # Apply the proportinal gains
+                for idx_particle, particle in enumerate(self.custom_static_particles):
+                    # Get nominal control output of that particle
+                    control_output[6*idx_particle:6*(idx_particle+1)] = self.kp * control_output[6*idx_particle:6*(idx_particle+1)] # nominal
             else:
-                control_output = nominal_control_output
+                # Set the nominal control output to zero
+                control_output = np.zeros(6*len(self.custom_static_particles))
+
+            # print("Nominal control_output")
+            # pretty_print_array(control_output)
+            # print("---------------------------")
 
             # init_t = time.time()                
             # Calculate safe control output with obstacle avoidance        
@@ -1237,6 +1084,7 @@ class VelocityControllerNode:
                         # rospy.logerr("\033[91m" + "The controller is disabled due to the QP solver error." + "\033[0m")
                         rospy.logerr("The controller is disabled due to the QP solver error.")
                         return
+        
 
         # # Reset the event to wait for the next input
         # self.proceed_event.clear()  
@@ -1244,11 +1092,9 @@ class VelocityControllerNode:
         # else:
         #     self.enabled = False
 
-
+            
+            
     def odom_pub_timer_callback(self,event):
-        """
-        Integrates the self.control_outputs with time and publishes the resulting poses as Odometry messages.
-        """
         # Only publish if enabled
         if self.enabled:
             for particle in self.custom_static_particles:
@@ -1376,25 +1222,32 @@ class VelocityControllerNode:
         perturbed_orientation = [perturbed_pose.orientation.x, perturbed_pose.orientation.y, perturbed_pose.orientation.z, perturbed_pose.orientation.w]
 
         # Relative rotation quaternion from current to perturbed
-        quaternion_difference = tf_trans.quaternion_multiply(perturbed_orientation, tf_trans.quaternion_inverse(current_orientation))
+        quaternion_difference = tf_trans.quaternion_multiply(tf_trans.quaternion_inverse(current_orientation), perturbed_orientation)
 
         # Normalize the quaternion to avoid numerical issues
         quaternion_difference = self.normalize_quaternion(quaternion_difference)
 
-        # # AXIS-ANGLE ORIENTATION ERROR/DIFFERENCE DEFINITION
+        # AXIS-ANGLE ORIENTATION ERROR/DIFFERENCE DEFINITION
         # # Convert quaternion difference to rotation vector (axis-angle representation)
-        # rotation_vector = self.quaternion_to_rotation_vec(quaternion_difference)
+        # angle = 2 * np.arccos(quaternion_difference[3])
+
+        # # Adjust angle to be within the range [-π, π]
+        # if angle > np.pi:
+        #     angle -= 2 * np.pi
+
+        # # Handling small angles with an approximation
+        # small_angle_threshold = 1e-3
+        # if np.abs(angle) < small_angle_threshold:
+        #     # Use small angle approximation
+        #     rotation_vector = 2 * np.array(quaternion_difference[:3])
+        # else:
+        #     # Regular calculation for larger angles
+        #     axis = quaternion_difference[:3] / np.sin(angle / 2)
+        #     rotation_vector = axis * angle
 
         # EULER ANGLES POSE ERROR/DIFFERENCE DEFINITION
         # Convert quaternion to Euler angles for a more intuitive error representation
         rotation_vector = tf_trans.euler_from_quaternion(quaternion_difference)
-
-        rotation_vector = np.array(rotation_vector)
-
-        # Add a deadzone to the orientation error 
-        deadzone_mask = np.abs(rotation_vector) < np.deg2rad(0.1) # Create a mask where values are within the deadzone
-        rotation_vector[deadzone_mask] = 0 # Set values within the deadzone to zero
-        # print(np.rad2deg(rotation_vector))
 
         # return np.array([diff_x, diff_y, diff_z]), rotation_vector
         # Combine position difference and rotation vector into a 6x1 vector
@@ -1415,26 +1268,34 @@ class VelocityControllerNode:
         target_orientation = [target_pose.orientation.x, target_pose.orientation.y, target_pose.orientation.z, target_pose.orientation.w]
 
         # Relative rotation quaternion from current to target
-        quaternion_error = tf_trans.quaternion_multiply(target_orientation, tf_trans.quaternion_inverse(current_orientation))
+        quaternion_error = tf_trans.quaternion_multiply(tf_trans.quaternion_inverse(current_orientation), target_orientation)
 
         # Normalize the quaternion to avoid numerical issues
         quaternion_error = self.normalize_quaternion(quaternion_error)
 
-        # # AXIS-ANGLE ORIENTATION ERROR/DIFFERENCE DEFINITION
-        # # Convert quaternion difference to rotation vector (axis-angle representation)
-        # rotation_vector = self.quaternion_to_rotation_vec(quaternion_error)
+        # AXIS-ANGLE ORIENTATION ERROR/DIFFERENCE DEFINITION
+        # # Convert quaternion error to rotation vector (axis-angle representation)
+        # angle = 2 * np.arccos(quaternion_error[3])
+
+        # # Adjust angle to be within the range [-π, π]
+        # if angle > np.pi:
+        #     angle -= 2 * np.pi
+
+        # # Handling small angles with an approximation
+        # small_angle_threshold = 1e-3
+        # if np.abs(angle) < small_angle_threshold:
+        #     # Use small angle approximation
+        #     rotation_vector = 2 * np.array(quaternion_error[:3])
+        # else:
+        #     # Regular calculation for larger angles
+        #     axis = quaternion_error[:3] / np.sin(angle / 2)
+        #     rotation_vector = axis * angle
 
         # EULER ANGLES POSE ERROR/DIFFERENCE DEFINITION
         # Convert quaternion to Euler angles for a more intuitive error representation
         rotation_vector = tf_trans.euler_from_quaternion(quaternion_error)
 
-        rotation_vector = np.array(rotation_vector)
-
-        # Add a deadzone to the orientation error 
-        deadzone_mask = np.abs(rotation_vector) < np.deg2rad(0.1) # Create a mask where values are within the deadzone
-        rotation_vector[deadzone_mask] = 0 # Set values within the deadzone to zero
-        # print(np.rad2deg(rotation_vector))
-
+        # return np.array([err_x, err_y, err_z]), rotation_vector
         # Combine position difference and rotation vector into a 6x1 vector
         return np.array([err_x, err_y, err_z] + list(rotation_vector))
     
@@ -1487,31 +1348,6 @@ class VelocityControllerNode:
             (    q[0, 1]+q[2, 3], 1.0-q[0, 0]-q[2, 2],     q[1, 2]-q[0, 3]),
             (    q[0, 2]-q[1, 3],     q[1, 2]+q[0, 3], 1.0-q[0, 0]-q[1, 1])
             ), dtype=np.float64)
-    
-    def quaternion_to_rotation_vec(self, quaternion):
-        """
-        Converts a quaternion to axis-angle representation.
-        Minimal representation of the orientation error. (3,) vector.
-        Arguments:
-            quaternion: The quaternion to convert as a numpy array in the form [x, y, z, w].
-        Returns:
-            rotation_vector: Minimal axis-angle representation of the orientation error. (3,) vector.
-            Norm if the axis_angle is the angle of rotation.
-        """
-        angle = 2 * np.arccos(quaternion[3])
-
-        # Handling small angles with an approximation
-        small_angle_threshold = 1e-6
-        if np.abs(angle) < small_angle_threshold:
-            # Use small angle approximation
-            rotation_vector = np.array([0.,0.,0.])
-        else:
-            # Regular calculation for larger angles
-            axis = quaternion[:3] / np.sin(angle/2.0)
-            # Normalize the axis
-            axis = axis / np.linalg.norm(axis)
-            rotation_vector = angle * axis 
-        return rotation_vector
 
     def normalize_quaternion(self, quaternion):
         norm = np.linalg.norm(quaternion)
@@ -1533,7 +1369,7 @@ class VelocityControllerNode:
         """
         # Weight limits
         w_max = 1.0
-        w_min = 0.4 # 0.05
+        w_min = 0.05
 
         # Compute the geometric mean of the stress avoidance performance and the overall minimum distance to collision
         # Below, both values are in the range [0, 1].
@@ -1640,833 +1476,6 @@ class VelocityControllerNode:
 
         return alpha_h
     
-    ## ----------------------------------------------------------------------------------------
-    ## --------------------------- PATH PLANNING AND TRACKING ---------------------------------
-    def reset_planned_path_variables(self):
-        self.planned_path = [] # (it is a list of PoseStamped() msgs)
-        self.planned_path_points = None # path 3D xyz points as numpy array
-        self.planned_path_cumulative_lengths = [0.0] # cumulative lengths of the path segments
-        self.planned_path_cumulative_rotations = [0.0] # cumulative rotations of the path segments obtained from the angles in axis-angle representation consecutive rotations in radians
-        self.planned_path_direction_vectors = [] # directions of the path segments as unit vectors
-        self.planned_path_rotation_vectors = [] # rotation axes of the path segments as unit vectors
-
-        self.planned_path_completion_rate = 0.0 # completion rate of the planned path
-        self.planned_path_current_target_index = 1 # index of the current waypoint in the planned path
-        self.planned_path_current_target_pose = None # current target pose of the planned path as a Pose() msg
-        
-        self.planned_path_kd_tree =  None # To Build a k-d tree from path points KDTree(self.path_points)
-
-        self.default_centroid_relative_poses_of_particles = {} # default (fixed) relative poses of the particles to the centroid pose
-        
-        self.planned_path_of_particles = {} # planned path of the particles as a list of Pose() msgs
-        self.planned_path_points_of_particles = {} # path 3D xyz points of the particles as numpy array
-        self.planned_path_cumulative_lengths_of_particles = {} # cumulative lengths of the path segments of the particles
-        self.planned_path_cumulative_rotations_of_particles = {} # cumulative rotations of the path segments of the particles obtained from the angles in axis-angle representation consecutive rotations in radians
-        self.planned_path_direction_vectors_of_particles = {} # directions of the path segments of the particles as unit vectors (list of n elements with each element is a 3D vector for each particle)
-        self.planned_path_rotation_vectors_of_particles = {} # rotation axes of the path segments of the particles as unit vectors (list of n elements with each element is a 3D vector for each particle)
-
-        self.planned_path_current_target_poses_of_particles = {} # current target poses of the particles as Pose() msgs
-        
-        self.planned_path_velocity_profile_of_particles = {} # velocity profile of the particles
-        self.planned_path_current_target_velocities_of_particles = {} # current target velocities of the particles based on the velocity profile
-
-        self.centroid_pose_of_particles = None # centroid pose of the custom static particles (average of the positions and orientations) as a Pose() msg
-        self.centroid_pose_of_particles_projected_on_path = None # centroid pose projected to the planned path as a Pose() msg
-
-    def calculate_default_centroid_relative_poses_of_particles(self):
-        """
-        Calculates the default relative poses of the particles with respect to the centroid pose.
-        """
-        default_centroid_relative_poses_of_particles = {}
-
-        # Calculate the relative poses
-        for particle in self.custom_static_particles:
-            # Guard condition: check if the particle has necessary properties set
-            if ((not (particle in self.particle_positions)) or \
-                (not self.is_perturbed_states_set_for_particle(particle)) or \
-                (not self.is_perturbed_min_distances_set(particle))):
-                rospy.logerr("Particle " + str(particle) + " does not have necessary properties set.")
-                continue
-            
-            # Convert quaternions to rotation matrices
-            rotation_matrix_centroid = tf_trans.quaternion_matrix([self.centroid_pose_of_particles.orientation.x, 
-                                                                   self.centroid_pose_of_particles.orientation.y, 
-                                                                   self.centroid_pose_of_particles.orientation.z, 
-                                                                   self.centroid_pose_of_particles.orientation.w])
-
-            # Calculate the relative position in global frame first
-            global_rel_position = Point()
-            global_rel_position.x = self.particle_positions[particle].x - self.centroid_pose_of_particles.position.x
-            global_rel_position.y = self.particle_positions[particle].y - self.centroid_pose_of_particles.position.y
-            global_rel_position.z = self.particle_positions[particle].z - self.centroid_pose_of_particles.position.z
-
-            # Transform this relative position to the local frame of the centroid
-            relative_position = np.dot(rotation_matrix_centroid.T, np.array([global_rel_position.x,
-                                                                             global_rel_position.y,
-                                                                             global_rel_position.z, 1]))[:3]
-
-            # Calculate the relative orientation 
-            inv_centroid_orientation = tf_trans.quaternion_inverse([self.centroid_pose_of_particles.orientation.x, 
-                                                                   self.centroid_pose_of_particles.orientation.y, 
-                                                                   self.centroid_pose_of_particles.orientation.z, 
-                                                                   self.centroid_pose_of_particles.orientation.w])
-                        
-            relative_orientation = tf_trans.quaternion_multiply([self.particle_orientations[particle].x,
-                                                                 self.particle_orientations[particle].y,
-                                                                 self.particle_orientations[particle].z,
-                                                                 self.particle_orientations[particle].w], inv_centroid_orientation)
-
-
-            # Set the relative pose
-            relative_pose = Pose()
-            relative_pose.position.x = relative_position[0]
-            relative_pose.position.y = relative_position[1]
-            relative_pose.position.z = relative_position[2]
-            relative_pose.orientation.x = relative_orientation[0]
-            relative_pose.orientation.y = relative_orientation[1]
-            relative_pose.orientation.z = relative_orientation[2]
-            relative_pose.orientation.w = relative_orientation[3]
-
-            # Store the relative pose
-            default_centroid_relative_poses_of_particles[particle] = relative_pose
-        
-        return default_centroid_relative_poses_of_particles
-
-    def average_quaternions(self, Q, weights):
-        '''
-        Averaging Quaternions using Markley's method with weights.[1]
-        See: https://stackoverflow.com/questions/12374087/average-of-multiple-quaternions
-        
-        [1] Markley, F. Landis, Yang Cheng, John Lucas Crassidis, and Yaakov Oshman. 
-        "Averaging quaternions." Journal of Guidance, Control, and Dynamics 30, no. 4 (2007): 1193-1197.
-
-        Arguments:
-            Q (ndarray): An Mx4 ndarray of quaternions.
-            weights (list): An M elements list, a weight for each quaternion.
-
-        Returns:
-            ndarray: The weighted average of the input quaternions in x, y, z, w (scalar) format.
-        '''
-        # Use the optimized numpy functions for a more efficient computation
-        A = np.einsum('ij,ik,i->...jk', Q, Q, weights)
-        # Compute the eigenvectors and eigenvalues, and return the eigenvector corresponding to the largest eigenvalue
-        return np.linalg.eigh(A)[1][:, -1]
-    
-    def update_path_status_timer_callback(self, event):
-
-        # Only publish if enabled
-        if self.enabled and self.path_planning_mockup_enabled:
-            ## ----------------------------------------------------------------------------------------------
-            if (not self.planned_path):
-                # Calculate the centroid pose of the particles
-                self.centroid_pose_of_particles = self.calculate_centroid_pose_of_particles()
-
-                # Calculate default centroid relative poses of the particles
-                self.default_centroid_relative_poses_of_particles = self.calculate_default_centroid_relative_poses_of_particles()
-
-                # Calculate the planned path
-                self.planned_path, \
-                self.planned_path_points, \
-                self.planned_path_cumulative_lengths, \
-                self.planned_path_cumulative_rotations, \
-                self.planned_path_direction_vectors, \
-                self.planned_path_rotation_vectors = self.calculate_mockup_path(self.centroid_pose_of_particles, \
-                                                                                self.waypoint_poses, \
-                                                                                num_points_per_meter=10)
-
-                # Build a k-d tree from path points 
-                self.planned_path_kd_tree = KDTree(self.planned_path_points) 
-
-            elif (not self.planned_path_of_particles):
-                # Derive the mockup path of the particles
-                self.planned_path_of_particles, \
-                self.planned_path_points_of_particles, \
-                self.planned_path_cumulative_lengths_of_particles, \
-                self.planned_path_cumulative_rotations_of_particles, \
-                self.planned_path_direction_vectors_of_particles, \
-                self.planned_path_rotation_vectors_of_particles = self.derive_path_of_particles(self.planned_path, \
-                                                                                                self.default_centroid_relative_poses_of_particles)
-                
-            elif (not self.planned_path_velocity_profile_of_particles):
-                # Calculate the velocity profile for the particles
-                self.planned_path_velocity_profile_of_particles = self.calculate_path_tracking_velocity_profile_of_particles()
-
-                # Set the current target index and pose for the new planned path
-                self.planned_path_current_target_index = 1
-                self.update_current_path_target_poses_and_velocities(self.planned_path_current_target_index)
-
-                # Publish the planned path for visualization
-                self.publish_path(self.planned_path)
-
-                # Publish the planned path of the particles for visualization
-                self.publish_paths_of_particles(self.planned_path_of_particles)
-            ## ----------------------------------------------------------------------------------------------
-            else:
-                # Update the centroid pose of the particles
-                self.centroid_pose_of_particles = self.calculate_centroid_pose_of_particles()
-
-                # Create odom message for the centroid pose and publish for visualization
-                odom = Odometry()
-                odom.header.stamp = rospy.Time.now()
-                odom.header.frame_id = "map"
-                odom.pose.pose = self.centroid_pose_of_particles
-                self.info_pub_centroid_pose_of_particles.publish(odom) # Publish the centroid pose
-
-                if (self.planned_path_kd_tree is not None):
-                    ## --------------------------------------------------- This part is optional
-                    """
-                    Calculate the projection of the centroid pose on the planned path if it is not empty and publishes it as an odom message.
-                    """
-                    # Calculate the projection of the centroid pose on the planned path
-                    self.centroid_pose_of_particles_projected_on_path = self.calculate_projection_on_path(self.centroid_pose_of_particles, \
-                                                                                                        self.planned_path_points, \
-                                                                                                        self.planned_path_kd_tree)
-                    
-                    # Create odom message for the projected centroid pose and publish for visualization
-                    odom_projected = Odometry()
-                    odom_projected.header.stamp = rospy.Time.now()
-                    odom_projected.header.frame_id = "map"
-                    odom_projected.pose.pose = self.centroid_pose_of_particles_projected_on_path
-                    self.info_pub_centroid_pose_of_particles_projected_on_path.publish(odom_projected) # Publish the projected centroid pose
-                    ## ---------------------------------------------------
-
-                ## ---------------------------------------------------
-                """
-                Calculate how much of the planned path is completed and, update and publish the current target point as a geometry_msgs/PointStamped.
-                """
-                # Calculate the completion rate of the planned path
-                # Also update the current target pose and index on the path
-                self.planned_path_current_target_index = self.update_current_path_target_index(self.planned_path_current_target_index)
-                self.update_current_path_target_poses_and_velocities(self.planned_path_current_target_index)
-
-                # Create a PointStamped message for the current target points and publish for visualization
-                self.publish_current_target_points()
-                ## ---------------------------------------------------
-
-    def calculate_centroid_pose_of_particles(self):
-        """
-        Calculates the centroid pose of the custom static particles.
-        """
-        # Initialize the centroid pose
-        centroid_pose = Pose()
-
-        ### Calculate the centroid position
-        centroid_position = Point()
-        num_particles = 0  # Initialize particle count
-        quaternions = []
-
-        for particle in self.custom_static_particles:
-            # Guard condition: check if the particle has necessary properties set
-            if ((not (particle in self.particle_positions)) or \
-                (not self.is_perturbed_states_set_for_particle(particle)) or \
-                (not self.is_perturbed_min_distances_set(particle))):
-                continue
-
-            # Sum positions
-            centroid_position.x += self.particle_positions[particle].x
-            centroid_position.y += self.particle_positions[particle].y
-            centroid_position.z += self.particle_positions[particle].z
-
-            # Collect quaternion for averaging
-            quaternions.append([
-                self.particle_orientations[particle].w,
-                self.particle_orientations[particle].x,
-                self.particle_orientations[particle].y,
-                self.particle_orientations[particle].z
-            ])
-
-            # Increase valid particle count
-            num_particles += 1
-
-        # Avoid division by zero if no valid particles found
-        if num_particles == 0:
-            return centroid_pose
-
-        # Calculate the average position
-        centroid_position.x /= num_particles
-        centroid_position.y /= num_particles
-        centroid_position.z /= num_particles
-
-        # Set the centroid position to the Pose
-        centroid_pose.position = centroid_position
-
-        ### Calculate the centroid orientation
-        centroid_orientation = Quaternion()
-
-        # Prepare quaternion data for averaging
-        quaternions = np.array(quaternions)
-        weights = np.array([1] * num_particles)  # Assuming equal weight for simplicity
-
-        # Calculate the average quaternion
-        avg_quaternion = self.average_quaternions(quaternions, weights)
-
-        # Normalize the quaternion to avoid numerical issues
-        avg_quaternion = self.normalize_quaternion(avg_quaternion)
-
-        # Set the average quaternion to the centroid orientation
-        centroid_orientation = Quaternion(avg_quaternion[1], avg_quaternion[2], avg_quaternion[3], avg_quaternion[0]) # Note x, y, z, w
-
-        # Set the centroid orientation to the Pose
-        centroid_pose.orientation = centroid_orientation
-
-        return centroid_pose
-            
-    def calculate_mockup_path(self, current_pose, waypoints, num_points_per_meter=10):
-        """
-        Calculates a mockup path for the robot given the current pose and the waypoints.
-        Interpolates between the current pose and the waypoints to create an equally spaced path
-        with the specified number of points per meter.
-
-        current_pose: The current pose of the robot as a Pose message.
-        waypoints: A list of Pose messages representing the waypoints.
-        num_points_per_meter: The number of points to interpolate per meter between the waypoints.
-
-        Returns:
-        - A list of PoseStamped messages representing the path.
-        - A numpy array of the path points as (x, y, z) coordinates.
-        - A list of the cumulative path lengths from the start for each point.
-        """
-        # Create a list to hold the Pose Stamped messages for the path
-        path = []
-
-        # Add the current_pose to the path as a PoseStamped
-        initial_pose_stamped = PoseStamped()
-        initial_pose_stamped.pose = current_pose
-        path.append(initial_pose_stamped)
-
-        segmet_start_pose = current_pose
-        cumulative_lengths = [0]  # List to hold the cumulative lengths starting with 0 at the start pose
-        cumulative_rotations = [0]  # List to hold the cumulative rotations starting with 0 at the start pose
-        direction_vectors = []  # List to hold the direction vectors of the path segments
-        rotation_vectors = []  # List to hold the rotation vectors of the path segments
-
-        # Loop through each waypoint to interpolate the path
-        for waypoint in waypoints:
-            # Calculate the straight-line distance between the last pose and the waypoint
-            segment_distance = np.sqrt((waypoint.position.x - segmet_start_pose.position.x) ** 2 +
-                               (waypoint.position.y - segmet_start_pose.position.y) ** 2 +
-                               (waypoint.position.z - segmet_start_pose.position.z) ** 2)
-            num_intermediate_points = int(segment_distance * num_points_per_meter)
-
-            last_pose = segmet_start_pose
-
-            # Interpolate positions
-            for i in range(1, num_intermediate_points):
-                t = i / float(num_intermediate_points)
-                interpolated_position_x = (1 - t) * segmet_start_pose.position.x + t * waypoint.position.x
-                interpolated_position_y = (1 - t) * segmet_start_pose.position.y + t * waypoint.position.y
-                interpolated_position_z = (1 - t) * segmet_start_pose.position.z + t * waypoint.position.z
-
-                # Interpolate orientations using SLERP
-                interpolated_orientation = tf_trans.quaternion_slerp(
-                    [segmet_start_pose.orientation.x, 
-                     segmet_start_pose.orientation.y, 
-                     segmet_start_pose.orientation.z, 
-                     segmet_start_pose.orientation.w],
-                    [waypoint.orientation.x, 
-                     waypoint.orientation.y, 
-                     waypoint.orientation.z, 
-                     waypoint.orientation.w],
-                    t)
-
-                # Create a new pose for each interpolated point
-                new_pose = Pose()
-                new_pose.position.x = interpolated_position_x
-                new_pose.position.y = interpolated_position_y
-                new_pose.position.z = interpolated_position_z
-                new_pose.orientation.x = interpolated_orientation[0]
-                new_pose.orientation.y = interpolated_orientation[1]
-                new_pose.orientation.z = interpolated_orientation[2]
-                new_pose.orientation.w = interpolated_orientation[3]
-
-                # Create PoseStamped and add to path
-                pose_stamped = PoseStamped()
-                pose_stamped.pose = new_pose
-                path.append(pose_stamped)
-
-                # Calculate the cumulative length for each new pose
-                if len(cumulative_lengths) > 0:
-                    ### Calculate the cumulative length for each new pose
-                    last_length = cumulative_lengths[-1]
-
-                    direction_vector = np.array([new_pose.position.x - last_pose.position.x,
-                                                  new_pose.position.y - last_pose.position.y,
-                                                  new_pose.position.z - last_pose.position.z])
-
-                    new_length = last_length + np.linalg.norm(direction_vector)
-                    cumulative_lengths.append(new_length)
-                    direction_vectors.append(direction_vector/np.linalg.norm(direction_vector))
-
-                    ### Calculate the cumulative rotation for each new pose
-                    # Calculate the rotation from the last pose to the new pose
-                    # Orientation difference
-                    last_orientation = [last_pose.orientation.x, last_pose.orientation.y, last_pose.orientation.z, last_pose.orientation.w]
-                    new_orientation = [new_pose.orientation.x, new_pose.orientation.y, new_pose.orientation.z, new_pose.orientation.w]
-
-                    # Relative rotation quaternion from last to new
-                    quaternion_difference = tf_trans.quaternion_multiply(new_orientation, tf_trans.quaternion_inverse(last_orientation))
-
-                    # Normalize the quaternion to avoid numerical issues
-                    quaternion_difference = self.normalize_quaternion(quaternion_difference)
-
-                    # AXIS-ANGLE ORIENTATION ERROR/DIFFERENCE DEFINITION
-                    # Convert quaternion difference to rotation vector (axis-angle representation)
-                    rotation_vector = self.quaternion_to_rotation_vec(quaternion_difference)
-                    rotation_angle = np.linalg.norm(rotation_vector)
-
-                    if rotation_angle > 0:
-                        # Normalize the rotation vector to get the rotation axis
-                        rotation_vectors.append(rotation_vector / rotation_angle)
-                    else:
-                        # If the rotation angle is zero, add a unit vector along the z-axis
-                        rotation_vectors.append(np.array([0.0, 0.0, 1.0]))
-                    
-                    last_rotation = cumulative_rotations[-1]
-                    new_rotation = last_rotation + rotation_angle
-                    cumulative_rotations.append(new_rotation)
-
-                last_pose = new_pose
-
-            # Add the waypoint as a PoseStamped to mark the end of the segment
-            waypoint_pose_stamped = PoseStamped()
-            waypoint_pose_stamped.pose = waypoint
-            path.append(waypoint_pose_stamped)
-            if len(cumulative_lengths) > 0:
-                last_length = cumulative_lengths[-1]
-
-                direction_vector = np.array([waypoint.position.x - last_pose.position.x,
-                                            waypoint.position.y - last_pose.position.y,
-                                            waypoint.position.z - last_pose.position.z])
-                
-
-                new_length = last_length + np.linalg.norm(direction_vector)
-                cumulative_lengths.append(new_length)
-                direction_vectors.append(direction_vector/np.linalg.norm(direction_vector))
-
-                # Calculate the rotation from the last pose to the new pose
-                # Orientation difference
-                last_orientation = [last_pose.orientation.x, last_pose.orientation.y, last_pose.orientation.z, last_pose.orientation.w]
-                new_orientation = [waypoint.orientation.x, waypoint.orientation.y, waypoint.orientation.z, waypoint.orientation.w]
-
-                # Relative rotation quaternion from last to new
-                quaternion_difference = tf_trans.quaternion_multiply(new_orientation, tf_trans.quaternion_inverse(last_orientation))
-
-                # Normalize the quaternion to avoid numerical issues
-                quaternion_difference = self.normalize_quaternion(quaternion_difference)
-
-                # AXIS-ANGLE ORIENTATION ERROR/DIFFERENCE DEFINITION
-                # Convert quaternion difference to rotation vector (axis-angle representation)
-                rotation_vector = self.quaternion_to_rotation_vec(quaternion_difference)
-                rotation_angle = np.linalg.norm(rotation_vector)
-
-                if rotation_angle > 0:
-                    # Normalize the rotation vector to get the rotation axis
-                    rotation_vectors.append(rotation_vector / rotation_angle)
-                else:
-                    # If the rotation angle is zero, add a unit vector along the z-axis
-                    rotation_vectors.append(np.array([0.0, 0.0, 1.0]))
-                
-                last_rotation = cumulative_rotations[-1]
-                new_rotation = last_rotation + rotation_angle
-                cumulative_rotations.append(new_rotation)
-
-            # Update last_pose to the current waypoint for the next segment
-            segmet_start_pose = waypoint
-
-        # # To Make sure the cumulative lengths are correctly calculated, also print the number of points in the cumulative lengths
-        # print("Path cumulative lengths: {}".format(cumulative_lengths))
-        # print("Number of points in the cumulative lengths: {}".format(len(cumulative_lengths)))
-
-        # # To Make sure the cumulative rotations are correctly calculated
-        # print("Path cumulative rotations: {}".format(cumulative_rotations))
-        # print("Number of points in the cumulative rotations: {}".format(len(cumulative_rotations)))
-
-        # # # To Make sure the direction vectors are correctly calculated
-        # print("Path direction vectors: {}".format(direction_vectors))
-        # print("Number of points in the direction vectors: {}".format(len(direction_vectors)))
-
-        # # # To Make sure the rotation vectors are correctly calculated
-        # print("Path rotation vectors: {}".format(rotation_vectors))
-        # print("Number of points in the rotation vectors: {}".format(len(rotation_vectors)))
-
-        path_points = np.array([(p.pose.position.x, p.pose.position.y, p.pose.position.z) for p in path])
-        return path, path_points, cumulative_lengths, cumulative_rotations, direction_vectors, rotation_vectors
-    
-    def derive_path_of_particles(self, path, relative_poses_of_particles):
-        path_of_particles = {}
-        path_points_of_particles = {}
-        path_cumulative_lengths_of_particles = {}
-        path_cumulative_rotations_of_particles = {}
-        path_direction_vectors_of_particles = {}
-        path_rotation_vectors_of_particles = {}
-
-        for particle, rel_pose in relative_poses_of_particles.items():
-            # Initialize lists for each particle
-            path_of_particles[particle] = []
-            path_points_of_particles[particle] = []
-            path_cumulative_lengths_of_particles[particle] = [0.0]  # Start with 0 length
-            path_cumulative_rotations_of_particles[particle] = [0.0]  # Start with 0 rotation radians
-            path_direction_vectors_of_particles[particle] = []
-            path_rotation_vectors_of_particles[particle] = []
-
-            last_pose = None
-
-            for pose_stamped in path:
-                # Get the global position of the robot
-                robot_position = pose_stamped.pose.position
-                robot_orientation = pose_stamped.pose.orientation
-
-                # Convert quaternion to matrix
-                robot_orient_matrix = tf_trans.quaternion_matrix([robot_orientation.x, 
-                                                                  robot_orientation.y, 
-                                                                  robot_orientation.z, 
-                                                                  robot_orientation.w])
-
-                # Get relative position and orientation of the particle
-                rel_position = rel_pose.position
-                rel_orientation = rel_pose.orientation
-
-                # Convert relative position to global position
-                rel_pos_global = np.dot(robot_orient_matrix, np.array([rel_position.x, rel_position.y, rel_position.z, 1]))
-
-                # Compute new global position
-                new_position = Point()
-                new_position.x = robot_position.x + rel_pos_global[0]
-                new_position.y = robot_position.y + rel_pos_global[1]
-                new_position.z = robot_position.z + rel_pos_global[2]
-
-                # Compute new global orientation by multiplying quaternions
-                new_orientation = tf_trans.quaternion_multiply(
-                    [rel_orientation.x, rel_orientation.y, rel_orientation.z, rel_orientation.w],
-                    [robot_orientation.x, robot_orientation.y, robot_orientation.z, robot_orientation.w]
-                )
-
-                # Create new Pose and PoseStamped for this particle
-                new_pose = Pose(position=new_position, orientation=Quaternion(*new_orientation))
-                new_pose_stamped = PoseStamped(pose=new_pose)
-
-                # Append to the path of this particle
-                path_of_particles[particle].append(new_pose_stamped)
-                path_points_of_particles[particle].append((new_position.x, new_position.y, new_position.z))
-
-                # Calculate the cumulative length and rotation
-                if last_pose is not None:
-                    # calculate the direction vector
-                    direction_vector = np.array([new_pose.position.x - last_pose.position.x,
-                                                 new_pose.position.y - last_pose.position.y,
-                                                 new_pose.position.z - last_pose.position.z])
-
-                    # Calculate the distance between the last and new position
-                    dist = np.linalg.norm(direction_vector)
-                    last_cumulative_length = path_cumulative_lengths_of_particles[particle][-1]
-                    path_cumulative_lengths_of_particles[particle].append(last_cumulative_length + dist)
-
-                    path_direction_vectors_of_particles[particle].append(direction_vector/dist)
-
-                    # Calculate the rotation from the last pose to the new pose
-                    # Orientation difference
-                    last_orientation = [last_pose.orientation.x, last_pose.orientation.y, last_pose.orientation.z, last_pose.orientation.w]
-                    new_orientation = [new_pose.orientation.x, new_pose.orientation.y, new_pose.orientation.z, new_pose.orientation.w]
-
-                    # Relative rotation quaternion from last to new
-                    quaternion_difference = tf_trans.quaternion_multiply(new_orientation, tf_trans.quaternion_inverse(last_orientation))
-
-                    # Normalize the quaternion to avoid numerical issues
-                    quaternion_difference = self.normalize_quaternion(quaternion_difference)
-
-                    # AXIS-ANGLE ORIENTATION ERROR/DIFFERENCE DEFINITION
-                    # Convert quaternion difference to rotation vector (axis-angle representation)
-                    rotation_vector = self.quaternion_to_rotation_vec(quaternion_difference)
-                    rotation_angle = np.linalg.norm(rotation_vector)
-
-                    if rotation_angle > 0:
-                        # Normalize the rotation vector to get the rotation axis
-                        path_rotation_vectors_of_particles[particle].append(rotation_vector / rotation_angle)
-                    else:
-                        # If the rotation angle is zero, add a unit vector along the z-axis
-                        path_rotation_vectors_of_particles[particle].append(np.array([0.0, 0.0, 1.0]))
-
-                    last_cumulative_rotation = path_cumulative_rotations_of_particles[particle][-1]
-                    path_cumulative_rotations_of_particles[particle].append(last_cumulative_rotation + rotation_angle)
-
-                last_pose = new_pose
-                
-            if len(path_cumulative_lengths_of_particles[particle]) == 1:
-                # Handle case where no motion occurs
-                path_cumulative_lengths_of_particles[particle].append(0.0)
-                path_cumulative_rotations_of_particles[particle].append(0.0)
-
-            # # To Make sure the cumulative lengths are correctly calculated
-            # print("Path cumulative lengths for particle {}: {}".format(particle, path_cumulative_lengths_of_particles[particle]))
-            # print("Number of points in the cumulative lengths for particle {}: {}".format(particle, len(path_cumulative_lengths_of_particles[particle])))
-
-            # # # To Make sure the cumulative rotations are correctly calculated
-            # print("Path cumulative rotations for particle {}: {}".format(particle, path_cumulative_rotations_of_particles[particle]))
-            # print("Number of points in the cumulative rotations for particle {}: {}".format(particle, len(path_cumulative_rotations_of_particles[particle])))
-                  
-            # # # To Make sure the direction vectors are correctly calculated
-            # print("Path direction vectors for particle {}: {}".format(particle, path_direction_vectors_of_particles[particle]))
-            # print("Number of points in the direction vectors for particle {}: {}".format(particle, len(path_direction_vectors_of_particles[particle])))
-
-            # # # To Make sure the rotation vectors are correctly calculated
-            # print("Path rotation vectors for particle {}: {}".format(particle, path_rotation_vectors_of_particles[particle]))
-            # print("Number of points in the rotation vectors for particle {}: {}".format(particle, len(path_rotation_vectors_of_particles[particle])))
-
-        return path_of_particles, path_points_of_particles, path_cumulative_lengths_of_particles, path_cumulative_rotations_of_particles, path_direction_vectors_of_particles, path_rotation_vectors_of_particles
-
-    def calculate_projection_on_path(self, pose, path_points, path_kd_tree):
-        """
-        Calculates the projection of a pose on a path.
-        The projection is the closest point on the path to the pose with the same orientation of the current pose.
-
-        Arguments:
-        - Pose is a Pose message.
-        - path_kd_tree is a KDTree object created from the path points.
-
-        Returns:
-        - The Pose message representing the projection of the pose on the path.
-        """
-        # Query the k-d tree for the nearest neighbor
-        query_point = np.array([pose.position.x, pose.position.y, pose.position.z])
-        distance, index = path_kd_tree.query(query_point)
-
-        # Create a new Pose for the projection point
-        projection_point = Pose()
-        projection_point.position.x = path_points[index][0]
-        projection_point.position.y = path_points[index][1]
-        projection_point.position.z = path_points[index][2]
-        projection_point.orientation = pose.orientation
-
-        return projection_point
-
-    def update_current_path_target_index(self, current_target_index):
-        """
-        Calculates how much of the path is completed and updates the current target index.
-        The completion rate is the ratio of the distance traveled to the total path length.
-        The current target point is the next point on the path that the robot should reach.
-        This function should be called periodically to update the current target point.
-        """
-
-        self.planned_path_completion_rate = float(current_target_index)/len(self.planned_path)
-
-        if current_target_index == (len(self.planned_path) - 1):
-            next_index = current_target_index + 1
-            prev_index = current_target_index - 1
-
-            current_target_point = np.array([self.planned_path_current_target_pose.position.x, 
-                                             self.planned_path_current_target_pose.position.y, 
-                                             self.planned_path_current_target_pose.position.z])
-            
-            prev_target_point = np.array([self.planned_path[prev_index].pose.position.x,
-                                            self.planned_path[prev_index].pose.position.y,
-                                            self.planned_path[prev_index].pose.position.z])
-            
-            current_position = np.array([self.centroid_pose_of_particles.position.x, 
-                                         self.centroid_pose_of_particles.position.y, 
-                                         self.centroid_pose_of_particles.position.z])
-            
-            line_vector = current_target_point - prev_target_point
-            point_vector = current_position - current_target_point
-
-            line_length = np.linalg.norm(line_vector)
-            if line_length > 0:
-                line_unit_vector = line_vector / line_length
-            else:
-                line_unit_vector = np.zeros(3)
-            projection_length = np.dot(point_vector, line_unit_vector)
-            # If projection length is greater than zero, update the target index
-            if projection_length >= 0.0:
-                current_target_index = next_index
-            
-        ## Update the current_target_index
-        # Check if the current target index should be updated
-        if current_target_index < (len(self.planned_path) - 1):
-            next_index = current_target_index + 1
-            # prev_index = current_target_index - 1
-
-            current_target_point = np.array([self.planned_path_current_target_pose.position.x, 
-                                             self.planned_path_current_target_pose.position.y, 
-                                             self.planned_path_current_target_pose.position.z])
-            next_target_point = np.array([self.planned_path[next_index].pose.position.x, 
-                                          self.planned_path[next_index].pose.position.y, 
-                                          self.planned_path[next_index].pose.position.z])
-            # prev_target_point = np.array([self.planned_path[prev_index].pose.position.x,
-            #                                 self.planned_path[prev_index].pose.position.y,
-            #                                 self.planned_path[prev_index].pose.position.z])
-            current_position = np.array([self.centroid_pose_of_particles.position.x, 
-                                         self.centroid_pose_of_particles.position.y, 
-                                         self.centroid_pose_of_particles.position.z])
-            
-            # Project current position on the line segment from current target to next target
-            line_vector = next_target_point - current_target_point
-            # line_vector = current_target_point - prev_target_point
-            point_vector = current_position - current_target_point
-            # point_vector = current_position - prev_target_point
-
-            line_length = np.linalg.norm(line_vector)
-            if line_length > 0:
-                line_unit_vector = line_vector / line_length
-            else:
-                line_unit_vector = np.zeros(3) # Avoid division by zero
-
-            # Calculate the projection length    
-            projection_length = np.dot(point_vector, line_unit_vector)
-            # If projection length is greater than zero, update the target index
-            if projection_length >= 0.0:
-                current_target_index = next_index
-                
-        return current_target_index
-    
-    def update_current_path_target_poses_and_velocities(self, current_target_index):
-        """
-        Updates the current target poses and velocities of the particles based on the current target index.
-        """
-        # update the current target pose
-        if current_target_index < len(self.planned_path):
-            self.planned_path_current_target_pose = self.planned_path[current_target_index].pose
-
-        # update the current target poses of the particles
-        for particle, path in self.planned_path_of_particles.items():
-            if current_target_index < len(self.planned_path):
-                self.planned_path_current_target_poses_of_particles[particle] = path[current_target_index].pose
-
-        # Update the current target velocities of the particles based on the velocity profile
-        for particle, velocity_profile in self.planned_path_velocity_profile_of_particles.items():
-            self.planned_path_current_target_velocities_of_particles[particle] = velocity_profile[current_target_index-1]
-                
-    def calculate_path_tracking_velocity_profile_of_particles(self):
-        """
-        Calculates the velocity profile of the particles for path tracking.
-        planned_path_velocity_profile_of_particles = {particle: velocity_profile as a list of 6D vectors}
-        """
-        planned_path_velocity_profile_of_particles = {}
-
-        # For each particle, calculate segment durations
-        # Assuming the number of segments are the same for each particle
-        # Find the maximum segment durations of all paths
-        max_segment_durations = None # to hold the maximum segment durations of the all paths as np.array of n elements
-        for idx_particle, particle in enumerate(self.custom_static_particles):
-            if particle not in self.planned_path_current_target_poses_of_particles:
-                rospy.logwarn("Particle: " + str(particle) + " planned path is not obtained yet.")
-                continue
-
-            segment_durations_particle = self.calculate_segment_durations(self.planned_path_cumulative_lengths_of_particles[particle], 
-                                                                          self.planned_path_cumulative_rotations_of_particles[particle], 
-                                                                          self.max_linear_velocity*self.path_tracking_feedforward_linear_velocity_scale_factor, 
-                                                                          self.max_angular_velocity*self.path_tracking_feedforward_angular_velocity_scale_factor)
-            if max_segment_durations is None:
-                max_segment_durations = segment_durations_particle
-            else:
-                max_segment_durations = np.maximum(max_segment_durations, segment_durations_particle)
-
-        # Calculate the velocity profile of the particles
-        for idx_particle, particle in enumerate(self.custom_static_particles):
-            if particle not in self.planned_path_current_target_poses_of_particles:
-                continue
-
-            segment_lengths = np.diff(self.planned_path_cumulative_lengths_of_particles[particle]) # np.array n elements
-            segment_rotations = np.diff(self.planned_path_cumulative_rotations_of_particles[particle]) # np.array of n elements
-            segment_directions = self.planned_path_direction_vectors_of_particles[particle]  # list of n elements with each element a unit 3D vector
-            segment_rotation_vectors = self.planned_path_rotation_vectors_of_particles[particle]  # list of n elements with each element a unit 3D vector
-
-            linear_speed_profile = segment_lengths / max_segment_durations  # np.array of n elements
-            angular_speed_profile = segment_rotations / max_segment_durations  # np.array of n elements
-
-            # Multiply the speed profiles with the direction vectors and rotation vectors
-            # and concatenate them to obtain the velocity profile as a list of 6D vectors
-            velocity_profile = [np.concatenate((speed * direction, angular_speed * rotation))
-                                for speed, angular_speed, direction, rotation in zip(linear_speed_profile, 
-                                                                                     angular_speed_profile, 
-                                                                                     segment_directions, 
-                                                                                     segment_rotation_vectors)]
-
-            planned_path_velocity_profile_of_particles[particle] = velocity_profile
-
-            # Add zero velocity at the end of the velocity profile
-            planned_path_velocity_profile_of_particles[particle].append(np.zeros(6))
-
-        return planned_path_velocity_profile_of_particles
-    
-    def calculate_segment_durations(self, cumulative_lenghts, cumulative_rotations, max_linear_velocity, max_angular_velocity):
-        """
-        Calculates the duration of each segment in the path based on the maximum linear and angular velocities.
-
-        Args:
-            cumulative_lenghts: A list of cumulative lengths of the segments in the path.
-            cumulative_rotations: A list of cumulative rotations of the segments in the path.
-            max_linear_velocity: The maximum linear velocity of the robot.
-            max_angular_velocity: The maximum angular velocity of the robot.
-        Returns:
-            np.array required durations of the segments in the path.
-        """
-        segment_lengths = np.diff(cumulative_lenghts)
-        segment_rotations = np.diff(cumulative_rotations)
-
-        linear_times = segment_lengths / max_linear_velocity
-        angular_times = segment_rotations / max_angular_velocity
-
-        return np.maximum(linear_times, angular_times)
-
-    def publish_path(self, planned_path):
-        """
-        Publishes the planned path of the robot to the /path topic.
-        """
-        # Create a Path message
-        path = Path()
-        path.header.frame_id = "map"
-        path.header.stamp = rospy.Time.now()
-
-        # Add the poses to the path
-        for pose in planned_path:
-            path.poses.append(pose)
-
-        # Publish the path
-        self.path_pub.publish(path)
-
-    def publish_paths_of_particles(self, planned_path_of_particles):
-        """
-        Publishes the planned path of the particles to the /path_of_particles topic.
-        """
-        # Create a Path message
-        path_of_particles = {}
-        for particle, path in planned_path_of_particles.items():
-            path_msg = Path()
-            path_msg.header.frame_id = "map"
-            path_msg.header.stamp = rospy.Time.now()
-
-            # Add the poses to the path
-            for pose in path:
-                path_msg.poses.append(pose)
-
-            # Publish the path
-            path_of_particles[particle] = path_msg
-
-            self.path_pub_particles[particle].publish(path_msg)
-
-    def publish_current_target_points(self):
-        """
-        Publishes the current target points on the path to the /current_target_points topic.
-        """
-        time_now = rospy.Time.now()
-        frame = "map"
-
-        # Create a PointStamped message for the current target point in the planned path of **centroid**
-        current_target_point = PointStamped()
-        current_target_point.header.stamp = time_now
-        current_target_point.header.frame_id = frame
-        current_target_point.point = self.planned_path_current_target_pose.position
-        self.info_pub_planned_path_current_target_point.publish(current_target_point) # Publish the current target point
-
-        # Publish the current target points of the **particles** 
-        for particle, pose in self.planned_path_current_target_poses_of_particles.items():
-            # Create a PointStamped message for the current target point of the particle
-            current_target_point_of_particle = PointStamped()
-            current_target_point_of_particle.header.frame_id = frame
-            current_target_point_of_particle.header.stamp = time_now
-            current_target_point_of_particle.point = pose.position
-            self.info_pub_planned_path_current_target_point_particles[particle].publish(current_target_point_of_particle) # Publish the current target point of the particle
-
-    ## ----------------------------------------------------------------------------------------
 
 if __name__ == "__main__":
     rospy.init_node('velocity_controller_node', anonymous=False)

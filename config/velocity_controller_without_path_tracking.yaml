@@ -12,8 +12,7 @@ valid_control_output_wait_timeout: 5.0 # (seconds)
 # kp: [0.15,0.15,0.1, 0.15,0.15,0.15]
 # kp: [0.15,0.15,0.1, 0.15,0.15,0.15]
 # kp: [0.1,0.1,0.075, 0.15,0.15,0.15]
-# kp: [0.05,0.05,0.025, 0.15,0.15,0.15]
-kp: [1.0,1.0,1.0, 1.5,1.5,1.5]
+kp: [0.05,0.05,0.025, 0.15,0.15,0.15]
 # kp: [0.03,0.03,0.03, 0.05,0.05,0.05]
 # kp: [0.02,0.02,0.02, 0.1,0.1,0.1]
 # kp: [0.06,0.06,0.03, 0.03,0.03,0.03]
@@ -28,10 +27,6 @@ tip_particles: [0,39]
 target_poses: [[[-1, -1, 0.14], [5,   0, 90]],
                [[ 1, -1, 0.14], [175, 0, 90]]]
 
-# # For TEST
-# target_poses: [[[-1.215,  2.00, 0.5], [90, 0, 0]],
-#                [[-1.215, -0.43, 0.5], [90, 0, 0]]]
-
 # Maximum velocity limits for each robot
 # Any velocity command exceeding these limits will be scaled down to these values
 max_linear_velocity: 0.1 # [m/s]
@@ -39,51 +34,8 @@ max_angular_velocity: 0.15 # [rad/s]
 
 # Acceptable error for the target pose to stop the controller
 # If the average error is less than this value, the controller stops
-acceptable_pos_err_avr_norm: 0.1 # 0.2 # [m] # note: d_obstacle_offset is added to this value
-acceptable_ori_err_avr_norm: 0.01 # 0.1 # [rad] 
-
-
-## -------------------------------------------------------
-## Path planning parameters
-path_planning_mockup_enabled: True # default: False
-path_tracking_control_enabled: True # default: True
-
-# Waypoint poses for the path planning for the centeroid of the tent pole (assuming the tent pole is a rigid link)
-# A path is generated between these waypoints using a simple spline interpolation between them as a reference path
-# as a mockup for the path planning. 
-# In the future, the path planning will be done using an actual path planner node and the path will be subscribed 
-# by this controller node as a topic. 
-# Each element holds [[x,y,z],[Rx,Ry,Rz(euler angles in degrees)]]
-waypoint_poses: [[[0,  1.55, 1.10], [90, 0, 90]],
-                 [[0,  0.45, 1.10], [90, 0, 90]],
-                 [[0, -1.0, 0.16], [90, 0, 90]]]
-
-# # FOR TEST
-# waypoint_poses: [[[0,  1.5, 1.10], [45, 0, 90]],
-#                  [[0,  0.5, 1.10], [135, 0, 90]],
-#                  [[0, -1.0, 0.16], [90, 0, 90]]]
-
-# # # FOR TEST
-# waypoint_poses: [[[-1.215,  0.8225, 0.5], [90, 0, 0]]]
-
-# Path tracking controller gains [x,y,z, Rx,Ry,Rz]
-kp_path_tracking: [0.0,0.0,0.0, 0.0,0.0,0.0]
-# kp_path_tracking: [1.0,1.0,1.0, 1.5,1.5,1.5]
-kp_path_tracking: [0.5,0.5,0.5, 0.75,0.75,0.75]
-
-kd_path_tracking: [0.0,0.0,0.0, 0.0,0.0,0.0]
-
-# Path tracking switch off parameters used in the sigmoid function
-# The sigmoid function is used to switch off the path tracking controller smoothly to the nominal controller
-# when the robot is close to the end of path. See: https://www.desmos.com/calculator/exgon3okr6
-d_path_tracking_switch_off_distance: 1.00 # 0.75 # the distance from the end of the path to start switching off the path tracking controller
-k_path_tracking_switch_off_smoothness: 10.0 # 20.0 # the higher the value, the steeper the switch off of the path tracking controller
-
-# Feedforward velocity scale factors for the path tracking controller
-# These values are multiplied with the maximum velocity limits to scale down the velocity commands of the path tracking
-# They are in the range of [0,1]. If the value is 1.0, the maximum velocity limits are used as the feedforward velocity commands.
-path_tracking_feedforward_linear_velocity_scale_factor: 1.0 # 0.5
-path_tracking_feedforward_angular_velocity_scale_factor: 1.0 # 0.5
+acceptable_pos_err_avr_norm: 0.2 # [m] # note: d_obstacle_offset is added to this value
+acceptable_ori_err_avr_norm: 0.1 # [rad] 
 
 
 ## -------------------------------------------------------
