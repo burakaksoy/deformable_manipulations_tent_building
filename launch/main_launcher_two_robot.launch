@@ -5,7 +5,7 @@
 <arg name="is_remote" default="false"/>
 
 <group if="$(arg is_remote)">
-    <machine name="burak-p1-20" address="192.168.1.200" env-loader="/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/scripts/env_loader.sh" user="burak" password="1q2w3e"  default="true"/>
+    <machine name="burak-p1-20" address="192.168.1.100" env-loader="/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/scripts/env_loader.sh" user="burak" password="1q2w3e"  default="true"/>
 </group>
 
 <arg name="control_rate" default="100"/>
@@ -58,13 +58,13 @@
         <rosparam param="line_marker_scale_multiplier"              subst_value="true">8.0</rosparam>
         <rosparam param="line_marker_color_rgba"                    subst_value="true">[0.0, 0.0, 0.0, 1.0]</rosparam>
         <rosparam param="frame_marker_scale"                        subst_value="true">0.003</rosparam>
-        <rosparam param="frame_marker_axis_length"                  subst_value="true">0.1</rosparam>
+        <rosparam param="frame_marker_axis_length"                  subst_value="true">0.05</rosparam>
 
         <rosparam param="rb_visualization_mode"                     subst_value="true">2</rosparam>
         <rosparam param="rb_markers_topic_name"                     subst_value="true">rigid_body_markers</rosparam>
         <rosparam param="rb_line_marker_scale_multiplier"           subst_value="true">0.2</rosparam>
-        <rosparam param="rb_line_marker_color_rgba"                 subst_value="true">[0.5, 1.0, 0.5, 0.9]</rosparam>
-        <rosparam param="rb_mesh_marker_color_rgba"                 subst_value="true">[0.5, 1.0, 0.5, 0.5]</rosparam>
+        <rosparam param="rb_line_marker_color_rgba"                 subst_value="true">[0.5, 1.0, 0.5, 0.025]</rosparam>
+        <rosparam param="rb_mesh_marker_color_rgba"                 subst_value="true">[0.5, 1.0, 0.5, 0.05]</rosparam>
 
         <rosparam param="min_dist_line_marker_scale_multiplier"     subst_value="true">2.0</rosparam>
         <rosparam param="min_dist_line_marker_color_rgba"           subst_value="true">[0.0, 0.0, 0.0, 1.0]</rosparam>

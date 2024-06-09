@@ -62,12 +62,13 @@ rendering_rb_rate: 5.0 # Hz, frequency to publish the rigid body meshes to RVIZ 
 min_dist_to_rb_pub_rate: 50.0 # Hz, frequency to publish minimum distances to the rigid bodies 
 
 # Rigid body scene .json file, If empty, no rigid bodies exist in the simulator
-rb_scene_config_path: ""
+# rb_scene_config_path: ""
 # rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/DloOnCube_5.json
 # rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/DloOnCylinderUnitBox.json
 # rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/DloOnCylinderVaseUnitBox.json
 # rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/DloOnFloor.json
 rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/TentBuilding.json
+# rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/l_shape_corridor.json
 
 
 # DLO VISUALIZATION RELATED PARAMETERS
