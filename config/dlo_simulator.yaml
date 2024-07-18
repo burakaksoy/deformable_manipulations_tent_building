@@ -67,8 +67,13 @@ min_dist_to_rb_pub_rate: 50.0 # Hz, frequency to publish minimum distances to th
 # rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/DloOnCylinderUnitBox.json
 # rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/DloOnCylinderVaseUnitBox.json
 # rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/DloOnFloor.json
-rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/TentBuilding.json
-# rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/l_shape_corridor.json
+# rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/TentBuilding.json
+rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/l_shape_corridor_width_0.8.json
+# rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/l_shape_corridor_width_0.9.json
+# rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/l_shape_corridor_width_1.0.json
+# rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/l_shape_corridor_width_1.0_simplified.json
+# rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/l_shape_corridor_width_1.1.json
+# rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/l_shape_corridor_width_1.2.json
 
 
 # DLO VISUALIZATION RELATED PARAMETERS

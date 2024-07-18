@@ -29,35 +29,38 @@ target_poses: [[[-1, -1, 0.14], [5,   0, 90]],
 # target_poses: [[[-1.215,  2.00, 0.5], [90, 0, 0]],
 #                [[-1.215, -0.43, 0.5], [90, 0, 0]]]
 
-# # # For TEST
-# target_poses: [[[2.5,  1.215, 0.5], [90, 0, 0]],
-#                [[2.5, -1.215, 0.5], [90, 0, 0]]]
+# # For TEST with corridor
+target_poses: [[[2.5,  1.67601, 0.5], [90, 0, 0]],
+               [[2.5, -1.67601, 0.5], [90, 0, 0]]]
 
 # Maximum velocity limits for each robot
 # Any velocity command exceeding these limits will be scaled down to these values
-max_linear_velocity: 0.1 # [m/s]
-max_angular_velocity: 0.15 # [rad/s]
+max_linear_velocity: 0.2 # 0.1 # [m/s]
+max_angular_velocity: 0.3 # 0.15 # [rad/s]
 
 # Acceptable error for the target pose to stop the controller
 # If the average error is less than this value, the controller stops
-acceptable_pos_err_avr_norm: 0.1 # 0.2 # [m] # note: d_obstacle_offset is added to this value
+acceptable_pos_err_avr_norm: 0.05 # 0.1 # 0.2 # [m] # note: d_obstacle_offset is added to this value
 acceptable_ori_err_avr_norm: 0.01 # 0.1 # [rad] 
 
 
 ## -------------------------------------------------------
 ## Path planning parameters
-path_planning_mockup_enabled: True # default: False
 path_tracking_control_enabled: True # default: True
+
+path_planning_mockup_enabled: False # default: False # For Simple Path planning (if tesseract is also enabled, this is ignored)
+path_planning_tesseract_enabled: True # default: False # For Tesseract Path planning
 
 # Waypoint poses for the path planning for the centeroid of the tent pole (assuming the tent pole is a rigid link)
 # A path is generated between these waypoints using a simple spline interpolation between them as a reference path
 # as a mockup for the path planning. 
-# In the future, the path planning will be done using an actual path planner node and the path will be subscribed 
-# by this controller node as a topic. 
+
+# NOTE: Currently, Tesseract only supports single waypoint pose which is the target pose
+
 # Each element holds [[x,y,z],[Rx,Ry,Rz(euler angles in degrees)]]
-waypoint_poses: [[[0,  1.55, 1.10], [90, 0, 90]],
-                 [[0,  0.45, 1.10], [90, 0, 90]],
-                 [[0, -1.0, 0.16], [90, 0, 90]]]
+# waypoint_poses: [[[0,  1.55, 1.10], [90, 0, 90]],
+#                  [[0,  0.45, 1.10], [90, 0, 90]],
+#                  [[0, -1.0, 0.16], [90, 0, 90]]]
 
 # # FOR TEST
 # waypoint_poses: [[[0,  1.5, 1.10], [45, 0, 90]],
@@ -68,26 +71,56 @@ waypoint_poses: [[[0,  1.55, 1.10], [90, 0, 90]],
 # waypoint_poses: [[[-1.215,  0.8225, 0.5], [90, 0, 0]]]
 
 # # # FOR TEST
-# waypoint_poses: [[[2.5,  0.0, 0.5], [90, 0, 0]]]
+waypoint_poses: [[[2.5,  0.0, 0.5], [90, 0, 0]]]
 
 # Path tracking controller gains [x,y,z, Rx,Ry,Rz]
 # kp_path_tracking: [0.0,0.0,0.0, 0.0,0.0,0.0]
-# kp_path_tracking: [1.0,1.0,1.0, 1.5,1.5,1.5]
-kp_path_tracking: [0.05,0.05,0.05, 0.075,0.075,0.075]
+kp_path_tracking: [1.0,1.0,1.0, 1.5,1.5,1.5]
+# kp_path_tracking: [0.05,0.05,0.05, 0.075,0.075,0.075]
 
 kd_path_tracking: [0.0,0.0,0.0, 0.0,0.0,0.0]
 
 # Path tracking switch off parameters used in the sigmoid function
 # The sigmoid function is used to switch off the path tracking controller smoothly to the nominal controller
 # when the robot is close to the end of path. See: https://www.desmos.com/calculator/exgon3okr6
-d_path_tracking_switch_off_distance: 1.00 # 0.75 # the distance from the end of the path to start switching off the path tracking controller
-k_path_tracking_switch_off_smoothness: 10.0 # 20.0 # the higher the value, the steeper the switch off of the path tracking controller
+d_path_tracking_switch_off_distance: 0.1 # 1.00 # 0.75 # the distance from the end of the path to start switching off the path tracking controller
+k_path_tracking_switch_off_smoothness: 20.0 # 20.0 # the higher the value, the steeper the switch off of the path tracking controller
 
 # Feedforward velocity scale factors for the path tracking controller
 # These values are multiplied with the maximum velocity limits to scale down the velocity commands of the path tracking
 # They are in the range of [0,1]. If the value is 1.0, the maximum velocity limits are used as the feedforward velocity commands.
-path_tracking_feedforward_linear_velocity_scale_factor: 1.0 # 0.5
-path_tracking_feedforward_angular_velocity_scale_factor: 1.0 # 0.5
+path_tracking_feedforward_linear_velocity_scale_factor: 0.6 # 0.5
+path_tracking_feedforward_angular_velocity_scale_factor: 0.6 # 0.5
+
+## -------------------------------------------------------
+## Path planning parameters for the Tesseract Path Planning
+# The path planning is done using the Tesseract library
+# The path is generated between the target pose and the current pose of the robot
+
+# Tesseract uses the GeneralResourceLocator to find resources on the file system. The GeneralResourceLocator
+# uses the TESSERACT_RESOURCE_PATH environmental variable.
+tesseract_resource_path: "~/catkin_ws_deformable/src/"
+
+# Tesseract uses a simplified version of the tent pole as a robot model
+# This robot model is a floating 6 DOF frame controlled with a 3 DOF prismatic joint and a 3 DOF revolute joint
+# Then this frame is attached to the center of the tent pole
+# The tent pole can be simplified as a rigid link or a chain of rigid links that are connected with revolute joints
+# The design of the tent pole is defined in the tesseract tent pole urdf file
+# tesseract_tent_pole_urdf: "package://deformable_description/urdf/pole_1_links_6DOF/pole_1_links.urdf"
+tesseract_tent_pole_urdf: "package://deformable_description/urdf/pole_2_links_7DOF/pole_2_links.urdf"
+# tesseract_tent_pole_urdf: "package://deformable_description/urdf/pole_2_links_9DOF/pole_2_links.urdf"
+
+# Tesseract also requires an srdf file that supports the planning of the tent pole
+# The srdf file defines the planning groups, the allowed collision matrix, etc.
+# tesseract_tent_pole_srdf: "package://deformable_description/urdf/pole_1_links_6DOF/pole_1_links.srdf"
+tesseract_tent_pole_srdf: "package://deformable_description/urdf/pole_2_links_7DOF/pole_2_links.srdf"
+# tesseract_tent_pole_srdf: "package://deformable_description/urdf/pole_2_links_9DOF/pole_2_links.srdf"
+
+tesseract_tent_pole_tcp_frame: "tool0" # The name of the tool center point frame in the tent pole urdf file
+tesseract_tent_pole_manipulator_group: "manipulator" # The name of the manipulator group in the srdf file
+tesseract_tent_pole_manipulator_working_frame: "base_link" # The name of the working frame in the manipulator group in the srdf file
+
+tesseract_use_default_viewer: True # default: False # If True, the default tesseract viewer is also used to visualize the planning scene through http://localhost:8000/
 
 
 ## -------------------------------------------------------
@@ -96,7 +129,7 @@ path_tracking_feedforward_angular_velocity_scale_factor: 1.0 # 0.5
 k_low_pass_min_d: 0.1 # low pass filter coefficient for the ratio of minimum distance values of the previous values (Must be between [0,1])
 
 # offset distance from the obstacles
-d_obstacle_offset: 0.05 # (meter) 
+d_obstacle_offset: 0.01 # 0.05 # (meter) 
 
 d_obstacle_freezone: 2.0 # (meter) # further than this distance, no obstacles considered by the controller 
 
@@ -109,7 +142,7 @@ d_obstacle_freezone: 2.0 # (meter) # further than this distance, no obstacles co
 
 # alpha(h) function obstacle avoidance coefficients NEW
 # see: https://www.desmos.com/calculator/hc6lc7nzkk for the function visualizations
-c1_alpha_obstacle: 0.25 # 0.08 # Decrease this to start reacting early 
+c1_alpha_obstacle: 2.0 # 1.0 # 0.25 # 0.08 # Decrease this to start reacting early 
 c2_alpha_obstacle: 4.0 # 2.7 # 4.0 # 1.16 # 
 c3_alpha_obstacle: 2.0 # linear slope if h < 0 # Increase this to remove the offset violation more agressively
 

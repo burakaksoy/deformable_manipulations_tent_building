@@ -28,6 +28,8 @@ import threading
 
 from scipy.spatial import KDTree
 
+from tesseract_planner import TesseractPlanner
+
 # Set print options to reduce precision and increase line width
 np.set_printoptions(precision=2, linewidth=200)
 
@@ -294,8 +296,13 @@ class VelocityControllerNode:
 
         ## ----------------------------------------------------------------------------------------
         ### Path planning parameters and variables
-        self.path_planning_mockup_enabled = rospy.get_param("~path_planning_mockup_enabled", False)
         self.path_tracking_control_enabled = rospy.get_param("~path_tracking_control_enabled", True)
+        self.path_planning_mockup_enabled = rospy.get_param("~path_planning_mockup_enabled", False)
+        self.path_planning_tesseract_enabled = rospy.get_param("~path_planning_tesseract_enabled", False)
+        
+        if self.path_planning_mockup_enabled and self.path_planning_tesseract_enabled:
+            rospy.logwarn("Both path planning methods are enabled! Disabling the mockup path planning.")
+            self.path_planning_mockup_enabled = False
 
         # Waypoints for the mockup path planning
         # Each element holds [[x,y,z],[Rx,Ry,Rz(euler angles in degrees)]]
@@ -303,6 +310,47 @@ class VelocityControllerNode:
                                                                     [[0,  0.5, 1.10], [-90, 0, 90]], \
                                                                     [[0,  1.5, 1.10], [-90, 0, 90]]])
         self.waypoint_poses = [self.calculate_pose_msg(pose_basic) for pose_basic in waypoint_poses_basic]
+        
+        # # NOTE: Currently, Tesseract only supports single waypoint pose which is the target pose
+        # # TODO: Find a way to feed multiple waypoints to Tesseract path planner as soft constraint waypoints
+        # if self.path_planning_tesseract_enabled:
+        #     # Only keep the last waypoint pose for the tesseract path planning
+        #     self.waypoint_poses = [self.waypoint_poses[-1]]
+            
+        if self.path_planning_tesseract_enabled:
+            
+            # Get deformable object simulator scene json file path from the ROS parameter server
+            self.rb_scene_config_path = None
+            while (not self.rb_scene_config_path):
+                try:
+                    self.rb_scene_config_path = rospy.get_param("/rb_scene_config_path")
+                except:
+                    rospy.logwarn("Deformable object simulator scene json file path is not provided!")
+                    time.sleep(0.5)
+
+            # Get the tesseract resource path from the ROS parameter server
+            self.tesseract_resource_path = rospy.get_param("~tesseract_resource_path") 
+                    
+            # Get the urdf and srdf file paths from the ROS parameter server for the simplified pole model
+            self.tesseract_tent_pole_urdf = rospy.get_param("~tesseract_tent_pole_urdf") # string
+            self.tesseract_tent_pole_srdf = rospy.get_param("~tesseract_tent_pole_srdf") # string
+            
+            self.tesseract_tent_pole_tcp_frame = rospy.get_param("~tesseract_tent_pole_tcp_frame")
+            self.tesseract_tent_pole_manipulator_group = rospy.get_param("~tesseract_tent_pole_manipulator_group")
+            self.tesseract_tent_pole_manipulator_working_frame = rospy.get_param("~tesseract_tent_pole_manipulator_working_frame")
+            
+            self.tesseract_use_default_viewer = rospy.get_param("~tesseract_use_default_viewer", False)
+            
+            # Create tessaract planner object
+            self.tesseract_planner = TesseractPlanner(self.rb_scene_config_path,
+                                                      self.tesseract_resource_path,
+                                                      self.tesseract_tent_pole_urdf,
+                                                      self.tesseract_tent_pole_srdf,
+                                                      self.tesseract_tent_pole_tcp_frame,
+                                                      self.tesseract_tent_pole_manipulator_group,
+                                                      self.tesseract_tent_pole_manipulator_working_frame,
+                                                      self.tesseract_use_default_viewer)
+            
         
         # Create variables to hold the planned path 
         self.reset_planned_path_variables()
@@ -326,7 +374,7 @@ class VelocityControllerNode:
         self.path_tracking_feedforward_linear_velocity_scale_factor =  np.clip(rospy.get_param("~path_tracking_feedforward_linear_velocity_scale_factor", 0.5), 0.0, 1.0)
         self.path_tracking_feedforward_angular_velocity_scale_factor = np.clip(rospy.get_param("~path_tracking_feedforward_angular_velocity_scale_factor", 0.5), 0.0, 1.0)
         
-        if self.path_planning_mockup_enabled:
+        if self.path_planning_mockup_enabled or self.path_planning_tesseract_enabled:
             # Create the information publishers for the centroid pose of the particles        
             self.info_pub_centroid_pose_of_particles = rospy.Publisher("~info_centroid_pose_of_particles", Odometry, queue_size=10)
             self.info_pub_centroid_pose_of_particles_projected_on_path = rospy.Publisher("~info_centroid_pose_of_particles_projected_on_path", Odometry, queue_size=10)
@@ -345,6 +393,7 @@ class VelocityControllerNode:
                 self.info_pub_planned_path_current_target_point_particles[particle] = rospy.Publisher("~info_planned_path_current_target_point_particle_" + str(particle), 
                                                                                                       PointStamped, queue_size=10)
 
+            self.update_path_status_timer_callback_lock = threading.Lock()
             # Create timer to publish centroid pose of the particles
             self.update_path_status_timer = rospy.Timer(rospy.Duration(1. / self.pub_rate_odom), self.update_path_status_timer_callback)
 
@@ -1001,7 +1050,7 @@ class VelocityControllerNode:
         # weights[1::6] = 0.5 
         ## Note that z axis position is every 3rd element of each 6 element sets in the weight vector
         # weights[2::6] = 0.1 
-        weights[2::6] = self.calculate_cost_weight_z_pos(stress_avoidance_performance, overall_min_distance-self.d_obstacle_offset)
+        # weights[2::6] = self.calculate_cost_weight_z_pos(stress_avoidance_performance, overall_min_distance-self.d_obstacle_offset)
         
         ## Note that x axis rotation is every 4th element of each 6 element sets in the weight vector
         # weights[3::6] = 0.8
@@ -1087,7 +1136,8 @@ class VelocityControllerNode:
             self.info_pub_target_ori_error_avr_norm.publish(Float32(data=ori_err_avr_norm))
 
             # Disable the controller if the error is below the threshold
-            if (pos_err_avr_norm < (self.acceptable_pos_err_avr_norm+self.d_obstacle_offset)) \
+            # if (pos_err_avr_norm < (self.acceptable_pos_err_avr_norm+self.d_obstacle_offset)) \
+            if (pos_err_avr_norm < (self.acceptable_pos_err_avr_norm)) \
                 and (ori_err_avr_norm < self.acceptable_ori_err_avr_norm):
                 # call set_enable service to disable the controller
                 self.controller_enabler(enable=False, cause="automatic")
@@ -1198,19 +1248,24 @@ class VelocityControllerNode:
             # pretty_print_array(nominal_control_output)
             # print("---------------------------")
 
-            if self.planned_path and self.path_tracking_control_enabled:
-                # Calculate path tracking control output
-                path_tracking_control_output = self.calculate_path_tracking_control_output() # (12,)
-                # print("Path tracking control_output")
-                # print(path_tracking_control_output)
-                # print("---------------------------")
+            if self.path_tracking_control_enabled:
+                if self.planned_path and self.planned_path_current_target_velocities_of_particles:
+                    # Calculate path tracking control output
+                    path_tracking_control_output = self.calculate_path_tracking_control_output() # (12,)
+                    # print("Path tracking control_output")
+                    # print(path_tracking_control_output)
+                    # print("---------------------------")
 
-                if self.nominal_control_enabled:
-                    # Blend the nominal and path tracking control outputs
-                    control_output = self.blend_control_outputs(nominal_control_output, path_tracking_control_output) # (12,)
+                    if self.nominal_control_enabled:
+                        # Blend the nominal and path tracking control outputs
+                        control_output = self.blend_control_outputs(nominal_control_output, path_tracking_control_output) # (12,)
+                    else:
+                        control_output = path_tracking_control_output
                 else:
-                    control_output = path_tracking_control_output
-            else:
+                    control_output = np.zeros(6*len(self.custom_static_particles))
+                    rospy.logwarn_throttle(5, "Waiting for the planned path to be available. Setting control output to zero. (throttled to 5s)")
+                    
+            else: # if path tracking control is not enabled
                 control_output = nominal_control_output
 
             # init_t = time.time()                
@@ -1756,93 +1811,194 @@ class VelocityControllerNode:
     def update_path_status_timer_callback(self, event):
 
         # Only publish if enabled
-        if self.enabled and self.path_planning_mockup_enabled:
-            ## ----------------------------------------------------------------------------------------------
-            if (not self.planned_path):
-                # Calculate the centroid pose of the particles
-                self.centroid_pose_of_particles = self.calculate_centroid_pose_of_particles()
+        if self.enabled and self.update_path_status_timer_callback_lock.acquire(blocking=False):
+            try:
+                ## ----------------------------------------------------------------------------------------------
+                if self.path_planning_mockup_enabled:
+                    ## ----------------------------------------------------------------------------------------------
+                    if (not self.planned_path):
+                        # Calculate the centroid pose of the particles
+                        self.centroid_pose_of_particles = self.calculate_centroid_pose_of_particles()
 
-                # Calculate default centroid relative poses of the particles
-                self.default_centroid_relative_poses_of_particles = self.calculate_default_centroid_relative_poses_of_particles()
+                        # Calculate default centroid relative poses of the particles
+                        self.default_centroid_relative_poses_of_particles = self.calculate_default_centroid_relative_poses_of_particles()
 
-                # Calculate the planned path
-                self.planned_path, \
-                self.planned_path_points, \
-                self.planned_path_cumulative_lengths, \
-                self.planned_path_cumulative_rotations, \
-                self.planned_path_direction_vectors, \
-                self.planned_path_rotation_vectors = self.calculate_mockup_path(self.centroid_pose_of_particles, \
-                                                                                self.waypoint_poses, \
-                                                                                num_points_per_meter=10)
+                        # Calculate the planned path                
+                        # Calculate the mockup path
+                        self.planned_path, \
+                        self.planned_path_points, \
+                        self.planned_path_cumulative_lengths, \
+                        self.planned_path_cumulative_rotations, \
+                        self.planned_path_direction_vectors, \
+                        self.planned_path_rotation_vectors = self.calculate_mockup_path(self.centroid_pose_of_particles, \
+                                                                                        self.waypoint_poses, \
+                                                                                        num_points_per_meter=10)
 
-                # Build a k-d tree from path points 
-                self.planned_path_kd_tree = KDTree(self.planned_path_points) 
+                        # Build a k-d tree from path points 
+                        self.planned_path_kd_tree = KDTree(self.planned_path_points) 
 
-            elif (not self.planned_path_of_particles):
-                # Derive the mockup path of the particles
-                self.planned_path_of_particles, \
-                self.planned_path_points_of_particles, \
-                self.planned_path_cumulative_lengths_of_particles, \
-                self.planned_path_cumulative_rotations_of_particles, \
-                self.planned_path_direction_vectors_of_particles, \
-                self.planned_path_rotation_vectors_of_particles = self.derive_path_of_particles(self.planned_path, \
-                                                                                                self.default_centroid_relative_poses_of_particles)
-                
-            elif (not self.planned_path_velocity_profile_of_particles):
-                # Calculate the velocity profile for the particles
-                self.planned_path_velocity_profile_of_particles = self.calculate_path_tracking_velocity_profile_of_particles()
+                    elif (not self.planned_path_of_particles):
+                        # Derive the mockup path of the particles
+                        self.planned_path_of_particles, \
+                        self.planned_path_points_of_particles, \
+                        self.planned_path_cumulative_lengths_of_particles, \
+                        self.planned_path_cumulative_rotations_of_particles, \
+                        self.planned_path_direction_vectors_of_particles, \
+                        self.planned_path_rotation_vectors_of_particles = self.derive_path_of_particles(self.planned_path, \
+                                                                                                        self.default_centroid_relative_poses_of_particles)
+                        
+                    elif (not self.planned_path_velocity_profile_of_particles):
+                        # Calculate the velocity profile for the particles
+                        self.planned_path_velocity_profile_of_particles = self.calculate_path_tracking_velocity_profile_of_particles()
 
-                # Set the current target index and pose for the new planned path
-                self.planned_path_current_target_index = 1
-                self.update_current_path_target_poses_and_velocities(self.planned_path_current_target_index)
+                        # Set the current target index and pose for the new planned path
+                        self.planned_path_current_target_index = 1
+                        self.update_current_path_target_poses_and_velocities(self.planned_path_current_target_index)
 
-                # Publish the planned path for visualization
-                self.publish_path(self.planned_path)
+                        # Publish the planned path for visualization
+                        self.publish_path(self.planned_path)
 
-                # Publish the planned path of the particles for visualization
-                self.publish_paths_of_particles(self.planned_path_of_particles)
-            ## ----------------------------------------------------------------------------------------------
-            else:
-                # Update the centroid pose of the particles
-                self.centroid_pose_of_particles = self.calculate_centroid_pose_of_particles()
+                        # Publish the planned path of the particles for visualization
+                        self.publish_paths_of_particles(self.planned_path_of_particles)
+                    ## ----------------------------------------------------------------------------------------------
+                    else:
+                        # Update the centroid pose of the particles
+                        self.centroid_pose_of_particles = self.calculate_centroid_pose_of_particles()
 
-                # Create odom message for the centroid pose and publish for visualization
-                odom = Odometry()
-                odom.header.stamp = rospy.Time.now()
-                odom.header.frame_id = "map"
-                odom.pose.pose = self.centroid_pose_of_particles
-                self.info_pub_centroid_pose_of_particles.publish(odom) # Publish the centroid pose
+                        # Create odom message for the centroid pose and publish for visualization
+                        odom = Odometry()
+                        odom.header.stamp = rospy.Time.now()
+                        odom.header.frame_id = "map"
+                        odom.pose.pose = self.centroid_pose_of_particles
+                        self.info_pub_centroid_pose_of_particles.publish(odom) # Publish the centroid pose
 
-                if (self.planned_path_kd_tree is not None):
-                    ## --------------------------------------------------- This part is optional
-                    """
-                    Calculate the projection of the centroid pose on the planned path if it is not empty and publishes it as an odom message.
-                    """
-                    # Calculate the projection of the centroid pose on the planned path
-                    self.centroid_pose_of_particles_projected_on_path = self.calculate_projection_on_path(self.centroid_pose_of_particles, \
-                                                                                                        self.planned_path_points, \
-                                                                                                        self.planned_path_kd_tree)
-                    
-                    # Create odom message for the projected centroid pose and publish for visualization
-                    odom_projected = Odometry()
-                    odom_projected.header.stamp = rospy.Time.now()
-                    odom_projected.header.frame_id = "map"
-                    odom_projected.pose.pose = self.centroid_pose_of_particles_projected_on_path
-                    self.info_pub_centroid_pose_of_particles_projected_on_path.publish(odom_projected) # Publish the projected centroid pose
-                    ## ---------------------------------------------------
+                        if (self.planned_path_kd_tree is not None):
+                            ## --------------------------------------------------- This part is optional
+                            """
+                            Calculate the projection of the centroid pose on the planned path if it is not empty and publishes it as an odom message.
+                            """
+                            # Calculate the projection of the centroid pose on the planned path
+                            self.centroid_pose_of_particles_projected_on_path = self.calculate_projection_on_path(self.centroid_pose_of_particles, \
+                                                                                                                self.planned_path_points, \
+                                                                                                                self.planned_path_kd_tree)
+                            
+                            # Create odom message for the projected centroid pose and publish for visualization
+                            odom_projected = Odometry()
+                            odom_projected.header.stamp = rospy.Time.now()
+                            odom_projected.header.frame_id = "map"
+                            odom_projected.pose.pose = self.centroid_pose_of_particles_projected_on_path
+                            self.info_pub_centroid_pose_of_particles_projected_on_path.publish(odom_projected) # Publish the projected centroid pose
+                            ## ---------------------------------------------------
 
-                ## ---------------------------------------------------
-                """
-                Calculate how much of the planned path is completed and, update and publish the current target point as a geometry_msgs/PointStamped.
-                """
-                # Calculate the completion rate of the planned path
-                # Also update the current target pose and index on the path
-                self.planned_path_current_target_index = self.update_current_path_target_index(self.planned_path_current_target_index)
-                self.update_current_path_target_poses_and_velocities(self.planned_path_current_target_index)
+                        ## ---------------------------------------------------
+                        """
+                        Calculate how much of the planned path is completed and, update and publish the current target point as a geometry_msgs/PointStamped.
+                        """
+                        # Calculate the completion rate of the planned path
+                        # Also update the current target pose and index on the path
+                        self.planned_path_current_target_index = self.update_current_path_target_index(self.planned_path_current_target_index)
+                        self.update_current_path_target_poses_and_velocities(self.planned_path_current_target_index)
 
-                # Create a PointStamped message for the current target points and publish for visualization
-                self.publish_current_target_points()
-                ## ---------------------------------------------------
+                        # Create a PointStamped message for the current target points and publish for visualization
+                        self.publish_current_target_points()
+                        ## ---------------------------------------------------
+                ## ----------------------------------------------------------------------------------------------
+                elif self.path_planning_tesseract_enabled:
+                    ## ----------------------------------------------------------------------------------------------
+                    if (not self.planned_path):
+                        """
+                        Calculate the tesseract planned path
+                        """
+                        
+                        # Calculate the centroid pose of the particles
+                        self.centroid_pose_of_particles = self.calculate_centroid_pose_of_particles()
+                        
+                        # Calculate the tesseract path: self.calculate_mockup_path(self.centroid_pose_of_particles, self.waypoint_poses, num_points_per_meter=10)
+                        # Derive the path of the particles:  self.derive_path_of_particles(self.planned_path, self.default_centroid_relative_poses_of_particles)
+                                            
+                        (self.planned_path,
+                        self.planned_path_points,
+                        self.planned_path_cumulative_lengths,
+                        self.planned_path_cumulative_rotations,
+                        self.planned_path_direction_vectors,
+                        self.planned_path_rotation_vectors,
+                        self.planned_path_of_particles,
+                        self.planned_path_points_of_particles,
+                        self.planned_path_cumulative_lengths_of_particles,
+                        self.planned_path_cumulative_rotations_of_particles,
+                        self.planned_path_direction_vectors_of_particles,
+                        self.planned_path_rotation_vectors_of_particles) = self.tesseract_planner.plan(self.centroid_pose_of_particles, \
+                                                                                                       self.waypoint_poses, \
+                                                                                                       self.custom_static_particles)
+
+                        # # Build a k-d tree from path points (optional)
+                        # self.planned_path_kd_tree = KDTree(self.planned_path_points) 
+                        
+                    elif (not self.planned_path_velocity_profile_of_particles):
+                        rospy.loginfo("Calculating the velocity profile for the particles.")
+                        # Calculate the velocity profile for the particles
+                        self.planned_path_velocity_profile_of_particles = self.calculate_path_tracking_velocity_profile_of_particles()
+                        
+                        # Set the current target index and pose for the new planned path
+                        self.planned_path_current_target_index = 1
+                        self.update_current_path_target_poses_and_velocities(self.planned_path_current_target_index)
+
+                        # Publish the planned path for visualization
+                        self.publish_path(self.planned_path)
+
+                        # Publish the planned path of the particles for visualization
+                        self.publish_paths_of_particles(self.planned_path_of_particles)
+                        
+                    ## ----------------------------------------------------------------------------------------------
+                    else:
+                        # rospy.loginfo("Path tracking with Tesseract is not implemented yet.")
+                        # pass
+                        
+                        # Update the centroid pose of the particles
+                        self.centroid_pose_of_particles = self.calculate_centroid_pose_of_particles()
+
+                        # # Create odom message for the centroid pose and publish for visualization
+                        # odom = Odometry()
+                        # odom.header.stamp = rospy.Time.now()
+                        # odom.header.frame_id = "map"
+                        # odom.pose.pose = self.centroid_pose_of_particles
+                        # self.info_pub_centroid_pose_of_particles.publish(odom) # Publish the centroid pose
+
+                        # if (self.planned_path_kd_tree is not None):
+                        #     ## --------------------------------------------------- This part is optional
+                        #     """
+                        #     Calculate the projection of the centroid pose on the planned path if it is not empty and publishes it as an odom message.
+                        #     """
+                        #     # Calculate the projection of the centroid pose on the planned path
+                        #     self.centroid_pose_of_particles_projected_on_path = self.calculate_projection_on_path(self.centroid_pose_of_particles, \
+                        #                                                                                         self.planned_path_points, \
+                        #                                                                                         self.planned_path_kd_tree)
+                            
+                        #     # Create odom message for the projected centroid pose and publish for visualization
+                        #     odom_projected = Odometry()
+                        #     odom_projected.header.stamp = rospy.Time.now()
+                        #     odom_projected.header.frame_id = "map"
+                        #     odom_projected.pose.pose = self.centroid_pose_of_particles_projected_on_path
+                        #     self.info_pub_centroid_pose_of_particles_projected_on_path.publish(odom_projected) # Publish the projected centroid pose
+                        #     ## ---------------------------------------------------
+
+                        ## ---------------------------------------------------
+                        """
+                        Calculate how much of the planned path is completed and, update and publish the current target point as a geometry_msgs/PointStamped.
+                        """
+                        # Calculate the completion rate of the planned path
+                        # Also update the current target pose and index on the path
+                        self.planned_path_current_target_index = self.update_current_path_target_index(self.planned_path_current_target_index)
+                        self.update_current_path_target_poses_and_velocities(self.planned_path_current_target_index)
+
+                        # Create a PointStamped message for the current target points and publish for visualization
+                        self.publish_current_target_points()
+                        ## ---------------------------------------------------
+                ## ----------------------------------------------------------------------------------------------
+            finally:
+                self.update_path_status_timer_callback_lock.release()  
+                # pass      
+            
 
     def calculate_centroid_pose_of_particles(self):
         """
@@ -2249,7 +2405,66 @@ class VelocityControllerNode:
         """
 
         self.planned_path_completion_rate = float(current_target_index)/len(self.planned_path)
+            
+        ## Update the current_target_index
+        # Check if the current target index should be updated
+        if current_target_index <= (len(self.planned_path) - 1):
+            next_index = current_target_index + 1
+            prev_index = current_target_index - 1
+            
+            # list of votes to move to the next index for each particle
+            votes_for_next_index = []
+            
+            # for particle in self.custom_static_particles:
+            for particle, path in self.planned_path_of_particles.items():
+                current_target_point = np.array([self.planned_path_current_target_poses_of_particles[particle].position.x, 
+                                                 self.planned_path_current_target_poses_of_particles[particle].position.y, 
+                                                 self.planned_path_current_target_poses_of_particles[particle].position.z])
 
+                prev_target_point = np.array([self.planned_path_of_particles[particle][prev_index].pose.position.x,
+                                              self.planned_path_of_particles[particle][prev_index].pose.position.y,
+                                              self.planned_path_of_particles[particle][prev_index].pose.position.z])
+                
+                current_position = np.array([self.particle_positions[particle].x, 
+                                             self.particle_positions[particle].y, 
+                                             self.particle_positions[particle].z])
+                
+                # Project current position on the line segment from current target to next target
+                line_vector = current_target_point - prev_target_point
+                point_vector = current_position - current_target_point
+
+                line_length = np.linalg.norm(line_vector)
+                if line_length > 0:
+                    line_unit_vector = line_vector / line_length
+                else:
+                    line_unit_vector = np.zeros(3) # Avoid division by zero
+
+                # Calculate the projection length    
+                projection_length = np.dot(point_vector, line_unit_vector)
+                
+                # If projection length is greater than zero, vote to update the target index
+                if not projection_length >= 0.0:
+                    votes_for_next_index.append(False) # Vote not to move to the next index
+                else:
+                    votes_for_next_index.append(True) # Vote to move to the next index
+                
+            # Get all the votes, make sure it's not empty and check if all the particles agree to move to the next index
+            if votes_for_next_index and all(votes_for_next_index):        
+                current_target_index = next_index
+                
+        return current_target_index    
+
+    def update_current_path_target_index_old(self, current_target_index):
+        """
+        Calculates how much of the path is completed and updates the current target index.
+        The completion rate is the ratio of the distance traveled to the total path length.
+        The current target point is the next point on the path that the robot should reach.
+        This function should be called periodically to update the current target point.
+        """
+
+        self.planned_path_completion_rate = float(current_target_index)/len(self.planned_path)
+
+        # The case where the current target index is the last index
         if current_target_index == (len(self.planned_path) - 1):
             next_index = current_target_index + 1
             prev_index = current_target_index - 1
@@ -2283,24 +2498,24 @@ class VelocityControllerNode:
         # Check if the current target index should be updated
         if current_target_index < (len(self.planned_path) - 1):
             next_index = current_target_index + 1
-            # prev_index = current_target_index - 1
+            prev_index = current_target_index - 1
 
             current_target_point = np.array([self.planned_path_current_target_pose.position.x, 
                                              self.planned_path_current_target_pose.position.y, 
                                              self.planned_path_current_target_pose.position.z])
-            next_target_point = np.array([self.planned_path[next_index].pose.position.x, 
-                                          self.planned_path[next_index].pose.position.y, 
-                                          self.planned_path[next_index].pose.position.z])
-            # prev_target_point = np.array([self.planned_path[prev_index].pose.position.x,
-            #                                 self.planned_path[prev_index].pose.position.y,
-            #                                 self.planned_path[prev_index].pose.position.z])
+            # next_target_point = np.array([self.planned_path[next_index].pose.position.x, 
+            #                               self.planned_path[next_index].pose.position.y, 
+            #                               self.planned_path[next_index].pose.position.z])
+            prev_target_point = np.array([self.planned_path[prev_index].pose.position.x,
+                                            self.planned_path[prev_index].pose.position.y,
+                                            self.planned_path[prev_index].pose.position.z])
             current_position = np.array([self.centroid_pose_of_particles.position.x, 
                                          self.centroid_pose_of_particles.position.y, 
                                          self.centroid_pose_of_particles.position.z])
             
             # Project current position on the line segment from current target to next target
-            line_vector = next_target_point - current_target_point
-            # line_vector = current_target_point - prev_target_point
+            # line_vector = next_target_point - current_target_point
+            line_vector = current_target_point - prev_target_point
             point_vector = current_position - current_target_point
             # point_vector = current_position - prev_target_point
 

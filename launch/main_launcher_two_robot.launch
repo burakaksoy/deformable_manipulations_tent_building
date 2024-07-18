@@ -5,7 +5,7 @@
 <arg name="is_remote" default="false"/>
 
 <group if="$(arg is_remote)">
-    <machine name="burak-p1-20" address="192.168.1.100" env-loader="/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/scripts/env_loader.sh" user="burak" password="1q2w3e"  default="true"/>
+    <machine name="burak-p1-20" address="192.168.1.200" env-loader="/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/scripts/env_loader.sh" user="burak" password="1q2w3e"  default="true"/>
 </group>
 
 <arg name="control_rate" default="100"/>

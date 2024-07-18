@@ -1,0 +1,214 @@
+<?xml version="1.0"?>
+<robot name="">
+    <link name="corridor_base_link"/>
+    <link name="inner2_along_x_wall_link">
+        <visual>
+            <material name="">
+                <color rgba="0.5 0.5 0.5 0.5"/>
+            </material>
+            <geometry>
+                <box size="2.9 0.1 2.4"/>
+            </geometry>
+        </visual>
+        <collision>
+            <geometry>
+                <box size="2.9 0.1 2.4"/>
+            </geometry>
+        </collision>
+    </link>
+    <link name="inner2_along_y_wall_link"/>
+    <link name="inner2_l_shaped_wall_origin_link"/>
+    <link name="inner_along_x_wall_link">
+        <visual>
+            <material name="">
+                <color rgba="0.5 0.5 0.5 0.5"/>
+            </material>
+            <geometry>
+                <box size="5.1 0.1 2.4"/>
+            </geometry>
+        </visual>
+        <collision>
+            <geometry>
+                <box size="5.1 0.1 2.4"/>
+            </geometry>
+        </collision>
+    </link>
+    <link name="inner_along_y_wall_link">
+        <visual>
+            <material name="">
+                <color rgba="0.5 0.5 0.5 0.5"/>
+            </material>
+            <geometry>
+                <box size="2.1 0.1 2.4"/>
+            </geometry>
+        </visual>
+        <collision>
+            <geometry>
+                <box size="2.1 0.1 2.4"/>
+            </geometry>
+        </collision>
+    </link>
+    <link name="inner_l_shaped_wall_origin_link"/>
+    <link name="link_ceiling_plane">
+        <visual>
+            <material name="">
+                <color rgba="0.8 0.8 0.5 0.3"/>
+            </material>
+            <geometry>
+                <box size="6 6 0.1"/>
+            </geometry>
+        </visual>
+        <collision>
+            <geometry>
+                <box size="6 6 0.1"/>
+            </geometry>
+        </collision>
+    </link>
+    <link name="link_ground_plane">
+        <visual>
+            <material name="">
+                <color rgba="0.8 0.8 0.5 1"/>
+            </material>
+            <geometry>
+                <box size="6 6 0.1"/>
+            </geometry>
+        </visual>
+        <collision>
+            <geometry>
+                <box size="6 6 0.1"/>
+            </geometry>
+        </collision>
+    </link>
+    <link name="outer2_along_x_wall_link">
+        <visual>
+            <material name="">
+                <color rgba="0.5 0.5 0.5 0.5"/>
+            </material>
+            <geometry>
+                <box size="3 0.1 2.4"/>
+            </geometry>
+        </visual>
+        <collision>
+            <geometry>
+                <box size="3 0.1 2.4"/>
+            </geometry>
+        </collision>
+    </link>
+    <link name="outer2_along_y_wall_link">
+        <visual>
+            <material name="">
+                <color rgba="0.5 0.5 0.5 0.5"/>
+            </material>
+            <geometry>
+                <box size="6 0.1 2.4"/>
+            </geometry>
+        </visual>
+        <collision>
+            <geometry>
+                <box size="6 0.1 2.4"/>
+            </geometry>
+        </collision>
+    </link>
+    <link name="outer2_l_shaped_wall_origin_link"/>
+    <link name="outer_along_x_wall_link">
+        <visual>
+            <material name="">
+                <color rgba="0.5 0.5 0.5 0.5"/>
+            </material>
+            <geometry>
+                <box size="6 0.1 2.4"/>
+            </geometry>
+        </visual>
+        <collision>
+            <geometry>
+                <box size="6 0.1 2.4"/>
+            </geometry>
+        </collision>
+    </link>
+    <link name="outer_along_y_wall_link">
+        <visual>
+            <material name="">
+                <color rgba="0.5 0.5 0.5 0.5"/>
+            </material>
+            <geometry>
+                <box size="3 0.1 2.4"/>
+            </geometry>
+        </visual>
+        <collision>
+            <geometry>
+                <box size="3 0.1 2.4"/>
+            </geometry>
+        </collision>
+    </link>
+    <link name="outer_l_shaped_wall_origin_link"/>
+    <joint name="inner2_along_x_wall_link_joint" type="fixed">
+        <origin xyz="-1.45 -0.05 1.2"/>
+        <parent link="inner2_l_shaped_wall_origin_link"/>
+        <child link="inner2_along_x_wall_link"/>
+    </joint>
+    <joint name="inner2_along_y_wall_link_joint" type="fixed">
+        <origin xyz="-0.05 0 1.2" rpy="3.14159 -3.14159 1.5708"/>
+        <parent link="inner2_l_shaped_wall_origin_link"/>
+        <child link="inner2_along_y_wall_link"/>
+    </joint>
+    <joint name="inner2_l_shaped_wall_origin_joint" type="fixed">
+        <origin xyz="2.1 -2.9 0" rpy="3.14159 -3.14159 1.5708"/>
+        <parent link="corridor_base_link"/>
+        <child link="inner2_l_shaped_wall_origin_link"/>
+    </joint>
+    <joint name="inner_along_x_wall_link_joint" type="fixed">
+        <origin xyz="-2.55 -0.05 1.2"/>
+        <parent link="inner_l_shaped_wall_origin_link"/>
+        <child link="inner_along_x_wall_link"/>
+    </joint>
+    <joint name="inner_along_y_wall_link_joint" type="fixed">
+        <origin xyz="-0.05 -1.05 1.2" rpy="3.14159 -3.14159 1.5708"/>
+        <parent link="inner_l_shaped_wall_origin_link"/>
+        <child link="inner_along_y_wall_link"/>
+    </joint>
+    <joint name="inner_l_shaped_wall_origin_joint" type="fixed">
+        <origin xyz="2.1 2.1 0"/>
+        <parent link="corridor_base_link"/>
+        <child link="inner_l_shaped_wall_origin_link"/>
+    </joint>
+    <joint name="joint_ceiling_plane" type="fixed">
+        <origin xyz="0 0 2.45"/>
+        <parent link="corridor_base_link"/>
+        <child link="link_ceiling_plane"/>
+    </joint>
+    <joint name="joint_ground_plane" type="fixed">
+        <origin xyz="0 0 -0.05"/>
+        <parent link="corridor_base_link"/>
+        <child link="link_ground_plane"/>
+    </joint>
+    <joint name="outer2_along_x_wall_link_joint" type="fixed">
+        <origin xyz="-1.5 -0.05 1.2"/>
+        <parent link="outer2_l_shaped_wall_origin_link"/>
+        <child link="outer2_along_x_wall_link"/>
+    </joint>
+    <joint name="outer2_along_y_wall_link_joint" type="fixed">
+        <origin xyz="-0.05 -3 1.2" rpy="3.14159 -3.14159 1.5708"/>
+        <parent link="outer2_l_shaped_wall_origin_link"/>
+        <child link="outer2_along_y_wall_link"/>
+    </joint>
+    <joint name="outer2_l_shaped_wall_origin_joint" type="fixed">
+        <origin xyz="3 -3 0" rpy="3.14159 -3.14159 1.5708"/>
+        <parent link="corridor_base_link"/>
+        <child link="outer2_l_shaped_wall_origin_link"/>
+    </joint>
+    <joint name="outer_along_x_wall_link_joint" type="fixed">
+        <origin xyz="-3 -0.05 1.2"/>
+        <parent link="outer_l_shaped_wall_origin_link"/>
+        <child link="outer_along_x_wall_link"/>
+    </joint>
+    <joint name="outer_along_y_wall_link_joint" type="fixed">
+        <origin xyz="-0.05 -1.5 1.2" rpy="3.14159 -3.14159 1.5708"/>
+        <parent link="outer_l_shaped_wall_origin_link"/>
+        <child link="outer_along_y_wall_link"/>
+    </joint>
+    <joint name="outer_l_shaped_wall_origin_joint" type="fixed">
+        <origin xyz="3 3 0"/>
+        <parent link="corridor_base_link"/>
+        <child link="outer_l_shaped_wall_origin_link"/>
+    </joint>
+</robot>
