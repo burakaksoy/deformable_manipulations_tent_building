@@ -516,6 +516,13 @@ class VelocityControllerNode:
         
         # Publish the status message
         self.info_pub_controller_status.publish(status_msg)
+        
+        # Once again, 
+        # Publish zero velocities for all particles if the controller is disabled 
+        # To make sure the particles are not moving when the controller is disabled
+        if not self.enabled:
+            # Stop the particles
+            self.odom_publishers_publish_zero_velocities()
 
     def set_nominal_control_enabled(self, request):
         self.nominal_control_enabled = request.data
@@ -1116,8 +1123,17 @@ class VelocityControllerNode:
         
         # Return optimal u
         return u.value
-        
-    def calculate_nominal_control_output(self):
+
+    def update_last_control_output_is_valid_time(self):
+        # Take a note of the time when the control output is calculated
+        self.time_last_control_output_is_valid = rospy.Time.now()
+                        
+    def assign_control_outputs(self, control_output):
+        for idx_particle, particle in enumerate(self.custom_static_particles):    
+            self.control_outputs[particle] = control_output[6*idx_particle:6*(idx_particle+1)]
+            # print("Particle " + str(particle) + " u: " + str(self.control_outputs[particle]))
+    
+    def calculate_nominal_control_output(self, err_tip):
         # Initiate the nominal control output to zero
         control_output = np.zeros(6*len(self.custom_static_particles))
 
@@ -1127,25 +1143,6 @@ class VelocityControllerNode:
             # pretty_print_array(J_tip)
             # print("---------------------------")
 
-            err_tip, pos_err_avr_norm, ori_err_avr_norm = self.calculate_error_tip() # 12x1, scalar, scalar
-            # pretty_print_array(err_tip)
-            # print("---------------------------")
-
-            # publish error norms for information
-            self.info_pub_target_pos_error_avr_norm.publish(Float32(data=pos_err_avr_norm))
-            self.info_pub_target_ori_error_avr_norm.publish(Float32(data=ori_err_avr_norm))
-
-            # Disable the controller if the error is below the threshold
-            # if (pos_err_avr_norm < (self.acceptable_pos_err_avr_norm+self.d_obstacle_offset)) \
-            if (pos_err_avr_norm < (self.acceptable_pos_err_avr_norm)) \
-                and (ori_err_avr_norm < self.acceptable_ori_err_avr_norm):
-                # call set_enable service to disable the controller
-                self.controller_enabler(enable=False, cause="automatic")
-                # Create green colored log info message
-                # rospy.loginfo("\033[92m" + "Error norms are below the thresholds. The controller is disabled." + "\033[0m")
-                rospy.loginfo("Error norms are below the thresholds.")
-                return
-        
             # Calculate the nominal control output
             control_output = np.squeeze(np.dot(np.linalg.pinv(J_tip), err_tip)) # (12,)
             # Apply the proportinal gains
@@ -1237,17 +1234,21 @@ class VelocityControllerNode:
         #     # print("Executing control calculations...")
         #     self.enabled = True
             
-        # Only publish if enabled
+        # Only calculate if enabled
         if self.enabled:
+            
             # Increment the controller iteration
             self.controller_itr += 1
-
-            # Calculate the nominal control output
-            nominal_control_output = self.calculate_nominal_control_output() # (12,)
-            # print("Nominal control_output")
-            # pretty_print_array(nominal_control_output)
+            
+            # Calculate the tip errors
+            err_tip, pos_err_avr_norm, ori_err_avr_norm = self.calculate_error_tip() # 12x1, scalar, scalar
+            # pretty_print_array(err_tip)
             # print("---------------------------")
 
+            # publish error norms for information
+            self.info_pub_target_pos_error_avr_norm.publish(Float32(data=pos_err_avr_norm))
+            self.info_pub_target_ori_error_avr_norm.publish(Float32(data=ori_err_avr_norm))
+            
             if self.path_tracking_control_enabled:
                 if self.planned_path and self.planned_path_current_target_velocities_of_particles:
                     # Calculate path tracking control output
@@ -1257,34 +1258,59 @@ class VelocityControllerNode:
                     # print("---------------------------")
 
                     if self.nominal_control_enabled:
+                        # Calculate nominal control output
+                        nominal_control_output = self.calculate_nominal_control_output(err_tip) # (12,)
                         # Blend the nominal and path tracking control outputs
                         control_output = self.blend_control_outputs(nominal_control_output, path_tracking_control_output) # (12,)
                     else:
                         control_output = path_tracking_control_output
                 else:
-                    control_output = np.zeros(6*len(self.custom_static_particles))
                     rospy.logwarn_throttle(5, "Waiting for the planned path to be available. Setting control output to zero. (throttled to 5s)")
-                    
+                
+                    control_output = np.zeros(6*len(self.custom_static_particles))    
+                    self.assign_control_outputs(control_output)
+                    self.update_last_control_output_is_valid_time()
+                    return
+                
             else: # if path tracking control is not enabled
-                control_output = nominal_control_output
-
-            # init_t = time.time()                
-            # Calculate safe control output with obstacle avoidance        
-            control_output = self.calculate_safe_control_output(control_output) # safe # (12,)
-            # rospy.logwarn("QP solver calculation time: " + str(1000*(time.time() - init_t)) + " ms.")
-            
-            # Assign the calculated control inputs
-            for idx_particle, particle in enumerate(self.custom_static_particles):    
-                if control_output is not None:
-                    self.control_outputs[particle] = control_output[6*idx_particle:6*(idx_particle+1)]
-                    # print("Particle " + str(particle) + " u: " + str(self.control_outputs[particle]))
-
-                    # Take a note of the time when the control output is calculated
-                    self.time_last_control_output_is_valid = rospy.Time.now()
-
-                else:
-                    self.control_outputs[particle] = np.zeros(6) # None
+                # Calculate nominal control output
+                control_output = self.calculate_nominal_control_output(err_tip) # (12,)
                     
+
+            # Check for the arrival to the target pose of the particles 
+            # i.e. Check for the error norms (position and orientation) of the particles
+            # Disable the controller if the error is below the threshold
+            
+            # if (pos_err_avr_norm < (self.acceptable_pos_err_avr_norm+self.d_obstacle_offset)) \
+            if (pos_err_avr_norm < (self.acceptable_pos_err_avr_norm)) \
+                and (ori_err_avr_norm < self.acceptable_ori_err_avr_norm):
+                
+                self.update_last_control_output_is_valid_time()
+                                
+                control_output = np.zeros(6*len(self.custom_static_particles))                
+                self.assign_control_outputs(control_output)
+                
+                # call set_enable service to disable the controller
+                self.controller_enabler(enable=False, cause="automatic")
+                # Create green colored log info message
+                # rospy.loginfo("\033[92m" + "Error norms are below the thresholds. The controller is disabled." + "\033[0m")
+                rospy.loginfo("Error norms are below the thresholds.")
+                
+                return
+                
+            else: # Not arrived to the target pose of the particles                
+                # init_t = time.time()                
+                
+                # Calculate safe control output with obstacle avoidance        
+                control_output = self.calculate_safe_control_output(control_output) # safe # (12,)
+                # rospy.logwarn("QP solver calculation time: " + str(1000*(time.time() - init_t)) + " ms.")
+                
+                if control_output is not None: # Successfully calculated the safe control output
+                    self.update_last_control_output_is_valid_time()
+                    self.assign_control_outputs(control_output)
+                    return
+                
+                else: # if control output is None (ie. QP solver error)
                     # check if the control output is None for a long time
                     if (rospy.Time.now() - self.time_last_control_output_is_valid).to_sec() > self.valid_control_output_wait_timeout:
                         # call set_enable service to disable the controller
@@ -1292,7 +1318,11 @@ class VelocityControllerNode:
                         # Create red colored log info message
                         # rospy.logerr("\033[91m" + "The controller is disabled due to the QP solver error." + "\033[0m")
                         rospy.logerr("The controller is disabled due to the QP solver error.")
-                        return
+
+                    # assign the zero control output
+                    control_output = np.zeros(6*len(self.custom_static_particles))
+                    self.assign_control_outputs(control_output)
+                    return
 
         # # Reset the event to wait for the next input
         # self.proceed_event.clear()  
@@ -1837,7 +1867,7 @@ class VelocityControllerNode:
                         # Build a k-d tree from path points 
                         self.planned_path_kd_tree = KDTree(self.planned_path_points) 
 
-                    elif (not self.planned_path_of_particles):
+                    if (self.planned_path) and (not self.planned_path_of_particles):
                         # Derive the mockup path of the particles
                         self.planned_path_of_particles, \
                         self.planned_path_points_of_particles, \
@@ -1847,7 +1877,7 @@ class VelocityControllerNode:
                         self.planned_path_rotation_vectors_of_particles = self.derive_path_of_particles(self.planned_path, \
                                                                                                         self.default_centroid_relative_poses_of_particles)
                         
-                    elif (not self.planned_path_velocity_profile_of_particles):
+                    if (self.planned_path) and (self.planned_path_of_particles) and (not self.planned_path_velocity_profile_of_particles): 
                         # Calculate the velocity profile for the particles
                         self.planned_path_velocity_profile_of_particles = self.calculate_path_tracking_velocity_profile_of_particles()
 
@@ -1861,7 +1891,7 @@ class VelocityControllerNode:
                         # Publish the planned path of the particles for visualization
                         self.publish_paths_of_particles(self.planned_path_of_particles)
                     ## ----------------------------------------------------------------------------------------------
-                    else:
+                    if (self.planned_path) and (self.planned_path_of_particles) and (self.planned_path_velocity_profile_of_particles):
                         # Update the centroid pose of the particles
                         self.centroid_pose_of_particles = self.calculate_centroid_pose_of_particles()
 
@@ -1933,8 +1963,12 @@ class VelocityControllerNode:
 
                         # # Build a k-d tree from path points (optional)
                         # self.planned_path_kd_tree = KDTree(self.planned_path_points) 
+                    ## ----------------------------------------------------------------------------------------------
+                    if (self.planned_path) and (not self.planned_path_velocity_profile_of_particles):
+                        """
+                        Calculate the velocity profile for the particles.
+                        """
                         
-                    elif (not self.planned_path_velocity_profile_of_particles):
                         rospy.loginfo("Calculating the velocity profile for the particles.")
                         # Calculate the velocity profile for the particles
                         self.planned_path_velocity_profile_of_particles = self.calculate_path_tracking_velocity_profile_of_particles()
@@ -1948,9 +1982,12 @@ class VelocityControllerNode:
 
                         # Publish the planned path of the particles for visualization
                         self.publish_paths_of_particles(self.planned_path_of_particles)
-                        
                     ## ----------------------------------------------------------------------------------------------
-                    else:
+                    if (self.planned_path) and (self.planned_path_velocity_profile_of_particles):
+                        """
+                        Path tracking...
+                        """
+                        
                         # rospy.loginfo("Path tracking with Tesseract is not implemented yet.")
                         # pass
                         
