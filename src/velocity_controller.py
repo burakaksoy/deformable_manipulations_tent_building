@@ -359,11 +359,14 @@ class VelocityControllerNode:
         self.kp_path_tracking = np.array(rospy.get_param("~kp_path_tracking", [1.0,1.0,1.0, 1.0,1.0,1.0]))
         self.kd_path_tracking = np.array(rospy.get_param("~kd_path_tracking", [0.0,0.0,0.0, 0.0,0.0,0.0]))
 
-        # Path tracking switch off parameters used in the sigmoid function
-        # The sigmoid function is used to switch off the path tracking controller smoothly to the nominal controller
-        # when the robot is close to the end of path. See: https://www.desmos.com/calculator/exgon3okr6
-        self.d_path_tracking_switch_off_distance = rospy.get_param("~d_path_tracking_switch_off_distance", 0.75)
-        self.k_path_tracking_switch_off_smoothness = rospy.get_param("~k_path_tracking_switch_off_smoothness", 20.0)
+        # Path tracking switch off parameters used in the transition function
+        # A piecewise smooth transition function is used to switch off the path tracking controller smoothly to the nominal controller
+        # when the robot is close to the end of path. See: 
+        
+        # the distance from the end of the path to start switching off the path tracking controller
+        self.d_path_tracking_start_switch_off_distance = rospy.get_param("~d_path_tracking_start_switch_off_distance", 0.35)         
+        # the distance from the end of the path to completely switch off the path tracking controller
+        self.d_path_tracking_complete_switch_off_distance = rospy.get_param("~d_path_tracking_complete_switch_off_distance", 0.05)
 
         # Add the described parameters below:
         # Feedforward velocity scale factors for the path tracking controller
@@ -1184,14 +1187,30 @@ class VelocityControllerNode:
 
         return control_output
     
+    def transition_function(self, c, c_l, c_u):
+        """Piecewise smooth transition function
+        
+        Uses a cosine function to smoothly transition from 0 to 1 over a given range of distances.
+        The transition function is defined as:
+        weight = 0.5 * (1 - np.cos(np.pi * (c-c_l)/(c_u-c_l)))
+        where c is the distance to the path completion and c_l and c_u are the lower and upper bounds of the range of distances.
+        At c <= c_l, the weight is 0. 
+        At c >= c_u, the weight is 1.
+        
+        See: https://www.desmos.com/calculator/lw1rirjtab
+        """
+        if c <= c_l:
+            return 0.0
+        elif c >= c_u:
+            return 1.0
+        else:
+            return 0.5 * (1 - np.cos(np.pi * (c-c_l)/(c_u-c_l)))
+    
     def blend_control_outputs(self, nominal_u, path_tracking_u):
         """
-        Blends the nominal and path tracking control outputs using a sigmoid function.
+        Blends the nominal and path tracking control outputs using a transition function.
         The blending weight is calculated based on the distance to the path completion.
-        The blending weight is in the range [0,1] and it is calculated using a sigmoid function.
-        The sigmoid function is defined as:
-        weight = 1.0 / (1.0 + np.exp(-k*(d-d0)))
-        where k is the smoothness parameter and d0 is the distance to the path completion when the weight is 0.5.
+        The blending weight is in the range [0,1] and it is calculated using a transition function.
         The blending is performed as:
         control_output = (1.0 - weight)*nominal_u + weight*path_tracking_u
         """        
@@ -1219,8 +1238,10 @@ class VelocityControllerNode:
             d_to_complete /= n
         # print("d_to_complete (average particles): " + str(d_to_complete))
 
-        # Use sigmoid fucntion to calculate the weight
-        weight = 1.0 / (1.0 + np.exp(-self.k_path_tracking_switch_off_smoothness * (d_to_complete - self.d_path_tracking_switch_off_distance)))
+        # Use the transition function to calculate the weight
+        weight = self.transition_function(d_to_complete, 
+                                          self.d_path_tracking_complete_switch_off_distance, 
+                                          self.d_path_tracking_start_switch_off_distance)
         # print("weight: " + str(weight))
         
         return (1.0 - weight)*nominal_u + weight*path_tracking_u

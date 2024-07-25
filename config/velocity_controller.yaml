@@ -80,11 +80,13 @@ kp_path_tracking: [1.0,1.0,1.0, 1.5,1.5,1.5]
 
 kd_path_tracking: [0.0,0.0,0.0, 0.0,0.0,0.0]
 
-# Path tracking switch off parameters used in the sigmoid function
-# The sigmoid function is used to switch off the path tracking controller smoothly to the nominal controller
-# when the robot is close to the end of path. See: https://www.desmos.com/calculator/exgon3okr6
-d_path_tracking_switch_off_distance: 0.1 # 1.00 # 0.75 # the distance from the end of the path to start switching off the path tracking controller
-k_path_tracking_switch_off_smoothness: 20.0 # 20.0 # the higher the value, the steeper the switch off of the path tracking controller
+# Path tracking switch off parameters used in the transition function
+# A piecewise smooth transition function is used to switch off 
+# the path tracking controller smoothly to the nominal controller
+# when the robot is close to the end of path. 
+# See: https://www.desmos.com/calculator/lw1rirjtab
+d_path_tracking_start_switch_off_distance: 0.35 # the distance from the end of the path to start switching off the path tracking controller
+d_path_tracking_complete_switch_off_distance: 0.05 # the distance from the end of the path to completely switch off the path tracking controller
 
 # Feedforward velocity scale factors for the path tracking controller
 # These values are multiplied with the maximum velocity limits to scale down the velocity commands of the path tracking
