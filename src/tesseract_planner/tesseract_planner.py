@@ -157,21 +157,57 @@ class TesseractPlanner(object):
                  manipulator,
                  working_frame  ,
                  viewer_enabled = True):
-        rospy.loginfo("Initializing TesseractPlanner..")
         
-        # Set the resource path for tesseract
-        os.environ["TESSERACT_RESOURCE_PATH"] = os.path.expanduser(tesseract_resource_path)
+        self.collision_scene_json_file = collision_scene_json_file
+        self.tesseract_resource_path = tesseract_resource_path
+        self.urdf_url_or_path = urdf_url_or_path
+        self.srdf_url_or_path = srdf_url_or_path
+        self.tcp_frame = tcp_frame
+        self.manipulator = manipulator
+        self.working_frame = working_frame  
+        self.viewer_enabled = viewer_enabled 
         
-        # -----------------------------------------------------------------------
-        # Get the directory of the current script
-        self.current_file_dir = os.path.dirname(os.path.abspath(__file__))
+        self.re_init(self.collision_scene_json_file,
+                     self.tesseract_resource_path,
+                     self.urdf_url_or_path,
+                     self.srdf_url_or_path,
+                     self.tcp_frame,
+                     self.manipulator,
+                     self.working_frame,
+                     self.viewer_enabled,
+                     is_re_init=False)
         
-        # Path to the config files
-        self.config_path = os.path.join(self.current_file_dir, 'config')
         
-        # Path to the task composer config file
-        # self.task_composer_filename = os.environ["TESSERACT_TASK_COMPOSER_CONFIG_FILE"]        
-        self.task_composer_filename = os.path.join(self.config_path, 'task_composer_plugins_no_trajopt_ifopt.yaml')
+    def re_init(self, 
+                collision_scene_json_file,
+                tesseract_resource_path,
+                urdf_url_or_path,
+                srdf_url_or_path,
+                tcp_frame,
+                manipulator,
+                working_frame  ,
+                viewer_enabled = True,
+                is_re_init = False):
+        if not is_re_init:
+            rospy.loginfo("Initializing TesseractPlanner..")
+        else:
+            rospy.loginfo("Re-initializing TesseractPlanner..")
+        
+        if not is_re_init:
+            # Set the resource path for tesseract
+            os.environ["TESSERACT_RESOURCE_PATH"] = os.path.expanduser(tesseract_resource_path)
+            
+            # -----------------------------------------------------------------------
+            # Get the directory of the current script
+            self.current_file_dir = os.path.dirname(os.path.abspath(__file__))
+            
+            # Path to the config files
+            self.config_path = os.path.join(self.current_file_dir, 'config')
+            
+            # Path to the task composer config file
+            # self.task_composer_filename = os.environ["TESSERACT_TASK_COMPOSER_CONFIG_FILE"]        
+            self.task_composer_filename = os.path.join(self.config_path, 'task_composer_plugins_no_trajopt_ifopt.yaml')
+            # self.task_composer_filename = os.path.join(self.config_path, 'task_composer_plugins_no_trajopt_ifopt_TEST.yaml')
         
         # Create the task composer plugin factory and load the plugins
         self.factory = TaskComposerPluginFactory(FilesystemPath(self.task_composer_filename))    
@@ -196,10 +232,12 @@ class TesseractPlanner(object):
         # --------------------------------------------------------------------------------------------
 
         # -----------------------------------------------------------------------
-        # Initialize the resource locator and environment
-        self.locator = GeneralResourceLocator() # locator_fn must be kept alive by maintaining a reference
-        self.urdf_fname = FilesystemPath(self.locator.locateResource(urdf_url_or_path).getFilePath())
-        self.srdf_fname = FilesystemPath(self.locator.locateResource(srdf_url_or_path).getFilePath())
+        if not is_re_init:
+            # Initialize the resource locator and environment
+            self.locator = GeneralResourceLocator() # locator_fn must be kept alive by maintaining a reference
+            self.urdf_fname = FilesystemPath(self.locator.locateResource(urdf_url_or_path).getFilePath())
+            self.srdf_fname = FilesystemPath(self.locator.locateResource(srdf_url_or_path).getFilePath())
+        
         self.env = Environment()
         assert self.env.init(self.urdf_fname, self.srdf_fname, self.locator)
         # -----------------------------------------------------------------------
@@ -216,20 +254,23 @@ class TesseractPlanner(object):
         # -----------------------------------------------------------------------
         
         # -----------------------------------------------------------------------
-        # Create a viewer and set the environment so the results can be displayed later
-        self.viewer_enabled = viewer_enabled
-        self.viewer = None
-        if self.viewer_enabled:
+        if not is_re_init:
             # Create a viewer and set the environment so the results can be displayed later
-            self.viewer = TesseractViewer()
-            
-            # Show the world coordinate frame
-            self.viewer.add_axes_marker(position=[0,0,0], quaternion=[1,0,0,0], 
-                                        size=1.0, parent_link="base_link", name="world_frame")
-            self.viewer.update_environment(self.env, [0,0,0])
-            
-            # Start the viewer
-            self.viewer.start_serve_background()
+            self.viewer_enabled = viewer_enabled
+            self.viewer = None
+            if self.viewer_enabled:
+                # Create a viewer and set the environment so the results can be displayed later
+                self.viewer = TesseractViewer()
+                
+                self.viewer.clear_all_markers()
+                
+                # Show the world coordinate frame
+                self.viewer.add_axes_marker(position=[0,0,0], quaternion=[1,0,0,0], 
+                                            size=1.0, parent_link="base_link", name="world_frame")
+                self.viewer.update_environment(self.env, [0,0,0])
+                
+                # Start the viewer
+                self.viewer.start_serve_background()
         # -----------------------------------------------------------------------
 
         # -----------------------------------------------------------------------
@@ -247,6 +288,11 @@ class TesseractPlanner(object):
         
         # -----------------------------------------------------------------------
         self.load_collision_scene(collision_scene_json_file)
+        # -----------------------------------------------------------------------
+        
+        # -----------------------------------------------------------------------
+        ## Set the planning profiles
+        self.profiles = self.set_profile_dictionary()
         # -----------------------------------------------------------------------
         
         # -----------------------------------------------------------------------
@@ -549,21 +595,19 @@ class TesseractPlanner(object):
         
         # The remaining waypoints are the intermediate waypoints
         intermediate_waypoints = waypoints[:-1]
-        
+    
         state_waypoints = self.set_state_waypoints(initial_joint_positions, 
                                                    intermediate_waypoints,
                                                    goal_joint_positions) 
         
         move_instructions = self.set_move_instructions(state_waypoints)
-        
+            
         program_anypoly = self.create_input_command_program(self.manip_info, move_instructions)
-        
-        profiles = self.set_profile_dictionary()
         
         # Create the task problem and 
         rospy.loginfo("Creating the task planning problem..")
-        task_planning_problem = PlanningTaskComposerProblem(self.env, profiles)
-        task_planning_problem.input = program_anypoly
+        task_planning_problem = PlanningTaskComposerProblem(self.env, self.profiles)        
+        task_planning_problem.input = program_anypoly        
         rospy.loginfo("Task planning problem created.")
 
         # --------------------------------------------------------------------------------------------        
@@ -577,7 +621,8 @@ class TesseractPlanner(object):
         future.wait()
 
         stopwatch.stop()
-        rospy.loginfo(f"PLANNING TOOK {stopwatch.elapsedSeconds()} SECONDS.")
+        planning_time = stopwatch.elapsedSeconds()
+        rospy.loginfo(f"PLANNING TOOK {planning_time} SECONDS.")
         # --------------------------------------------------------------------------------------------
 
         try:
