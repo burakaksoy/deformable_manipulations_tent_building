@@ -11,7 +11,7 @@ task_composer_plugins:
       TaskflowExecutor:
         class: TaskflowTaskComposerExecutorFactory
         config:
-          threads: 10
+          threads: 5
   tasks:
     plugins:
       DescartesFTask:
@@ -442,6 +442,11 @@ task_composer_plugins:
                 inputs: [output_data]
                 outputs: [output_data]
                 format_result_as_input: false
+            DiscreteContactCheckTask:
+              class: DiscreteContactCheckTaskFactory
+              config:
+                conditional: true
+                inputs: [output_data]
             IterativeSplineParameterizationTask:
               class: IterativeSplineParameterizationTaskFactory
               config:
@@ -452,6 +457,8 @@ task_composer_plugins:
             - source: MinLengthTask
               destinations: [ErrorTask, TrajOptMotionPlannerTask]
             - source: TrajOptMotionPlannerTask
+              destinations: [ErrorTask, IterativeSplineParameterizationTask]
+            - source: DiscreteContactCheckTask
               destinations: [ErrorTask, IterativeSplineParameterizationTask]
             - source: IterativeSplineParameterizationTask
               destinations: [ErrorTask, DoneTask]
@@ -589,11 +596,6 @@ task_composer_plugins:
                 inputs: [output_data]
                 outputs: [output_data]
                 format_result_as_input: false
-            DiscreteContactCheckTask:
-              class: DiscreteContactCheckTaskFactory
-              config:
-                conditional: true
-                inputs: [output_data]
             IterativeSplineParameterizationTask:
               class: IterativeSplineParameterizationTaskFactory
               config:
@@ -606,8 +608,6 @@ task_composer_plugins:
             - source: OMPLMotionPlannerTask
               destinations: [ErrorTask, TrajOptMotionPlannerTask]
             - source: TrajOptMotionPlannerTask
-              destinations: [ErrorTask, DiscreteContactCheckTask]
-            - source: DiscreteContactCheckTask
               destinations: [ErrorTask, IterativeSplineParameterizationTask]
             - source: IterativeSplineParameterizationTask
               destinations: [ErrorTask, DoneTask]
@@ -625,77 +625,6 @@ task_composer_plugins:
                 outputs: [input_data]
             MotionPlanningTask:
               task: FreespaceTask
-              config:
-                conditional: false
-                abort_terminal: 0
-          edges:
-            - source: ProcessInputTask
-              destinations: [MotionPlanningTask]
-          terminals: [MotionPlanningTask]
-      FreespaceTask2:
-        class: PipelineTaskFactory
-        config:
-          conditional: true
-          inputs: [input_data]
-          outputs: [output_data]
-          nodes:
-            DoneTask:
-              class: DoneTaskFactory
-              config:
-                conditional: false
-            ErrorTask:
-              class: ErrorTaskFactory
-              config:
-                conditional: false
-            MinLengthTask:
-              class: MinLengthTaskFactory
-              config:
-                conditional: true
-                inputs: [input_data]
-                outputs: [output_data]
-            OMPLMotionPlannerTask:
-              class: OMPLMotionPlannerTaskFactory
-              config:
-                conditional: true
-                inputs: [output_data]
-                outputs: [output_data]
-                format_result_as_input: true
-            TrajOptMotionPlannerTask:
-              class: TrajOptMotionPlannerTaskFactory
-              config:
-                conditional: true
-                inputs: [output_data]
-                outputs: [output_data]
-                format_result_as_input: false
-            IterativeSplineParameterizationTask:
-              class: IterativeSplineParameterizationTaskFactory
-              config:
-                conditional: true
-                inputs: [output_data]
-                outputs: [output_data]
-          edges:
-            - source: MinLengthTask
-              destinations: [ErrorTask, OMPLMotionPlannerTask]
-            - source: OMPLMotionPlannerTask
-              destinations: [ErrorTask, TrajOptMotionPlannerTask]
-            - source: TrajOptMotionPlannerTask
-              destinations: [ErrorTask, IterativeSplineParameterizationTask]
-            - source: IterativeSplineParameterizationTask
-              destinations: [ErrorTask, DoneTask]
-          terminals: [ErrorTask, DoneTask]
-      FreespacePipeline2:
-        class: PipelineTaskFactory
-        config:
-          conditional: false
-          outputs: [output_data]
-          nodes:
-            ProcessInputTask:
-              class: ProcessPlanningInputTaskFactory
-              config:
-                conditional: false
-                outputs: [input_data]
-            MotionPlanningTask:
-              task: FreespaceTask2
               config:
                 conditional: false
                 abort_terminal: 0
