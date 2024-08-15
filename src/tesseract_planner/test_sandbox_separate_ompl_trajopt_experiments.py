@@ -988,7 +988,7 @@ def process_planner_results(results,
 mingruiyu_scene_id = 1
 
 # Set the folder name to save the results and created paths
-saving_folder_name = "planning_experiments_results"
+saving_folder_name = "planning_experiment_results"
 
 # Number of experiments to run
 num_experiments = 100
@@ -1186,10 +1186,10 @@ for experiment_id in range(1, num_experiments+1):
     # simplified_dlo_num_segments= 10
     # for simplified_dlo_num_segments in range(10, max_simplified_dlo_num_segments+1):
     is_num_segments_validated = False
-    simplified_dlo_num_segments = 0 
+    simplified_dlo_num_segments = 0
     planning_success = 1
 
-    while (simplified_dlo_num_segments <= max_simplified_dlo_num_segments
+    while (simplified_dlo_num_segments < max_simplified_dlo_num_segments
         and not is_num_segments_validated):
         simplified_dlo_num_segments += 1
         # -----------------------------------------------------------------------
@@ -2176,7 +2176,7 @@ for experiment_id in range(1, num_experiments+1):
             
         print("--------------------------------------------------------------------")
         is_num_segments_validated = True
-        input("Press enter to continue to the next simplified_dlo_num_segments")
+        # input("Press enter to continue to the next simplified_dlo_num_segments")
 
 # wait for user input to keep the viewer alive
 input("Experiments are completed, Press enter to exit..")
