@@ -6,6 +6,8 @@ import numpy as np
 import time
 import math
 from datetime import datetime
+import pandas as pd
+import traceback
 
 from geometry_msgs.msg import Twist, Point, PointStamped, Quaternion, Pose, PoseStamped, Wrench, Vector3
 from nav_msgs.msg import Odometry, Path
@@ -71,6 +73,16 @@ class VelocityControllerNode:
         self.set_nominal_control_server = rospy.Service('~set_nominal_control_enabled', SetBool, self.set_nominal_control_enabled)
         self.set_obstacle_avoidance_server = rospy.Service('~set_obstacle_avoidance_enabled', SetBool, self.set_obstacle_avoidance_enabled)
         self.set_stress_avoidance_server = rospy.Service('~set_stress_avoidance_enabled', SetBool, self.set_stress_avoidance_enabled)
+
+        self.initial_full_state_dict = None # To store the initial full state of the deformable object
+        self.target_full_state_dict = None # To store the target full state of the deformable object
+        
+        # Create service servers to set and save the inital and target states of the particles
+        self.set_n_save_initial_state_server = rospy.Service('~set_n_save_initial_state', SetBool, self.set_n_save_initial_state)
+        self.set_n_save_target_state_server = rospy.Service('~set_n_save_target_state', SetBool, self.set_n_save_target_state)
+        
+        # Get the saving directory for the initial and target states of the particles
+        self.state_saving_directory = rospy.get_param("~state_saving_directory", "")
 
         self.pub_rate_odom = rospy.get_param("~pub_rate_odom", 50)
 
@@ -182,6 +194,8 @@ class VelocityControllerNode:
         self.particle_twists = {}
         self.particle_wrenches = {}
 
+        self.current_full_state = None # To store the current full state of the deformable object
+        
         # Subscriber for deformable object states to figure out the current particle positions
         self.sub_state = rospy.Subscriber(self.deformable_object_state_topic_name, SegmentStateArray, self.state_array_callback, queue_size=10)
         
@@ -432,6 +446,123 @@ class VelocityControllerNode:
     #         input("Press Enter to allow the control calculations to proceed...")
     #         self.proceed_event.set()
 
+    # Implement the set_n_save_initial_state and set_n_save_target_state services
+    def set_n_save_initial_state(self, request):
+        result = self.full_states_saver("initial")
+        if result:
+            return SetBoolResponse(True, 'Successfully set the initial state of the particles.')
+        else:
+            return SetBoolResponse(False, 'Failed to set the initial state of the particles.')
+
+    def set_n_save_target_state(self, request):
+        result = self.full_states_saver("target")
+        if result:
+            return SetBoolResponse(True, 'Successfully set the initial state of the particles.')
+        else:
+            return SetBoolResponse(False, 'Failed to set the initial state of the particles.')
+    
+    def full_states_saver(self, state_type):
+        """
+        Saves the states of the particles to a file.
+
+        Args:
+            state_type (str): The type of the state to be saved. It can be either "initial" or "target". 
+                              If any other string is given, it will be considered as "unknown".
+        """
+
+        # Save the states of the particles to a file
+        # The file name will be like: 2024-12-31-17-41-34_initial_states.csv
+        # or 2024-12-31-17-41-34_target_states.csv
+        file_name = self.get_system_timestamp() + "_" + state_type + "_states.csv"
+        file_path = self.state_saving_directory + file_name
+
+        if self.current_full_state:
+            try:
+                if state_type == "initial":
+                    # Set the initial state of the particles to the current state
+                    self.initial_full_state_dict = self.parse_state_as_dict(self.current_full_state)
+                    rospy.loginfo("The initial states of the particles are set.")            
+                    
+                    self.save_state_dict_to_csv(self.initial_full_state_dict, file_path)
+                    
+                elif state_type == "target":
+                    # Set the target state of the particles to the current state
+                    self.target_full_state_dict = self.parse_state_as_dict(self.current_full_state)
+                    rospy.loginfo("The target states of the particles are set.")
+                    
+                    self.save_state_dict_to_csv(self.target_full_state_dict, file_path)
+                    
+                else:
+                    rospy.logerr("Unknown state type: {}".format(state_type))
+                    return False
+                        
+            # except with the full traceback
+            except Exception:
+                rospy.logerr("An error occurred while saving the states of the particles: {}".format(traceback.format_exc()))
+                return False
+            
+            rospy.loginfo("The {} states of the particles are saved to the file: {}".format(state_type, file_path))
+            return True                
+        else:
+            rospy.logerr("The current full state of the particles is not available yet!")
+            return False
+        
+    def parse_state_as_dict(self, states_msg):
+        # Parse SegmentStateArray from dlo_simulator_stiff_rods.msg as a dictionary
+        # with "id,p_x,p_y,p_z,o_x,o_y,o_z,o_w" are the keys
+        # where id is the particle id and p_x, p_y, p_z are the position components
+        # and o_x, o_y, o_z, o_w are the orientation components
+        
+        # Initialize an empty dictionary to store data
+        data = {'id': [], 'p_x': [], 'p_y': [], 'p_z': [], 'o_x': [], 'o_y': [], 'o_z': [], 'o_w': []}
+        
+        # Iterate through each SegmentState in the SegmentStateArray
+        for state in states_msg.states:
+            # Extract the segment id
+            data['id'].append(state.id)
+            
+            # Extract the position components
+            data['p_x'].append(state.pose.position.x)
+            data['p_y'].append(state.pose.position.y)
+            data['p_z'].append(state.pose.position.z)
+            
+            # Extract the orientation components
+            data['o_x'].append(state.pose.orientation.x)
+            data['o_y'].append(state.pose.orientation.y)
+            data['o_z'].append(state.pose.orientation.z)
+            data['o_w'].append(state.pose.orientation.w)
+        
+        return data
+    
+    def convert_state_dict_to_numpy(self, state_dict):
+        # Extract the lists from the dictionary
+        p_x = state_dict['p_x']
+        p_y = state_dict['p_y']
+        p_z = state_dict['p_z']
+        o_x = state_dict['o_x']
+        o_y = state_dict['o_y']
+        o_z = state_dict['o_z']
+        o_w = state_dict['o_w']
+
+        # Stack the lists into a 2D numpy array and transpose it
+        dlo_state = np.array([p_x, p_y, p_z, o_x, o_y, o_z, o_w]).T # shape: (n, 7)
+
+        return dlo_state
+        
+    
+    def save_state_dict_to_csv(self, state_dict, file_path):
+        # Save the state dictionary to a csv file
+        # The file path is given as the argument
+        # Create a DataFrame from the dictionary
+        df = pd.DataFrame(state_dict)
+    
+        # Sort the DataFrame by 'id' in ascending order
+        df.sort_values(by='id', ascending=True, inplace=True)
+
+        # Save the DataFrame to the output file
+        df.to_csv(file_path, index=False)
+        
+
     def set_enable_controller(self, request):
         self.controller_enabler(request.data, cause="manual")
         return SetBoolResponse(True, 'Successfully set enabled state to {}'.format(request.data))
@@ -562,6 +693,8 @@ class VelocityControllerNode:
         return pose_msg
 
     def state_array_callback(self, states_msg):
+        self.current_full_state = states_msg
+        
         for particle in (self.custom_static_particles + self.tip_particles):
             self.particle_positions[particle] = states_msg.states[particle].pose.position
             self.particle_orientations[particle] = states_msg.states[particle].pose.orientation
@@ -1358,6 +1491,7 @@ class VelocityControllerNode:
         """
         # Only publish if enabled
         if self.enabled:
+            # TODO: This for loop can be parallelized for better performance
             for particle in self.custom_static_particles:
                 # Do not proceed until the initial values have been set
                 if ((not (particle in self.particle_positions)) or \
@@ -1848,11 +1982,11 @@ class VelocityControllerNode:
         "Averaging quaternions." Journal of Guidance, Control, and Dynamics 30, no. 4 (2007): 1193-1197.
 
         Arguments:
-            Q (ndarray): An Mx4 ndarray of quaternions.
+            Q (ndarray): An Mx4 ndarray of quaternions. Each quaternion has [w, x, y, z] format.
             weights (list): An M elements list, a weight for each quaternion.
 
         Returns:
-            ndarray: The weighted average of the input quaternions in x, y, z, w (scalar) format.
+            ndarray: The weighted average of the input quaternions in [w, x, y, z] format. 
         '''
         # Use the optimized numpy functions for a more efficient computation
         A = np.einsum('ij,ik,i->...jk', Q, Q, weights)

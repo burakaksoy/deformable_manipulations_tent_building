@@ -276,6 +276,8 @@ task_composer_plugins:
             - source: ProcessInputTask
               destinations: [MotionPlanningTask]
           terminals: [MotionPlanningTask]
+      
+      
       OMPLTask:
         class: PipelineTaskFactory
         config:
@@ -297,6 +299,7 @@ task_composer_plugins:
                 conditional: true
                 inputs: [input_data]
                 outputs: [output_data]
+                format_result_as_input: true
             OMPLMotionPlannerTask:
               class: OMPLMotionPlannerTaskFactory
               config:
@@ -345,6 +348,65 @@ task_composer_plugins:
             - source: ProcessInputTask
               destinations: [MotionPlanningTask]
           terminals: [MotionPlanningTask]
+
+
+      OMPLTaskAlone:
+        class: PipelineTaskFactory
+        config:
+          conditional: true
+          inputs: [input_data]
+          outputs: [output_data]
+          nodes:
+            DoneTask:
+              class: DoneTaskFactory
+              config:
+                conditional: false
+            ErrorTask:
+              class: ErrorTaskFactory
+              config:
+                conditional: false
+            MinLengthTask:
+              class: MinLengthTaskFactory
+              config:
+                conditional: true
+                inputs: [input_data]
+                outputs: [output_data]
+                format_result_as_input: true
+            OMPLMotionPlannerTask:
+              class: OMPLMotionPlannerTaskFactory
+              config:
+                conditional: true
+                inputs: [output_data]
+                outputs: [output_data]
+                format_result_as_input: false
+          edges:
+            - source: MinLengthTask
+              destinations: [ErrorTask, OMPLMotionPlannerTask]
+            - source: OMPLMotionPlannerTask
+              destinations: [ErrorTask, DoneTask]
+          terminals: [ErrorTask, DoneTask]
+      OMPLPipelineAlone:
+        class: PipelineTaskFactory
+        config:
+          conditional: false
+          outputs: [output_data]
+          nodes:
+            ProcessInputTask:
+              class: ProcessPlanningInputTaskFactory
+              config:
+                conditional: false
+                outputs: [input_data]
+            MotionPlanningTask:
+              task: OMPLTaskAlone
+              config:
+                conditional: false
+                abort_terminal: 0
+          edges:
+            - source: ProcessInputTask
+              destinations: [MotionPlanningTask]
+          terminals: [MotionPlanningTask]
+      
+      
       TrajOptTask:
         class: PipelineTaskFactory
         config:
@@ -414,6 +476,8 @@ task_composer_plugins:
             - source: ProcessInputTask
               destinations: [MotionPlanningTask]
           terminals: [MotionPlanningTask]
+      
+      
       TrajOptTask2:
         class: PipelineTaskFactory
         config:
@@ -476,6 +540,73 @@ task_composer_plugins:
             - source: ProcessInputTask
               destinations: [MotionPlanningTask]
           terminals: [MotionPlanningTask]
+      
+            
+      TrajOptTaskAlone:
+        class: PipelineTaskFactory
+        config:
+          conditional: true
+          inputs: [input_data]
+          outputs: [output_data]
+          nodes:
+            DoneTask:
+              class: DoneTaskFactory
+              config:
+                conditional: false
+            ErrorTask:
+              class: ErrorTaskFactory
+              config:
+                conditional: false
+            MinLengthTask:
+              class: MinLengthTaskFactory
+              config:
+                conditional: true
+                inputs: [input_data]
+                outputs: [output_data]
+                # format_result_as_input: true
+            TrajOptMotionPlannerTask:
+              class: TrajOptMotionPlannerTaskFactory
+              config:
+                conditional: true
+                inputs: [output_data]
+                outputs: [output_data]
+                format_result_as_input: false
+            IterativeSplineParameterizationTask:
+              class: IterativeSplineParameterizationTaskFactory
+              config:
+                conditional: true
+                inputs: [output_data]
+                outputs: [output_data]
+          edges:
+            - source: MinLengthTask
+              destinations: [ErrorTask, TrajOptMotionPlannerTask]
+            - source: TrajOptMotionPlannerTask
+              destinations: [ErrorTask, IterativeSplineParameterizationTask]
+            - source: IterativeSplineParameterizationTask
+              destinations: [ErrorTask, DoneTask]
+          terminals: [ErrorTask, DoneTask]
+      TrajOptPipelineAlone:
+        class: PipelineTaskFactory
+        config:
+          conditional: false
+          outputs: [output_data]
+          nodes:
+            ProcessInputTask:
+              class: ProcessPlanningInputTaskFactory
+              config:
+                conditional: false
+                outputs: [input_data]
+            MotionPlanningTask:
+              task: TrajOptTaskAlone
+              config:
+                conditional: false
+                abort_terminal: 0
+          edges:
+            - source: ProcessInputTask
+              destinations: [MotionPlanningTask]
+          terminals: [MotionPlanningTask]
+
+
       CartesianTask:
         class: PipelineTaskFactory
         config:
@@ -554,6 +685,8 @@ task_composer_plugins:
             - source: ProcessInputTask
               destinations: [MotionPlanningTask]
           terminals: [MotionPlanningTask]
+      
+
       FreespaceTask:
         class: PipelineTaskFactory
         config:
@@ -632,6 +765,8 @@ task_composer_plugins:
             - source: ProcessInputTask
               destinations: [MotionPlanningTask]
           terminals: [MotionPlanningTask]
+      
+      
       FreespaceTask2:
         class: PipelineTaskFactory
         config:
@@ -647,12 +782,14 @@ task_composer_plugins:
               class: ErrorTaskFactory
               config:
                 conditional: false
+                # trigger_abort: true # default for task is false
             MinLengthTask:
               class: MinLengthTaskFactory
               config:
                 conditional: true
                 inputs: [input_data]
                 outputs: [output_data]
+                format_result_as_input: true
             OMPLMotionPlannerTask:
               class: OMPLMotionPlannerTaskFactory
               config:
