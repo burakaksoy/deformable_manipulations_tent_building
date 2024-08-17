@@ -48,30 +48,8 @@ acceptable_ori_err_avr_norm: 0.01 # 0.1 # [rad]
 ## Path planning parameters
 path_tracking_control_enabled: True # default: True
 
-path_planning_mockup_enabled: False # default: False # For Simple Path planning (if tesseract is also enabled, this is ignored)
-path_planning_tesseract_enabled: True # default: False # For Tesseract Path planning
+path_planning_tesseract_enabled: False # default: False # For Tesseract Path planning
 
-# Waypoint poses for the path planning for the centeroid of the tent pole (assuming the tent pole is a rigid link)
-# A path is generated between these waypoints using a simple spline interpolation between them as a reference path
-# as a mockup for the path planning. 
-
-# NOTE: Currently, Tesseract only supports single waypoint pose which is the target pose
-
-# Each element holds [[x,y,z],[Rx,Ry,Rz(euler angles in degrees)]]
-# waypoint_poses: [[[0,  1.55, 1.10], [90, 0, 90]],
-#                  [[0,  0.45, 1.10], [90, 0, 90]],
-#                  [[0, -1.0, 0.16], [90, 0, 90]]]
-
-# # FOR TEST
-# waypoint_poses: [[[0,  1.5, 1.10], [45, 0, 90]],
-#                  [[0,  0.5, 1.10], [135, 0, 90]],
-#                  [[0, -1.0, 0.16], [90, 0, 90]]]
-
-# # # FOR TEST
-# waypoint_poses: [[[-1.215,  0.8225, 0.5], [90, 0, 0]]]
-
-# # # FOR TEST
-waypoint_poses: [[[2.5,  0.0, 0.5], [90, 0, 0]]]
 
 # Path tracking controller gains [x,y,z, Rx,Ry,Rz]
 # kp_path_tracking: [0.0,0.0,0.0, 0.0,0.0,0.0]
@@ -99,6 +77,11 @@ path_tracking_feedforward_angular_velocity_scale_factor: 0.6 # 0.5
 # The path planning is done using the Tesseract library
 # The path is generated between the target pose and the current pose of the robot
 
+# Saving directory of Initial and Target states of the tent pole for the path planning
+# The position and orientation of the each segment of the tent pole is saved as a state
+# as a csv file in this directory
+state_saving_directory: "~/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/"
+
 # Tesseract uses the GeneralResourceLocator to find resources on the file system. The GeneralResourceLocator
 # uses the TESSERACT_RESOURCE_PATH environmental variable.
 tesseract_resource_path: "~/catkin_ws_deformable/src/"
@@ -118,12 +101,14 @@ tesseract_tent_pole_urdf: "package://deformable_description/urdf/pole_2_links_7D
 tesseract_tent_pole_srdf: "package://deformable_description/urdf/pole_2_links_7DOF/pole_2_links.srdf"
 # tesseract_tent_pole_srdf: "package://deformable_description/urdf/pole_2_links_9DOF/pole_2_links.srdf"
 
+## SPECIFY THE TCP FRAME, MANIPULATOR GROUP AND MANIPULATOR WORKING FRAME 
 tesseract_tent_pole_tcp_frame: "tool0" # The name of the tool center point frame in the tent pole urdf file
 tesseract_tent_pole_manipulator_group: "manipulator" # The name of the manipulator group in the srdf file
 tesseract_tent_pole_manipulator_working_frame: "base_link" # The name of the working frame in the manipulator group in the srdf file
 
-tesseract_use_default_viewer: True # default: False # If True, the default tesseract viewer is also used to visualize the planning scene through http://localhost:8000/
-
+## SPECIFY IF THE DEFAULT TESSERACT VIEWER IS USED
+# If True, the default tesseract viewer is also used to visualize the planning scene through http://localhost:8000/
+tesseract_use_default_viewer: True # default: False 
 
 ## -------------------------------------------------------
 ## Obstacle avoidance parameters
