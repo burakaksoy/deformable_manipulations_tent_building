@@ -987,1196 +987,1198 @@ def process_planner_results(results,
 # Scene for the experiments
 mingruiyu_scene_id = 1
 
-# Set the folder name to save the results and created paths
-saving_folder_name = "planning_experiment_results"
+for mingruiyu_scene_id in range(1, 5):
 
-# Number of experiments to run
-num_experiments = 100
+    # Set the folder name to save the results and created paths
+    saving_folder_name = "planning_experiment_results_i9_10885h_10_segments"
 
-# 
-viewer_enabled = False
+    # Number of experiments to run
+    num_experiments = 100
 
-
-# -----------------------------------------------------------------------
-
+    # 
+    viewer_enabled = False
 
 
-# -----------------------------------------------------------------------
-tesseract_resource_path = "~/catkin_ws_deformable/src/"
-
-# Set the resource path for tesseract
-os.environ["TESSERACT_RESOURCE_PATH"] = os.path.expanduser(tesseract_resource_path)
-
-# -----------------------------------------------------------------------
-# Get the directory of the current script
-current_file_dir = os.path.dirname(os.path.abspath(__file__))
-
-# Path to the config files
-config_path = os.path.join(current_file_dir, 'config')
-
-# Path to the task composer config file
-# self.task_composer_filename = os.environ["TESSERACT_TASK_COMPOSER_CONFIG_FILE"]        
-# task_composer_filename = os.path.join(config_path, 'task_composer_plugins.yaml')
-task_composer_filename = os.path.join(config_path, 'task_composer_plugins_no_trajopt_ifopt.yaml')
-# self.task_composer_filename = os.path.join(self.config_path, 'task_composer_plugins_no_trajopt_ifopt_TEST.yaml')
-
-# Create the task composer plugin factory and load the plugins
-factory = TaskComposerPluginFactory(FilesystemPath(task_composer_filename))   
-# -----------------------------------------------------------------------
-
-# --------------------------------------------------------------------------------------------
-# NEW: Create AND INITIALIZE the environment FROM THE COLLISION SCENE
-
-locator = GeneralResourceLocator() # locator_fn must be kept alive by maintaining a reference
-
-env = Environment()
-
-json_file_path = None # TODO: Must be passed at the initialization, default: None
-
-# json_file_path = "/home/burak/catkin_ws_deformable/src/dlo_simulator_stiff_rods/config/scenes/scene_mingruiyu_1.json"
-# json_file_path = "/home/burak/catkin_ws_deformable/src/dlo_simulator_stiff_rods/config/scenes/scene_mingruiyu_2.json"
-# json_file_path = "/home/burak/catkin_ws_deformable/src/dlo_simulator_stiff_rods/config/scenes/scene_mingruiyu_3.json"
-# json_file_path = "/home/burak/catkin_ws_deformable/src/dlo_simulator_stiff_rods/config/scenes/scene_mingruiyu_4.json" # TODO: Must be passed at the initialization, default: None
-
-# Create from scene_id
-json_file_path = "/home/burak/catkin_ws_deformable/src/dlo_simulator_stiff_rods/config/scenes/scene_mingruiyu_" + str(mingruiyu_scene_id) + ".json" # TODO: Must be passed at the initialization, default: None
-
-cmds = Commands()
-if (not json_file_path or 
-    not os.path.exists(json_file_path) or 
-    not os.path.isfile(json_file_path) or 
-    not json_file_path.endswith('.json') or 
-    not os.path.getsize(json_file_path) > 0):
-    
-    # Create an empty scene graph
-    scene_graph_to_add = SceneGraph()
-    scene_graph_to_add.addLink(Link("world_frame"))
-    
-    add_scene_graph_command = AddSceneGraphCommand(scene_graph_to_add)
-    
-    cmds.push_back(add_scene_graph_command)
-else:
-    scene_urdf_str = json_to_urdf(input_file_path=json_file_path, 
-                                    visualize=False, 
-                                    save_output=False,
-                                    output_file_path="./tesseract_scene.urdf")
-    # print("scene_urdf_str: ")
-    # print(scene_urdf_str)
-
-    scene_graph_to_add = parseURDFString(scene_urdf_str, locator).release()
-    add_scene_graph_command = AddSceneGraphCommand(scene_graph_to_add)
-
-    cmds.push_back(add_scene_graph_command)
-
-if not env.isInitialized():
-    print("Environment is not initialized yet, let's initialize it")
-    assert env.init(cmds)
-    
-else:
-    print("Environment is already initialized, let's apply the commands")
-    env.applyCommands(cmds)
-    
-# Get the root link name
-print("Scene graph root name: ", env.getSceneGraph().getRoot())
-# --------------------------------------------------------------------------------------------
-
-# -----------------------------------------------------------------------
-# Create a viewer and set the environment so the results can be displayed later
-
-viewer = None
-
-if viewer_enabled:
-    # Create a viewer and set the environment so the results can be displayed later
-    viewer = TesseractViewer()
-    
-    viewer.clear_all_markers()
-    
-    # Show the world coordinate frame
-    viewer.add_axes_marker(position=[0,0,0], quaternion=[1,0,0,0], 
-                                size=1.0, parent_link=env.getSceneGraph().getRoot(), name="world_frame")
-    viewer.update_environment(env, [0,0,0])
-    
-    # Start the viewer
-    viewer.start_serve_background()    
-# -----------------------------------------------------------------------
-
-# -----------------------------------------------------------------------
-# Assume we are given:
-# 1.    the initial and goal states of the dlo as a dictionary
-#       with "id,p_x,p_y,p_z,o_x,o_y,o_z,o_w" are the keys
-#       where id is the particle id and p_x, p_y, p_z are the position components
-#       and o_x, o_y, o_z, o_w are the orientation components.
-# 2.    Lenght and radius of the dlo
-# 3.    The full dlo holding segment ids from the custom_static_particles
-# 4.    Maximum number of segments that can be used in the simplified dlo urdf.
-#       If not given, we can set it to a default value like to the full dlo num segments
-# 5.    Environment limits and joint angle limits of the URDF robot
-# 6.    Approximation error threshold for the dlo state approximator
-
-# 1.
-# initial_full_state_file = "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_4_initial_states.csv"
-# target_full_state_file = "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_4_target_states.csv"
-
-initial_full_state_file = "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_"+ str(mingruiyu_scene_id)+ "_initial_states.csv"
-target_full_state_file = "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_" + str(mingruiyu_scene_id)+ "_target_states.csv"
+    # -----------------------------------------------------------------------
 
 
-# Read the state dictionaries from the csv files
-initial_full_state_dict = read_state_dict_from_csv(initial_full_state_file) # TODO: Must be passed
-target_full_state_dict = read_state_dict_from_csv(target_full_state_file) # TODO: Must be passed
 
-# Convert the state dictionaries to numpy arrays
-initial_full_state = convert_state_dict_to_numpy(initial_full_state_dict) # Nx7, N is the number of particles
-target_full_state = convert_state_dict_to_numpy(target_full_state_dict) # Nx7, N is the number of particles
+    # -----------------------------------------------------------------------
+    tesseract_resource_path = "~/catkin_ws_deformable/src/"
 
-# We can figure out the full dlo num segments from the initial state 
-full_dlo_num_segments = initial_full_state.shape[0] # N 
-# full_dlo_num_segments = 40 # Example
+    # Set the resource path for tesseract
+    os.environ["TESSERACT_RESOURCE_PATH"] = os.path.expanduser(tesseract_resource_path)
 
-# 2.
-length = 0.5 # Example # TODO: Must be passed
+    # -----------------------------------------------------------------------
+    # Get the directory of the current script
+    current_file_dir = os.path.dirname(os.path.abspath(__file__))
 
-radius = 0.0035 # Example # TODO: Must be passed
-# radius = 0.002 # Example # TODO: Must be passed
+    # Path to the config files
+    config_path = os.path.join(current_file_dir, 'config')
 
-# 3.
-# full_dlo_holding_segment_ids=custom_static_particles
-full_dlo_holding_segment_ids = [] # TODO: Must be passed, Default: []
-full_dlo_holding_segment_ids = [0,39] # Example # TODO: Must be passed, Default: []
+    # Path to the task composer config file
+    # self.task_composer_filename = os.environ["TESSERACT_TASK_COMPOSER_CONFIG_FILE"]        
+    # task_composer_filename = os.path.join(config_path, 'task_composer_plugins.yaml')
+    task_composer_filename = os.path.join(config_path, 'task_composer_plugins_no_trajopt_ifopt.yaml')
+    # self.task_composer_filename = os.path.join(self.config_path, 'task_composer_plugins_no_trajopt_ifopt_TEST.yaml')
 
-# 4.
-max_simplified_dlo_num_segments = 10 # Example (If given) # TODO: Must be passed, Default: None
+    # Create the task composer plugin factory and load the plugins
+    factory = TaskComposerPluginFactory(FilesystemPath(task_composer_filename))   
+    # -----------------------------------------------------------------------
 
-# Handle the cases where max_simplified_dlo_num_segments is not given or is not valid
-if (max_simplified_dlo_num_segments is None):
-    max_simplified_dlo_num_segments = full_dlo_num_segments 
-    print("max_simplified_dlo_num_segments is not given. Setting it to full_dlo_num_segments: ", 
-          max_simplified_dlo_num_segments)
-    
-if (max_simplified_dlo_num_segments > full_dlo_num_segments):
-    max_simplified_dlo_num_segments = full_dlo_num_segments 
-    print("max_simplified_dlo_num_segments is greater than full_dlo_num_segments. Setting it to full_dlo_num_segments: ",
-          max_simplified_dlo_num_segments)
-    
-if (max_simplified_dlo_num_segments < 1):
-    max_simplified_dlo_num_segments = 1 
-    print("max_simplified_dlo_num_segments is less than 1. Setting it to 1: ", 
-          max_simplified_dlo_num_segments)
-    
-# 5.
-# environment_limits_xyz=[-1, 1, -1, 1, -1, 1] # Example # TODO: Must be passed, Default: [-1, 1, -1, 1, -1, 1]
-# environment_limits_xyz=[-0.5, 0.5, 0, 0.5, -1, 1] # Example # TODO: Must be passed, Default: [-1, 1, -1, 1, -1, 1]
-environment_limits_xyz=[-0.5, 0.5, -0.5, 0.5, 0, 0.6] # Example # TODO: Must be passed, Default: [-1, 1, -1, 1, -1, 1]
+    # --------------------------------------------------------------------------------------------
+    # NEW: Create AND INITIALIZE the environment FROM THE COLLISION SCENE
 
-# joint_angle_limits_xy_deg=[-90, 90, -180, 180] # Example # TODO: Must be passed, Default: [-90, 90, -180, 180]
-joint_angle_limits_xy_deg=[-45, 45, -45, 45] # Example # TODO: Must be passed, Default: [-90, 90, -180, 180]
-# joint_angle_limits_xy_deg=[-30, 30, -30, 30] # Example # TODO: Must be passed, Default: [-90, 90, -180, 180]
+    locator = GeneralResourceLocator() # locator_fn must be kept alive by maintaining a reference
 
-# 6.
-approximation_error_threshold = 0.02 # Example # TODO: Must be passed, Default: 0.02
+    env = Environment()
 
+    json_file_path = None # TODO: Must be passed at the initialization, default: None
 
-# experiment_id = 1
-for experiment_id in range(1, num_experiments+1):
-    time.sleep(2) # Sleep for 2 seconds to make sure the previous experiment is finished
-    print("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-    print("Experiment ID:", experiment_id, "started..")
-    print("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+    # json_file_path = "/home/burak/catkin_ws_deformable/src/dlo_simulator_stiff_rods/config/scenes/scene_mingruiyu_1.json"
+    # json_file_path = "/home/burak/catkin_ws_deformable/src/dlo_simulator_stiff_rods/config/scenes/scene_mingruiyu_2.json"
+    # json_file_path = "/home/burak/catkin_ws_deformable/src/dlo_simulator_stiff_rods/config/scenes/scene_mingruiyu_3.json"
+    # json_file_path = "/home/burak/catkin_ws_deformable/src/dlo_simulator_stiff_rods/config/scenes/scene_mingruiyu_4.json" # TODO: Must be passed at the initialization, default: None
+
+    # Create from scene_id
+    json_file_path = "/home/burak/catkin_ws_deformable/src/dlo_simulator_stiff_rods/config/scenes/scene_mingruiyu_" + str(mingruiyu_scene_id) + ".json" # TODO: Must be passed at the initialization, default: None
+
+    cmds = Commands()
+    if (not json_file_path or 
+        not os.path.exists(json_file_path) or 
+        not os.path.isfile(json_file_path) or 
+        not json_file_path.endswith('.json') or 
+        not os.path.getsize(json_file_path) > 0):
         
-    # simplified_dlo_num_segments= 10
-    # for simplified_dlo_num_segments in range(10, max_simplified_dlo_num_segments+1):
-    is_num_segments_validated = False
-    simplified_dlo_num_segments = 0
-    planning_success = 1
-
-    while (simplified_dlo_num_segments < max_simplified_dlo_num_segments
-        and not is_num_segments_validated):
-        simplified_dlo_num_segments += 1
-        # -----------------------------------------------------------------------
-        print("--------------------------------------------------------------------")
-        print("Simplified DLO Num Segments: ", simplified_dlo_num_segments)
-        print("--------------------------------------------------------------------")
+        # Create an empty scene graph
+        scene_graph_to_add = SceneGraph()
+        scene_graph_to_add.addLink(Link("world_frame"))
         
-        # input("Press enter to reset the environment to add the robot")
-
-        # Reset the environment to make sure the robot is not added to the scene
-        env.reset()
-        # -----------------------------------------------------------------------
+        add_scene_graph_command = AddSceneGraphCommand(scene_graph_to_add)
         
-        # -----------------------------------------------------------------------
-        # Approximate the initial and target states of the dlo with the simplified dlo
-        
-        # INFO: approximated_state_pos:
-        # # The approximated DLO state as a list of points (x, y, z) with length equal to num_seg_d + 1. 
-        
-        # INFO: approximated_state_joint_pos: 
-        # # The joint positions of the modeled DLO as a (3+2N) x 3 numpy array. The first 3 elements are the translational joint 
-        # # angles (x, y, z) and the last 2N elements are the rotational joint angles around x and y axes for each segment respectively.
-        
-        # INFO: approximated_state_avg_error:
-        # # The average distance error between the original and approximated positions per original segment.
-        
-        (
-        initial_approximated_state_pos,
-        initial_approximated_state_joint_pos,
-        initial_approximated_state_max_angle, 
-        initial_approximated_state_avg_error ) = dlo_state_approximator(length,
-                                                                        initial_full_state,
-                                                                        simplified_dlo_num_segments,
-                                                                        start_from_beginning=True)
-        
-        (
-        target_approximated_state_pos, 
-        target_approximated_state_joint_pos,
-        target_approximated_state_max_angle,
-        target_approximated_state_avg_error ) = dlo_state_approximator(length,
-                                                                    target_full_state,
-                                                                    simplified_dlo_num_segments,
-                                                                    start_from_beginning=True)
-        # -----------------------------------------------------------------------    
+        cmds.push_back(add_scene_graph_command)
+    else:
+        scene_urdf_str = json_to_urdf(input_file_path=json_file_path, 
+                                        visualize=False, 
+                                        save_output=False,
+                                        output_file_path="./tesseract_scene.urdf")
+        # print("scene_urdf_str: ")
+        # print(scene_urdf_str)
 
-        # # -----------------------------------------------------------------------
-        # # OPTIONAL: Plot the approximated states
-        # ax = plt.figure().add_subplot(projection='3d')
+        scene_graph_to_add = parseURDFString(scene_urdf_str, locator).release()
+        add_scene_graph_command = AddSceneGraphCommand(scene_graph_to_add)
 
-        # # Add title with the number of segments
-        # ax.set_title("Initial and Target State Approximations \n w/ Number of Segments = " + str(simplified_dlo_num_segments), fontsize=30)
-
-        # ax.plot(initial_full_state[:,0], # x
-        #         initial_full_state[:,1], # y
-        #         initial_full_state[:,2], # z
-        #         'og', label='Initial: Original', markersize=6)
-        
-        # ax.plot(initial_approximated_state_pos[:,0], # x
-        #         initial_approximated_state_pos[:,1], # y
-        #         initial_approximated_state_pos[:,2], # z
-        #         '-g', label='Initial: Approx.', markersize=12, linewidth=3)
-
-        # ax.plot(target_full_state[:,0], # x
-        #         target_full_state[:,1], # y
-        #         target_full_state[:,2], # z
-        #         'or', label='Target: Original', markersize=6)
-        
-        # ax.plot(target_approximated_state_pos[:,0], # x
-        #         target_approximated_state_pos[:,1], # y
-        #         target_approximated_state_pos[:,2], # z
-        #         '-r', label='Target: Approx.', markersize=12, linewidth=3)
-
-        # ax.legend(fontsize=20)
-        # ax.tick_params(axis='both', which='major', labelsize=20)
-        # # ax.set_aspect('equal')
-        # set_axes_equal(ax)
-        # plt.show()
-
-        # # -----------------------------------------------------------------------
-        
-        # -----------------------------------------------------------------------
-        # Check the approximation error thresholds
-        print("--------------------------------------------------------------------")
-        print("Approximation error thresholds: ", approximation_error_threshold)
-        print("Initial state approximation error: ", initial_approximated_state_avg_error)
-        print("Target state approximation error: ", target_approximated_state_avg_error)
-        
-        if (initial_approximated_state_avg_error > approximation_error_threshold):
-            print("\nSkipping the current simplified_dlo_num_segments: ", simplified_dlo_num_segments)
-            print("Reason: Initial state approximation error is greater than the threshold: ", initial_approximated_state_avg_error)
-            continue
-        if (target_approximated_state_avg_error > approximation_error_threshold):
-            print("\nSkipping the current simplified_dlo_num_segments: ", simplified_dlo_num_segments)
-            print("Reason: Target state approximation error is greater than the threshold: ", target_approximated_state_avg_error)
-            continue
-        # -----------------------------------------------------------------------
-        
-        # -----------------------------------------------------------------------
-        # Check the environment limits for the initial and target states
-        print("--------------------------------------------------------------------")
-        print("Environment limits: ", environment_limits_xyz)
-        print("Approximated initial state pos: \n", initial_approximated_state_pos)
-        print("Approximated target state pos: \n", initial_approximated_state_pos)
-        
-        if (initial_approximated_state_pos[:,0].min() < environment_limits_xyz[0] or
-            initial_approximated_state_pos[:,0].max() > environment_limits_xyz[1] or
-            initial_approximated_state_pos[:,1].min() < environment_limits_xyz[2] or
-            initial_approximated_state_pos[:,1].max() > environment_limits_xyz[3] or
-            initial_approximated_state_pos[:,2].min() < environment_limits_xyz[4] or
-            initial_approximated_state_pos[:,2].max() > environment_limits_xyz[5]):
-            print("\nSkipping the current simplified_dlo_num_segments: ", simplified_dlo_num_segments)
-            print("Reason: Initial state is out of the environment limits")
-            continue
-        if (target_approximated_state_pos[:,0].min() < environment_limits_xyz[0] or
-            target_approximated_state_pos[:,0].max() > environment_limits_xyz[1] or
-            target_approximated_state_pos[:,1].min() < environment_limits_xyz[2] or
-            target_approximated_state_pos[:,1].max() > environment_limits_xyz[3] or
-            target_approximated_state_pos[:,2].min() < environment_limits_xyz[4] or
-            target_approximated_state_pos[:,2].max() > environment_limits_xyz[5]):
-            print("\nSkipping the current simplified_dlo_num_segments: ", simplified_dlo_num_segments)
-            print("Reason: Target state is out of the environment limits")
-        # -----------------------------------------------------------------------
-            
-        # -----------------------------------------------------------------------
-        # Check the joint angle limits for the initial and target states
-        # INFO: Note that in joint pos, the first 3 elements are the translational joint angles (x, y, z)
-        # # and the last 2N elements are the rotational joint angles around x and y axes for each segment respectively.
-        # # But the first 2 angular joint angles are free and not limited.
-        # # Therfore, 
-        # # ODD numbered indexes after the 5rd index are the x joint angles
-        # # EVEN numbered indexes after the 5rd index are the y joint angles
-        print("--------------------------------------------------------------------")
-        print("Joint angle limits [x_min, x_max] (deg): ", joint_angle_limits_xy_deg[0], joint_angle_limits_xy_deg[1])
-        print("Joint angle limits [y_min, y_max] (deg): ", joint_angle_limits_xy_deg[2], joint_angle_limits_xy_deg[3])
-        print("Approximated initial state X joint pos (deg): ", np.rad2deg(initial_approximated_state_joint_pos[5::2]))
-        print("Approximated initial state Y joint pos (deg): ", np.rad2deg(initial_approximated_state_joint_pos[6::2]))
-        print("Approximated target state X joint pos (deg): ", np.rad2deg(target_approximated_state_joint_pos[5::2]))
-        print("Approximated target state Y joint pos (deg): ", np.rad2deg(target_approximated_state_joint_pos[6::2]))
-        
-        if len(initial_approximated_state_joint_pos) > 5:    
-            if (initial_approximated_state_joint_pos[5::2].min() < np.deg2rad(joint_angle_limits_xy_deg[0]) or
-                initial_approximated_state_joint_pos[5::2].max() > np.deg2rad(joint_angle_limits_xy_deg[1]) or
-                initial_approximated_state_joint_pos[6::2].min() < np.deg2rad(joint_angle_limits_xy_deg[2]) or
-                initial_approximated_state_joint_pos[6::2].max() > np.deg2rad(joint_angle_limits_xy_deg[3])):
-                print("\nSkipping the current simplified_dlo_num_segments: ", simplified_dlo_num_segments)
-                print("Reason: Initial state is out of the joint angle limits")
-                continue
-        
-        if len(target_approximated_state_joint_pos) > 5:    
-            if (target_approximated_state_joint_pos[5::2].min() < np.deg2rad(joint_angle_limits_xy_deg[0]) or
-                target_approximated_state_joint_pos[5::2].max() > np.deg2rad(joint_angle_limits_xy_deg[1]) or
-                target_approximated_state_joint_pos[6::2].min() < np.deg2rad(joint_angle_limits_xy_deg[2]) or
-                target_approximated_state_joint_pos[6::2].max() > np.deg2rad(joint_angle_limits_xy_deg[3])):
-                print("\nSkipping the current simplified_dlo_num_segments: ", simplified_dlo_num_segments)
-                print("Reason: Target state is out of the joint angle limits")
-                continue
-        # -----------------------------------------------------------------------
-        
-        # Now we need to find a way to add the robot and its SRDF to the environment
-
-        # -----------------------------------------------------------------------
-        # First let's create the URDF for the robot using the DloURDFCreator
-
-        print("--------------------------------------------------------------------")
-        
-        # Print a message that says the the approximation with the simplified dlo num segments is valid within the thresholds
-        print("The approximation with ", simplified_dlo_num_segments, " segments is valid within the thresholds.")
-        print("Creating the URDF for the robot with the DloURDFCreator")
-
-        # Parameters for the DLO URDF creator
-        model_name="pole"
-        base_link_name="base_link"
-        tcp_link_name="tool0"
-        center_link_name="center_link"
-        holding_points_link_name_prefix= "pole_holder_link_"
-        prism_joint_effort = 1
-        rev_joint_effort = 1
-        prism_joint_max_velocity = 1.5
-        rev_joint_max_velocity = 1.0
-        visualize=False
-
-        dlo_urdf_creator = DloURDFCreator()
-        # Create the URDF string for the robot
-        urdf_str, is_valid_urdf, allowed_collision_pairs = dlo_urdf_creator.create_dlo_urdf_equal_segment_length(length = length,
-                                                                radius = radius,
-                                                                simplified_dlo_num_segments = simplified_dlo_num_segments,
-                                                                full_dlo_num_segments = full_dlo_num_segments,
-                                                                full_dlo_holding_segment_ids = full_dlo_holding_segment_ids,
-                                                                environment_limits_xyz = environment_limits_xyz,
-                                                                joint_angle_limits_xy_deg = joint_angle_limits_xy_deg,
-                                                                model_name = model_name,
-                                                                base_link_name = base_link_name,
-                                                                tcp_link_name = tcp_link_name,
-                                                                center_link_name = center_link_name,
-                                                                holding_points_link_name_prefix = holding_points_link_name_prefix,
-                                                                prism_joint_effort = prism_joint_effort,
-                                                                rev_joint_effort = rev_joint_effort,
-                                                                prism_joint_max_velocity = prism_joint_max_velocity,
-                                                                rev_joint_max_velocity = rev_joint_max_velocity,
-                                                                visualize = visualize)
-
-        # print("URDF string from equal segment length:\n")
-        # print(urdf_str + "\n")
-
-        # print("Allowed collision pairs: ")
-        # print(allowed_collision_pairs)
-
-        # Next, We need to convert the URDF string into a scene graph
-        scene_graph = parseURDFString(urdf_str, locator).release()
-
-        # Then, we need to parse the SRDF file and create an SRDF model
-        srdf_url_or_path = "/home/burak/catkin_ws_deformable/src/deformable_description/urdf/pole_automatic/pole_automatic.srdf" # TODO: Must be passed
-        srdf_fname = FilesystemPath(locator.locateResource(srdf_url_or_path).getFilePath())
-
-        srdf_model = SRDFModel()
-        srdf_model.initFile(scene_graph, str(srdf_fname), locator)
-
-        # Process the SRDF allowed collisions in the robot scene graph 
-        # (for a generic pole srdf it should be empty,)
-        # (and we will process them manually based on the pairs obtained from the dlo urdf creator.)
-        # (but let's keep it just in case we need to add some allowed collisions IN THE SRDF in the future)
-        processSRDFAllowedCollisions(scene_graph, srdf_model)
-
-        # Finally we need to create the commands to apply the robot to the environment
-        cmds = Commands()
-
-        add_scene_graph_command = AddSceneGraphCommand(scene_graph)
         cmds.push_back(add_scene_graph_command)
 
-        # Add other SRDF related commands as well
-        add_contact_managers_plugin_info_cmd = AddContactManagersPluginInfoCommand(srdf_model.contact_managers_plugin_info)
-        cmds.push_back(add_contact_managers_plugin_info_cmd)
-
-        add_kinematics_information_cmd = AddKinematicsInformationCommand(srdf_model.kinematics_information)
-        cmds.push_back(add_kinematics_information_cmd)
-
-        # Add the commands for the calibration information in the SRDF
-        for cal in srdf_model.calibration_info.joints:
-            change_joint_origin_cmd = ChangeJointOriginCommand(cal.first, cal.second)
-            cmds.push_back(change_joint_origin_cmd)
-
-        # Check srdf for collision margin data 
-        if isinstance(srdf_model.collision_margin_data, CollisionMarginData):
-            change_collision_margins_cmd = ChangeCollisionMarginsCommand(srdf_model.collision_margin_data, CollisionMarginOverrideType_REPLACE)
-            cmds.push_back(change_collision_margins_cmd)
-
-        # Apply the commands to the environment
-        if not env.isInitialized():
-            print("Environment is not initialized yet, let's initialize it")
-            assert env.init(cmds)
-        else:
-            print("Environment is already initialized, let's apply the commands")
-            env.applyCommands(cmds)
-            
-        # Update the viewer
-        if viewer_enabled:
-            viewer.update_environment(env, [0,0,0])
-        # -----------------------------------------------------------------------
-
-        # -----------------------------------------------------------------------
-        # Add allowed collision pairs to the environment obtained from the dlo urdf creator
-        acm = AllowedCollisionMatrix()
-
-        for pair in allowed_collision_pairs:
-            acm.addAllowedCollision(pair[0], pair[1], pair[2]) # link1, link2, reason
-            
-        modify_allowed_collisions_command = ModifyAllowedCollisionsCommand(acm, ModifyAllowedCollisionsType_ADD)
-
-        cmds = Commands()
-        cmds.push_back(modify_allowed_collisions_command)
+    if not env.isInitialized():
+        print("Environment is not initialized yet, let's initialize it")
+        assert env.init(cmds)
+        
+    else:
+        print("Environment is already initialized, let's apply the commands")
         env.applyCommands(cmds)
-
-        # May not be necessary but:
-        if viewer_enabled:
-            viewer.update_environment(env, [0,0,0])
-        # -----------------------------------------------------------------------
-
-        # -----------------------------------------------------------------------
-        # Let's fill in the manipulator info for the robot
-        tcp_frame = "tool0"  # specified in the vel controller yaml file
-        manipulator = "manipulator" # defined in the srdf file and specified in the vel controller yaml file
-        working_frame = "base_link" # defined in the srdf file and specified in the vel controller yaml file
-
-        manip_info = ManipulatorInfo()
-        manip_info.tcp_frame = tcp_frame
-        manip_info.manipulator = manipulator
-        manip_info.working_frame = working_frame
         
-        # Get the kinematic group from the environment, needed for forward kinematics
-        kin_group = env.getKinematicGroup(manip_info.manipulator)
-        # -----------------------------------------------------------------------
+    # Get the root link name
+    print("Scene graph root name: ", env.getSceneGraph().getRoot())
+    # --------------------------------------------------------------------------------------------
 
-        # -----------------------------------------------------------------------
-        # Get the joint names from the environment:
-        joint_group = env.getJointGroup(manip_info.manipulator)
-        joint_names = list(joint_group.getJointNames())
+    # -----------------------------------------------------------------------
+    # Create a viewer and set the environment so the results can be displayed later
 
-        # Another way to get the joint names:
-        # self.joint_names = list(self.env.getGroupJointNames("manipulator"))
+    viewer = None
 
-        # print("joint_names: ", joint_names)
-        # print("")
-        # -----------------------------------------------------------------------
-
-        # -----------------------------------------------------------------------
-        # Set GOAL STATE of the robot in the environment
+    if viewer_enabled:
+        # Create a viewer and set the environment so the results can be displayed later
+        viewer = TesseractViewer()
         
-        # # Example: Normally this state will be obtained from the dlo simulator and passed to the planner the controller
-        # goal_joint_positions = np.zeros(len(joint_names)) # 2*simplified_dlo_num_segments+3
-        # goal_joint_positions[0] = -0.2 # x
-        # goal_joint_positions[1] = 0.5 # y
-        # goal_joint_positions[2] = 0.2 # z
-        # goal_joint_positions[3] = np.pi/2 # orientation x
-        # # Let the rest of the state be zeros
+        viewer.clear_all_markers()
         
-        goal_joint_positions = target_approximated_state_joint_pos.flatten()
-
-        # Set the initial state of the robot in the environment
-        env.setState(joint_names, goal_joint_positions)
-
-        if viewer_enabled:
-            # viewer.update_environment(self.env, [0,0,0])
-            viewer.update_joint_positions(joint_names, goal_joint_positions)
-        # -----------------------------------------------------------------------
-
-        # input("Press enter to confirm the goal state")
+        # Show the world coordinate frame
+        viewer.add_axes_marker(position=[0,0,0], quaternion=[1,0,0,0], 
+                                    size=1.0, parent_link=env.getSceneGraph().getRoot(), name="world_frame")
+        viewer.update_environment(env, [0,0,0])
         
-        # # -----------------------------------------------------------------------
-        # # Set INTERMEDIATE STATE of the robot in the environment
+        # Start the viewer
+        viewer.start_serve_background()    
+    # -----------------------------------------------------------------------
+
+    # -----------------------------------------------------------------------
+    # Assume we are given:
+    # 1.    the initial and goal states of the dlo as a dictionary
+    #       with "id,p_x,p_y,p_z,o_x,o_y,o_z,o_w" are the keys
+    #       where id is the particle id and p_x, p_y, p_z are the position components
+    #       and o_x, o_y, o_z, o_w are the orientation components.
+    # 2.    Lenght and radius of the dlo
+    # 3.    The full dlo holding segment ids from the custom_static_particles
+    # 4.    Maximum number of segments that can be used in the simplified dlo urdf.
+    #       If not given, we can set it to a default value like to the full dlo num segments
+    # 5.    Environment limits and joint angle limits of the URDF robot
+    # 6.    Approximation error threshold for the dlo state approximator
+
+    # 1.
+    # initial_full_state_file = "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_4_initial_states.csv"
+    # target_full_state_file = "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_4_target_states.csv"
+
+    initial_full_state_file = "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_"+ str(mingruiyu_scene_id)+ "_initial_states.csv"
+    target_full_state_file = "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_" + str(mingruiyu_scene_id)+ "_target_states.csv"
+
+
+    # Read the state dictionaries from the csv files
+    initial_full_state_dict = read_state_dict_from_csv(initial_full_state_file) # TODO: Must be passed
+    target_full_state_dict = read_state_dict_from_csv(target_full_state_file) # TODO: Must be passed
+
+    # Convert the state dictionaries to numpy arrays
+    initial_full_state = convert_state_dict_to_numpy(initial_full_state_dict) # Nx7, N is the number of particles
+    target_full_state = convert_state_dict_to_numpy(target_full_state_dict) # Nx7, N is the number of particles
+
+    # We can figure out the full dlo num segments from the initial state 
+    full_dlo_num_segments = initial_full_state.shape[0] # N 
+    # full_dlo_num_segments = 40 # Example
+
+    # 2.
+    length = 0.5 # Example # TODO: Must be passed
+
+    radius = 0.0035 # Example # TODO: Must be passed
+    # radius = 0.002 # Example # TODO: Must be passed
+
+    # 3.
+    # full_dlo_holding_segment_ids=custom_static_particles
+    full_dlo_holding_segment_ids = [] # TODO: Must be passed, Default: []
+    full_dlo_holding_segment_ids = [0,39] # Example # TODO: Must be passed, Default: []
+
+    # 4.
+    max_simplified_dlo_num_segments = 10 # Example (If given) # TODO: Must be passed, Default: None
+
+    # Handle the cases where max_simplified_dlo_num_segments is not given or is not valid
+    if (max_simplified_dlo_num_segments is None):
+        max_simplified_dlo_num_segments = full_dlo_num_segments 
+        print("max_simplified_dlo_num_segments is not given. Setting it to full_dlo_num_segments: ", 
+            max_simplified_dlo_num_segments)
         
-        # # # Example: Normally this state will be obtained from the dlo simulator and passed to the planner the controller
-        # intermediate_joint_positions = np.zeros(len(joint_names)) # 2*simplified_dlo_num_segments+3
-        # intermediate_joint_positions[0] = -0.25 # x
-        # intermediate_joint_positions[1] = 0.25 # y
-        # intermediate_joint_positions[2] = 0.15 # z
-        # intermediate_joint_positions[3] = np.pi/2 # orientation x
-        # # Let the rest of the state be zeros
+    if (max_simplified_dlo_num_segments > full_dlo_num_segments):
+        max_simplified_dlo_num_segments = full_dlo_num_segments 
+        print("max_simplified_dlo_num_segments is greater than full_dlo_num_segments. Setting it to full_dlo_num_segments: ",
+            max_simplified_dlo_num_segments)
         
-        # # Set the initial state of the robot in the environment
-        # env.setState(joint_names, intermediate_joint_positions)
-
-        # if viewer_enabled:
-        #     # viewer.update_environment(self.env, [0,0,0])
-        #     viewer.update_joint_positions(joint_names, intermediate_joint_positions)
-        # # -----------------------------------------------------------------------
-
-        # input("Press enter to confirm the INTERMEDIATE state")
-
-        # -----------------------------------------------------------------------
-        # Set INITIAL STATE of the robot in the environment
+    if (max_simplified_dlo_num_segments < 1):
+        max_simplified_dlo_num_segments = 1 
+        print("max_simplified_dlo_num_segments is less than 1. Setting it to 1: ", 
+            max_simplified_dlo_num_segments)
         
-        # # Example: Normally this state will be obtained from the dlo simulator and passed to the planner the controller
-        # initial_joint_positions = np.zeros(len(joint_names)) # 2*simplified_dlo_num_segments+3
-        # initial_joint_positions[0] = -0.2 # x
-        # initial_joint_positions[1] = 0.5 # y
-        # initial_joint_positions[2] = 0.5 # z
-        # initial_joint_positions[3] = np.pi/2 # orientation x
-        # # Let the rest of the state be zeros
-        
-        initial_joint_positions = initial_approximated_state_joint_pos.flatten()
+    # 5.
+    # environment_limits_xyz=[-1, 1, -1, 1, -1, 1] # Example # TODO: Must be passed, Default: [-1, 1, -1, 1, -1, 1]
+    # environment_limits_xyz=[-0.5, 0.5, 0, 0.5, -1, 1] # Example # TODO: Must be passed, Default: [-1, 1, -1, 1, -1, 1]
+    environment_limits_xyz=[-0.5, 0.5, -0.5, 0.5, 0, 0.6] # Example # TODO: Must be passed, Default: [-1, 1, -1, 1, -1, 1]
 
-        # Set the initial state of the robot in the environment
-        env.setState(joint_names, initial_joint_positions)
+    # joint_angle_limits_xy_deg=[-90, 90, -180, 180] # Example # TODO: Must be passed, Default: [-90, 90, -180, 180]
+    joint_angle_limits_xy_deg=[-45, 45, -45, 45] # Example # TODO: Must be passed, Default: [-90, 90, -180, 180]
+    # joint_angle_limits_xy_deg=[-30, 30, -30, 30] # Example # TODO: Must be passed, Default: [-90, 90, -180, 180]
 
-        if viewer_enabled:
-            # viewer.update_environment(self.env, [0,0,0])
-            viewer.update_joint_positions(joint_names, initial_joint_positions)
-        # -----------------------------------------------------------------------
-
-        # input("Press enter to confirm the Start state and initiate the planning")
+    # 6.
+    approximation_error_threshold = 0.02 # Example # TODO: Must be passed, Default: 0.02
 
 
-        # TODO: ADD DISTANCE TO COLLISION CHECKING FOR BOTH THE INITIAL AND GOAL STATES
-
-
-        # We will now start the planning from the initial state to the goal state!!!    
-
-        # -----------------------------------------------------------------------
-        # Create a list of StateWaypointPoly
-
-        state_waypoints = []
-
-        # Add the initial state waypoint
-        initial_state_waypoint = StateWaypointPoly_wrap_StateWaypoint(StateWaypoint(joint_names, initial_joint_positions))
-        state_waypoints.append(initial_state_waypoint)
-
-        # # Add the intermediate waypoints 
-        # intermediate_state_waypoint = StateWaypointPoly_wrap_StateWaypoint(StateWaypoint(joint_names, intermediate_joint_positions))
-        # state_waypoints.append(intermediate_state_waypoint)
-
-        # Add the goal state waypoint
-        goal_state_waypoint = StateWaypointPoly_wrap_StateWaypoint(StateWaypoint(joint_names, goal_joint_positions))
-        state_waypoints.append(goal_state_waypoint)
-        # -----------------------------------------------------------------------
-
-        # -----------------------------------------------------------------------
-        # Set move instructions from the state waypoints
-        move_instructions = []
-                
-        for state_waypoint in state_waypoints:
-            move_instruction = MoveInstructionPoly_wrap_MoveInstruction(MoveInstruction(state_waypoint, 
-                                                                                        MoveInstructionType_FREESPACE, 
-                                                                                        "DEFAULT"))
-            move_instructions.append(move_instruction)
-        # -----------------------------------------------------------------------
-
-        # -----------------------------------------------------------------------
-        # Create input command program
-
-        # Create the input command program using CompositeInstruction
-        program = CompositeInstruction("DEFAULT")
-        # program = CompositeInstruction("freespace_profile")
-        program.setManipulatorInfo(manip_info)
+    # experiment_id = 1
+    for experiment_id in range(1, num_experiments+1):
+        time.sleep(2) # Sleep for 2 seconds to make sure the previous experiment is finished
+        print("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+        print("Experiment ID:", experiment_id, "started..")
+        print("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
             
-        # Add the MoveInstructionPoly objects to the CompositeInstruction
-        for move_instruction in move_instructions:
-            program.appendMoveInstruction(move_instruction)
+        # simplified_dlo_num_segments= 10
+        # for simplified_dlo_num_segments in range(10, max_simplified_dlo_num_segments+1):
+        is_num_segments_validated = False
+        simplified_dlo_num_segments = 0
+        planning_success = 1
+
+        while (simplified_dlo_num_segments < max_simplified_dlo_num_segments
+            and not is_num_segments_validated):
+            simplified_dlo_num_segments += 1
+            # -----------------------------------------------------------------------
+            print("--------------------------------------------------------------------")
+            print("Simplified DLO Num Segments: ", simplified_dlo_num_segments)
+            print("--------------------------------------------------------------------")
             
-        # Print diagnosics
-        program._print("Program: ")
+            # input("Press enter to reset the environment to add the robot")
 
-        ## Create an AnyPoly containing the program. 
-        # This explicit step is required because the Python bindings do not
-        # support implicit conversion from the CompositeInstruction to the AnyPoly.
-        program_anypoly = AnyPoly_wrap_CompositeInstruction(program)
-        # -----------------------------------------------------------------------
-
-        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        # ++++++++++++++++++++++++++++++++++++++++++++ OMPL PLANNING ++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-        # --------------------------------------------------------------------------------------------
-        # Create the task composer node. In this case the FreespacePipeline is used. Many other are available.
-        task = factory.createTaskComposerNode("OMPLPipelineAlone")
-        
-        # Get the output keys for the task
-        task_output_key = task.getOutputKeys()[0]
-
-        # Create an executor to run the task
-        task_executor = factory.createTaskComposerExecutor("TaskflowExecutor")
-        # --------------------------------------------------------------------------------------------
-
-        # -----------------------------------------------------------------------
-        # Set profile dictionary 
-        # Create a profile dictionary. Profiles can be customized by adding to this dictionary and setting the profiles
-        # in the instructions.
-
-        profiles = ProfileDictionary()
-
-        add_MinLengthProfile(profiles, "DEFAULT", length=40)
-        add_OMPLDefaultPlanProfile(profiles, "DEFAULT")
-        # add_TrajOptPlanProfile(profiles, "DEFAULT", len(initial_joint_positions))
-        # -----------------------------------------------------------------------
-
-        # -----------------------------------------------------------------------
-        # Create the task problem and 
-        print("Creating the task planning problem..")
-
-        task_planning_problem = PlanningTaskComposerProblem(env, profiles)        
-        task_planning_problem.input = program_anypoly
-        # task_planning_problem.input = program
-
-        print("Task planning problem created.")
-        # -----------------------------------------------------------------------
-        
-        # -----------------------------------------------------------------------
-        # Solve task
-        print("Planning the task..")
-        stopwatch = Timer()
-        stopwatch.start()
-
-        # Run the task and wait for completion
-        future = task_executor.run(task.get(), task_planning_problem)
-        future.wait()
-
-        stopwatch.stop()
-        planning_time_ompl = stopwatch.elapsedSeconds()
-        print(f"OMPL PLANNING TOOK {planning_time_ompl} SECONDS.")
-
-        # -----------------------------------------------------------------------
-
-        # --------------------------------------------------------------------------------------------
-        # Get the results of the global plan
-        try:
-            # Retrieve the output, converting the AnyPoly back to a CompositeInstruction
-            results_as_any_poly = future.context.data_storage.getData(task_output_key)
-            results = AnyPoly_as_CompositeInstruction(results_as_any_poly)
-        except Exception:
-            ## Assertions failed, fall back to the fallback plan
-            print("Error getting the results of the OMPL plan")
-            print("{}".format(traceback.format_exc()))
-        #     planning_success = 0
+            # Reset the environment to make sure the robot is not added to the scene
+            env.reset()
+            # -----------------------------------------------------------------------
             
-        if len(results) < 2:
-            planning_success = 0
-            print("OMPL: Path length is less than 2. Planning failed!!")
-        # --------------------------------------------------------------------------------------------
-
-        # --------------------------------------------------------------------------------------------
-        # Plan sanity check
-        try:
-            # Display the output
-            # Print out the resulting waypoints
-            for instr in results:
-                assert instr.isMoveInstruction()
-                move_instr1 = InstructionPoly_as_MoveInstructionPoly(instr)
-                wp1 = move_instr1.getWaypoint()
-                assert wp1.isStateWaypoint()
-                wp = WaypointPoly_as_StateWaypointPoly(wp1)
-                # print("-------------------------------------------------------------")
-                # print(f"Joint Time: {wp.getTime()}")
-                # print(f"Joint Positions: {wp.getPosition().flatten()} time: {wp.getTime()}")
-                # print("Joint Names: " + str(list(wp.getNames())))
-                # print(f"Joint Velocities: {wp.getVelocity().flatten()}")
-                # print(f"Joint Accelerations: {wp.getAcceleration().flatten()}")
-                # print(f"Joint Efforts: {wp.getEffort().flatten()}")
-                # print("-------------------------------------------------------------")
-        except Exception:
-            ## Assertions failed, fall back to the fallback plan
-            print("Error getting the results of the global plan")
-            print("{}".format(traceback.format_exc()))
-            print("Using the fallback plan")
-            # results = results_fallback # TODO
-            planning_success = 0
-        # --------------------------------------------------------------------------------------------
-        
-        # --------------------------------------------------------------------------------------------
-        # Visualize the results in the viewer
-        if viewer_enabled:
-            try:
-                # Update the viewer with the results to animate the trajectory
-                # Open web browser to http://localhost:8000 to view the results
-                viewer.clear_all_markers()
-                viewer.update_trajectory(results)
-                viewer.plot_trajectory(results, manip_info)
-            except Exception:
-                print("Error updating the viewer with the results:")
-                print("{}".format(traceback.format_exc()))
-        # # --------------------------------------------------------------------------------------------
-        
-        # --------------------------------------------------------------------------------------------
-        # TODO: Process the results of the OMPL planner, e.g. check the path length, etc.
-        try:
+            # -----------------------------------------------------------------------
+            # Approximate the initial and target states of the dlo with the simplified dlo
+            
+            # INFO: approximated_state_pos:
+            # # The approximated DLO state as a list of points (x, y, z) with length equal to num_seg_d + 1. 
+            
+            # INFO: approximated_state_joint_pos: 
+            # # The joint positions of the modeled DLO as a (3+2N) x 3 numpy array. The first 3 elements are the translational joint 
+            # # angles (x, y, z) and the last 2N elements are the rotational joint angles around x and y axes for each segment respectively.
+            
+            # INFO: approximated_state_avg_error:
+            # # The average distance error between the original and approximated positions per original segment.
+            
             (
-            ompl_path,
-            ompl_path_points,
-            ompl_path_cumulative_lengths,
-            ompl_path_cumulative_rotations,
-            ompl_path_direction_vectors,
-            ompl_path_rotation_vectors, 
-            ompl_path_of_particles,
-            ompl_path_points_of_particles,
-            ompl_path_cumulative_lengths_of_particles,
-            ompl_path_cumulative_rotations_of_particles,
-            ompl_path_direction_vectors_of_particles,
-            ompl_path_rotation_vectors_of_particles
-            ) = process_planner_results(results, 
-                                        center_link_name, 
-                                        holding_points_link_name_prefix, 
-                                        full_dlo_holding_segment_ids,
-                                        kin_group)
-                
-            # Calculate the ompl_path length as average of the ompl_path lengths of the centroid and the holding points
-            ompl_path_length = ompl_path_cumulative_lengths[-1]
-            i = 1.0
-            for id in full_dlo_holding_segment_ids:
-                ompl_path_length += ompl_path_cumulative_lengths_of_particles[id][-1]
-                i += 1.0
-            ompl_path_length = ompl_path_length / i # Average ompl_path length of the centroid and the holding points
-        except Exception:
-            print("Error processing the results of the OMPL planner")
-            # print("{}".format(traceback.format_exc()))
-        # --------------------------------------------------------------------------------------------
+            initial_approximated_state_pos,
+            initial_approximated_state_joint_pos,
+            initial_approximated_state_max_angle, 
+            initial_approximated_state_avg_error ) = dlo_state_approximator(length,
+                                                                            initial_full_state,
+                                                                            simplified_dlo_num_segments,
+                                                                            start_from_beginning=True)
             
-        # input("Press enter to continue to the TrajOpt planner for smoothing")
-
-        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        # +++++++++++++++++++++++++++++++++++++++++++ TRAJOPT PLANNING ++++++++++++++++++++++++++++++++++++++++++++++++++++
-        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-        # --------------------------------------------------------------------------------------------
-        # Prepare the previous results for the TrajOpt planner
-        joint_waypoints = []
-        try:
-            for i, instr in enumerate(results):
-                assert instr.isMoveInstruction()
-                move_instr1 = InstructionPoly_as_MoveInstructionPoly(instr)
-                wp1 = move_instr1.getWaypoint()
-                assert wp1.isStateWaypoint()
-                wp = WaypointPoly_as_StateWaypointPoly(wp1)
-                # print("-------------------------------------------------------------")
-                # print(f"Joint Time: {wp.getTime()}")
-                # print(f"Joint Positions: {wp.getPosition().flatten()}")
-                # print("Joint Names: " + str(list(wp.getNames())))
-                # print(f"Joint Velocities: {wp.getVelocity().flatten()}")
-                # print(f"Joint Accelerations: {wp.getAcceleration().flatten()}")
-                # print(f"Joint Efforts: {wp.getEffort().flatten()}")
-                # print("-------------------------------------------------------------")
-                
-                # Joint waypoint
-                jw = JointWaypoint()
-                jw.setNames(wp.getNames())
-                # jw.setNames(list(wp.getNames()))
-                
-                jw.setPosition(wp.getPosition())
-                # jw.setPosition(wp.getPosition().flatten())
-                
-                if i == 0 or i == len(results)-1:
-                    jw.setIsConstrained(True) # Constrain the start and end waypoints
-                else:
-                    jw.setIsConstrained(False) # Free waypoints
-                
-                # Joint waypoint poly
-                jwp = JointWaypointPoly_wrap_JointWaypoint(jw)
-                joint_waypoints.append(jwp)
-                
-        except Exception:
-            print("Error preparing the OMPL results for the TrajOpt plan")
-            print("{}".format(traceback.format_exc()))
-            planning_success = 0
-            
-        # Set move instructions from the joint waypoints
-        move_instructions = []
-        for jwp in joint_waypoints:
-            mi = MoveInstruction(jwp, MoveInstructionType_FREESPACE, "DEFAULT")
-            move_instructions.append(MoveInstructionPoly_wrap_MoveInstruction(mi))
-            
-        # Create the input command program using CompositeInstruction
-        program = CompositeInstruction("DEFAULT")
-        program.setManipulatorInfo(manip_info)
-        
-        # Add the MoveInstructionPoly objects to the CompositeInstruction
-        for move_instruction in move_instructions:
-            program.appendMoveInstruction(move_instruction)
-            
-        # # Print diagnosics
-        # program._print("Program for TrajOpt: ")
-        
-        ## Create an AnyPoly containing the program.
-        program_anypoly = AnyPoly_wrap_CompositeInstruction(program)
-        # --------------------------------------------------------------------------------------------
-
-        # --------------------------------------------------------------------------------------------
-        # Create the task composer node. In this case the FreespacePipeline is used. Many other are available.
-        # task = factory.createTaskComposerNode("OMPLPipelineAlone")
-        task = factory.createTaskComposerNode("TrajOptPipelineAlone")
-
-        # Get the output keys for the task
-        task_output_key = task.getOutputKeys()[0]
-
-        # Create an executor to run the task
-        task_executor = factory.createTaskComposerExecutor("TaskflowExecutor")
-        # --------------------------------------------------------------------------------------------
-
-        # -----------------------------------------------------------------------
-        # Set profile dictionary 
-        # Create a profile dictionary. Profiles can be customized by adding to this dictionary and setting the profiles
-        # in the instructions.
-
-        profiles = ProfileDictionary()
-
-        add_MinLengthProfile(profiles, "DEFAULT", length=70)
-        # add_OMPLDefaultPlanProfile(profiles, "DEFAULT")
-        add_TrajOptPlanProfile(profiles, "DEFAULT", len(initial_joint_positions))
-        # -----------------------------------------------------------------------
-
-        # -----------------------------------------------------------------------
-        # Create the task problem and 
-        print("Creating the task planning problem..")
-
-        task_planning_problem = PlanningTaskComposerProblem(env, profiles)        
-        task_planning_problem.input = program_anypoly        
-        # task_planning_problem.input = results_as_any_poly        
-
-        print("Task planning problem created.")
-        # -----------------------------------------------------------------------
-
-        # -----------------------------------------------------------------------
-        # Solve task
-        print("Planning the TRAJOPT task..")
-        stopwatch = Timer()
-        stopwatch.start()
-
-        # Run the task and wait for completion
-        future = task_executor.run(task.get(), task_planning_problem)
-        future.wait()
-
-        stopwatch.stop()
-        planning_time_trajopt = stopwatch.elapsedSeconds()
-        print(f"TRAJOPT PLANNING TOOK {planning_time_trajopt} SECONDS.")
-        # -----------------------------------------------------------------------
-
-        # --------------------------------------------------------------------------------------------
-        # Get the results of the global plan
-        try:
-            # Retrieve the output, converting the AnyPoly back to a CompositeInstruction
-            results_as_any_poly = future.context.data_storage.getData(task_output_key)
-            results = AnyPoly_as_CompositeInstruction(results_as_any_poly)
-        except Exception:
-            ## Assertions failed, fall back to the fallback plan
-            print("Error getting the results of the TRAJOPT plan")
-            print("{}".format(traceback.format_exc()))
-            planning_success = 0
-            
-        if len(results) < 2:
-            planning_success = 0
-            print("TrajOpt: Path length is less than 2. Planning failed!!")
-        # --------------------------------------------------------------------------------------------
-
-        # --------------------------------------------------------------------------------------------
-        # Plan sanity check
-        try:
-            # Display the output
-            # Print out the resulting waypoints
-            for instr in results:
-                assert instr.isMoveInstruction()
-                move_instr1 = InstructionPoly_as_MoveInstructionPoly(instr)
-                wp1 = move_instr1.getWaypoint()
-                assert wp1.isStateWaypoint()
-                wp = WaypointPoly_as_StateWaypointPoly(wp1)
-                # print("-------------------------------------------------------------")
-                # print(f"Joint Time: {wp.getTime()}")
-                # print(f"Joint Positions: {wp.getPosition().flatten()} time: {wp.getTime()}")
-                # print("Joint Names: " + str(list(wp.getNames())))
-                # print(f"Joint Velocities: {wp.getVelocity().flatten()}")
-                # print(f"Joint Accelerations: {wp.getAcceleration().flatten()}")
-                # print(f"Joint Efforts: {wp.getEffort().flatten()}")
-                # print("-------------------------------------------------------------")
-        except Exception:
-            ## Assertions failed, fall back to the fallback plan
-            print("Error getting the results of the global plan")
-            print("{}".format(traceback.format_exc()))
-            print("Using the fallback plan")
-            # results = results_fallback # TODO
-            planning_success = 0
-        # --------------------------------------------------------------------------------------------
-        
-        # --------------------------------------------------------------------------------------------
-        # Visualize the results in the viewer
-        if viewer_enabled:
-            try:
-                # Update the viewer with the results to animate the trajectory
-                # Open web browser to http://localhost:8000 to view the results
-                viewer.clear_all_markers()
-                viewer.update_trajectory(results)
-                viewer.plot_trajectory(results, manip_info)
-            except Exception:
-                print("Error updating the viewer with the results:")
-                print("{}".format(traceback.format_exc()))
-        # # --------------------------------------------------------------------------------------------
-        
-        # --------------------------------------------------------------------------------------------
-        # Process the results of the TrajOpt planner, e.g. check the path length, etc.
-        try:
             (
-            trajopt_path,
-            trajopt_path_points,
-            trajopt_path_cumulative_lengths,
-            trajopt_path_cumulative_rotations,
-            trajopt_path_direction_vectors,
-            trajopt_path_rotation_vectors, 
-            trajopt_path_of_particles,
-            trajopt_path_points_of_particles,
-            trajopt_path_cumulative_lengths_of_particles,
-            trajopt_path_cumulative_rotations_of_particles,
-            trajopt_path_direction_vectors_of_particles,
-            trajopt_path_rotation_vectors_of_particles
-            ) = process_planner_results(results, 
-                                        center_link_name, 
-                                        holding_points_link_name_prefix, 
-                                        full_dlo_holding_segment_ids,
-                                        kin_group)
-                
-            # Calculate the trajopt_path length as average of the trajopt_path lengths of the centroid and the holding points
-            trajopt_path_length = trajopt_path_cumulative_lengths[-1]
-            i = 1.0
-            for id in full_dlo_holding_segment_ids:
-                trajopt_path_length += trajopt_path_cumulative_lengths_of_particles[id][-1]
-                i += 1.0
-            trajopt_path_length = trajopt_path_length / i # Average path length of the centroid and the holding points
-        except Exception:
-            print("Error processing the results of the TrajOpt planner")
-            # print("{}".format(traceback.format_exc()))
-        # --------------------------------------------------------------------------------------------
-        
-        # # --------------------------------------------------------------------------------------------
-        # # OPTIONAL: Plot the path points
-        # try:
-        #     ax = plt.figure().add_subplot(projection='3d')
+            target_approximated_state_pos, 
+            target_approximated_state_joint_pos,
+            target_approximated_state_max_angle,
+            target_approximated_state_avg_error ) = dlo_state_approximator(length,
+                                                                        target_full_state,
+                                                                        simplified_dlo_num_segments,
+                                                                        start_from_beginning=True)
+            # -----------------------------------------------------------------------    
 
-        #     # Add title with the number of segments
-        #     ax.set_title("Generated Paths of Centroid and Holding Points\n w/ Number of Segments = " + str(simplified_dlo_num_segments), fontsize=30)
+            # # -----------------------------------------------------------------------
+            # # OPTIONAL: Plot the approximated states
+            # ax = plt.figure().add_subplot(projection='3d')
 
-        #     ax.plot(initial_full_state[:,0], # x
-        #             initial_full_state[:,1], # y
-        #             initial_full_state[:,2], # z
-        #             # 'og', label='Initial State: Original', markersize=10, fillstyle='none')
-        #             'Xg', label='Initial State: Original Centers', markersize=10,  mec = 'k', alpha=.5)
-            
-        #     ax.plot(initial_approximated_state_pos[:,0], # x
-        #             initial_approximated_state_pos[:,1], # y
-        #             initial_approximated_state_pos[:,2], # z
-        #             '-g', label='Initial State: Approximation Line', markersize=12, linewidth=8)
-        #             # '-g', label='Initial State: Approximation', markersize=12, linewidth=6, alpha=.5)
+            # # Add title with the number of segments
+            # ax.set_title("Initial and Target State Approximations \n w/ Number of Segments = " + str(simplified_dlo_num_segments), fontsize=30)
 
-        #     ax.plot(target_full_state[:,0], # x
-        #             target_full_state[:,1], # y
-        #             target_full_state[:,2], # z
-        #             # 'or', label='Target State: Original', markersize=10, fillstyle='none')
-        #             'Xr', label='Target State: Original Centers', markersize=10,  mec = 'k', alpha=.5)
+            # ax.plot(initial_full_state[:,0], # x
+            #         initial_full_state[:,1], # y
+            #         initial_full_state[:,2], # z
+            #         'og', label='Initial: Original', markersize=6)
             
-        #     ax.plot(target_approximated_state_pos[:,0], # x
-        #             target_approximated_state_pos[:,1], # y
-        #             target_approximated_state_pos[:,2], # z
-        #             '-r', label='Target State: Approximation Line', markersize=12, linewidth=8)
-        #             # '-r', label='Target State: Approximation', markersize=12, linewidth=6, alpha=.5)
-            
-        #     # Plot the centroid path points before smoothing
-        #     ax.plot(ompl_path_points[:,0], # x
-        #             ompl_path_points[:,1], # y
-        #             ompl_path_points[:,2], # z
-        #             ':ok', label='Centroid Path (before smoothing)', markersize=2, linewidth=1)
-            
-        #     path_colors = ['b', 'm', 'c', 'y', 'k', 'g', 'r']
-            
-        #     # Plot the holding points path points before smoothing
-        #     i = 0
-        #     for id in full_dlo_holding_segment_ids:
-        #         ax.plot(ompl_path_points_of_particles[id][:,0], # x
-        #                 ompl_path_points_of_particles[id][:,1], # y
-        #                 ompl_path_points_of_particles[id][:,2], # z
-        #                 ':o'+path_colors[i], label='Point ' + str(id) + ' Path (before smoothing)', markersize=2, linewidth=1)
-        #         i += 1
-                
-        #     # Plot the centroid path points after smoothing
-        #     ax.plot(trajopt_path_points[:,0], # x
-        #             trajopt_path_points[:,1], # y
-        #             trajopt_path_points[:,2], # z
-        #             '--^k', label='Centroid Path (after smoothing)', markersize=4, linewidth=2)
-            
-        #     # Plot the holding points path points after smoothing
-        #     i = 0
-        #     for id in full_dlo_holding_segment_ids:
-        #         ax.plot(trajopt_path_points_of_particles[id][:,0], # x
-        #                 trajopt_path_points_of_particles[id][:,1], # y
-        #                 trajopt_path_points_of_particles[id][:,2], # z
-        #                 '--^'+path_colors[i], label='Point ' + str(id) + ' Path (after smoothing)', markersize=4, linewidth=2)
-        #         i += 1
-                    
-        #     ax.legend(fontsize=20)
-        #     ax.tick_params(axis='both', which='major', labelsize=20)
-        #     # ax.set_aspect('equal')
-        #     set_axes_equal(ax)
-        #     plt.show()
-        # except Exception:
-        #     print("Error plotting the path points")
-        #     # print("{}".format(traceback.format_exc()))
-        # # --------------------------------------------------------------------------------------------
-        
-        # --------------------------------------------------------------------------------------------
-        print("Planning with ", simplified_dlo_num_segments, " segments is completed.")
-        
-        # Calculate the total planning time
-        total_planning_time = 0.0
-        if planning_time_ompl:
-            total_planning_time += planning_time_ompl
-        if planning_time_trajopt:
-            total_planning_time += planning_time_trajopt
-        
-        print("Total planning time: ", total_planning_time, " seconds.")
-        print("--------------------------------------------------------------------")
+            # ax.plot(initial_approximated_state_pos[:,0], # x
+            #         initial_approximated_state_pos[:,1], # y
+            #         initial_approximated_state_pos[:,2], # z
+            #         '-g', label='Initial: Approx.', markersize=12, linewidth=3)
 
-        # --------------------------------------------------------------------------------------------
-        # Save the performance results to a csv file
-        print("Saving the performance results to a csv file:\n")
-        
-        # Variables to save to the csv file:
-        # - Task ID = mingruiyu_scene_id
-        # - experiment_id 
-        # - simplified_dlo_num_segments
-        # - average state approximation_error = max of initial_approximated_state_avg_error and target_approximated_state_avg_error 
-        # - planning_success = 1/0
-        # - planning_time_ompl
-        # - planning_time_trajopt
-        # - total_planning_time
-        # - ompl_path_length
-        # - trajopt_path_length
-        avr_state_approx_error = max(initial_approximated_state_avg_error, target_approximated_state_avg_error)
-        
-        print("- Experiment ID: ", experiment_id)
-        print("- Simplified DLO Num Segments: ", simplified_dlo_num_segments)
-        print("- Average State Approximation Error: ", avr_state_approx_error)
-        print("- Planning Success: ", planning_success)
-        print("- Planning Time OMPL: ", planning_time_ompl)
-        print("- Planning Time Trajopt: ", planning_time_trajopt)
-        print("- Total Planning Time: ", total_planning_time)
-        print("- OMPL Path Length: ", ompl_path_length)
-        print("- Trajopt Path Length: ", trajopt_path_length)
-        print("")
-        
-        # File path and name: 
-        current_file_dir = os.path.dirname(os.path.abspath(__file__))
-        
-        # Create a folder for the results
-        results_folder = os.path.join(current_file_dir, saving_folder_name)
-        
-        if not os.path.exists(results_folder):
-            os.makedirs(results_folder)
-            print(f"Directory '{results_folder}' created.")
+            # ax.plot(target_full_state[:,0], # x
+            #         target_full_state[:,1], # y
+            #         target_full_state[:,2], # z
+            #         'or', label='Target: Original', markersize=6)
             
-        # File name for the results
-        perf_results_csv_file = f"scene_{mingruiyu_scene_id}_experiment_results.csv"
-        
-        # If the file does not exist, create it and write the header
-        if not os.path.exists(os.path.join(results_folder, perf_results_csv_file)):
-            with open(os.path.join(results_folder, perf_results_csv_file), 'w', newline='') as file:
-                writer = csv.writer(file)
-                writer.writerow(["experiment_id", "num_segments", "avr_state_approx_error", 
-                                "planning_success", "planning_time_ompl", "planning_time_trajopt", 
-                                "total_planning_time", "ompl_path_length", "trajopt_path_length"])
-                
-                print(f"File '{perf_results_csv_file}' created and header written.")
-                
-        # Append the results to the csv file
-        with open(os.path.join(results_folder, perf_results_csv_file), 'a', newline='') as file:
-            writer = csv.writer(file)
+            # ax.plot(target_approximated_state_pos[:,0], # x
+            #         target_approximated_state_pos[:,1], # y
+            #         target_approximated_state_pos[:,2], # z
+            #         '-r', label='Target: Approx.', markersize=12, linewidth=3)
+
+            # ax.legend(fontsize=20)
+            # ax.tick_params(axis='both', which='major', labelsize=20)
+            # # ax.set_aspect('equal')
+            # set_axes_equal(ax)
+            # plt.show()
+
+            # # -----------------------------------------------------------------------
             
-            if planning_success:
-                writer.writerow([experiment_id, simplified_dlo_num_segments, avr_state_approx_error, 
-                                planning_success, planning_time_ompl, planning_time_trajopt, 
-                                total_planning_time, ompl_path_length, trajopt_path_length])
+            # -----------------------------------------------------------------------
+            # Check the approximation error thresholds
+            print("--------------------------------------------------------------------")
+            print("Approximation error thresholds: ", approximation_error_threshold)
+            print("Initial state approximation error: ", initial_approximated_state_avg_error)
+            print("Target state approximation error: ", target_approximated_state_avg_error)
+            
+            if (initial_approximated_state_avg_error > approximation_error_threshold):
+                print("\nSkipping the current simplified_dlo_num_segments: ", simplified_dlo_num_segments)
+                print("Reason: Initial state approximation error is greater than the threshold: ", initial_approximated_state_avg_error)
+                continue
+            if (target_approximated_state_avg_error > approximation_error_threshold):
+                print("\nSkipping the current simplified_dlo_num_segments: ", simplified_dlo_num_segments)
+                print("Reason: Target state approximation error is greater than the threshold: ", target_approximated_state_avg_error)
+                continue
+            # -----------------------------------------------------------------------
+            
+            # -----------------------------------------------------------------------
+            # Check the environment limits for the initial and target states
+            print("--------------------------------------------------------------------")
+            print("Environment limits: ", environment_limits_xyz)
+            print("Approximated initial state pos: \n", initial_approximated_state_pos)
+            print("Approximated target state pos: \n", initial_approximated_state_pos)
+            
+            if (initial_approximated_state_pos[:,0].min() < environment_limits_xyz[0] or
+                initial_approximated_state_pos[:,0].max() > environment_limits_xyz[1] or
+                initial_approximated_state_pos[:,1].min() < environment_limits_xyz[2] or
+                initial_approximated_state_pos[:,1].max() > environment_limits_xyz[3] or
+                initial_approximated_state_pos[:,2].min() < environment_limits_xyz[4] or
+                initial_approximated_state_pos[:,2].max() > environment_limits_xyz[5]):
+                print("\nSkipping the current simplified_dlo_num_segments: ", simplified_dlo_num_segments)
+                print("Reason: Initial state is out of the environment limits")
+                continue
+            if (target_approximated_state_pos[:,0].min() < environment_limits_xyz[0] or
+                target_approximated_state_pos[:,0].max() > environment_limits_xyz[1] or
+                target_approximated_state_pos[:,1].min() < environment_limits_xyz[2] or
+                target_approximated_state_pos[:,1].max() > environment_limits_xyz[3] or
+                target_approximated_state_pos[:,2].min() < environment_limits_xyz[4] or
+                target_approximated_state_pos[:,2].max() > environment_limits_xyz[5]):
+                print("\nSkipping the current simplified_dlo_num_segments: ", simplified_dlo_num_segments)
+                print("Reason: Target state is out of the environment limits")
+            # -----------------------------------------------------------------------
+                
+            # -----------------------------------------------------------------------
+            # Check the joint angle limits for the initial and target states
+            # INFO: Note that in joint pos, the first 3 elements are the translational joint angles (x, y, z)
+            # # and the last 2N elements are the rotational joint angles around x and y axes for each segment respectively.
+            # # But the first 2 angular joint angles are free and not limited.
+            # # Therfore, 
+            # # ODD numbered indexes after the 5rd index are the x joint angles
+            # # EVEN numbered indexes after the 5rd index are the y joint angles
+            print("--------------------------------------------------------------------")
+            print("Joint angle limits [x_min, x_max] (deg): ", joint_angle_limits_xy_deg[0], joint_angle_limits_xy_deg[1])
+            print("Joint angle limits [y_min, y_max] (deg): ", joint_angle_limits_xy_deg[2], joint_angle_limits_xy_deg[3])
+            print("Approximated initial state X joint pos (deg): ", np.rad2deg(initial_approximated_state_joint_pos[5::2]))
+            print("Approximated initial state Y joint pos (deg): ", np.rad2deg(initial_approximated_state_joint_pos[6::2]))
+            print("Approximated target state X joint pos (deg): ", np.rad2deg(target_approximated_state_joint_pos[5::2]))
+            print("Approximated target state Y joint pos (deg): ", np.rad2deg(target_approximated_state_joint_pos[6::2]))
+            
+            if len(initial_approximated_state_joint_pos) > 5:    
+                if (initial_approximated_state_joint_pos[5::2].min() < np.deg2rad(joint_angle_limits_xy_deg[0]) or
+                    initial_approximated_state_joint_pos[5::2].max() > np.deg2rad(joint_angle_limits_xy_deg[1]) or
+                    initial_approximated_state_joint_pos[6::2].min() < np.deg2rad(joint_angle_limits_xy_deg[2]) or
+                    initial_approximated_state_joint_pos[6::2].max() > np.deg2rad(joint_angle_limits_xy_deg[3])):
+                    print("\nSkipping the current simplified_dlo_num_segments: ", simplified_dlo_num_segments)
+                    print("Reason: Initial state is out of the joint angle limits")
+                    continue
+            
+            if len(target_approximated_state_joint_pos) > 5:    
+                if (target_approximated_state_joint_pos[5::2].min() < np.deg2rad(joint_angle_limits_xy_deg[0]) or
+                    target_approximated_state_joint_pos[5::2].max() > np.deg2rad(joint_angle_limits_xy_deg[1]) or
+                    target_approximated_state_joint_pos[6::2].min() < np.deg2rad(joint_angle_limits_xy_deg[2]) or
+                    target_approximated_state_joint_pos[6::2].max() > np.deg2rad(joint_angle_limits_xy_deg[3])):
+                    print("\nSkipping the current simplified_dlo_num_segments: ", simplified_dlo_num_segments)
+                    print("Reason: Target state is out of the joint angle limits")
+                    continue
+            # -----------------------------------------------------------------------
+            
+            # Now we need to find a way to add the robot and its SRDF to the environment
+
+            # -----------------------------------------------------------------------
+            # First let's create the URDF for the robot using the DloURDFCreator
+
+            print("--------------------------------------------------------------------")
+            
+            # Print a message that says the the approximation with the simplified dlo num segments is valid within the thresholds
+            print("The approximation with ", simplified_dlo_num_segments, " segments is valid within the thresholds.")
+            print("Creating the URDF for the robot with the DloURDFCreator")
+
+            # Parameters for the DLO URDF creator
+            model_name="pole"
+            base_link_name="base_link"
+            tcp_link_name="tool0"
+            center_link_name="center_link"
+            holding_points_link_name_prefix= "pole_holder_link_"
+            prism_joint_effort = 1
+            rev_joint_effort = 1
+            prism_joint_max_velocity = 1.5
+            rev_joint_max_velocity = 1.0
+            visualize=False
+
+            dlo_urdf_creator = DloURDFCreator()
+            # Create the URDF string for the robot
+            urdf_str, is_valid_urdf, allowed_collision_pairs = dlo_urdf_creator.create_dlo_urdf_equal_segment_length(length = length,
+                                                                    radius = radius,
+                                                                    simplified_dlo_num_segments = simplified_dlo_num_segments,
+                                                                    full_dlo_num_segments = full_dlo_num_segments,
+                                                                    full_dlo_holding_segment_ids = full_dlo_holding_segment_ids,
+                                                                    environment_limits_xyz = environment_limits_xyz,
+                                                                    joint_angle_limits_xy_deg = joint_angle_limits_xy_deg,
+                                                                    model_name = model_name,
+                                                                    base_link_name = base_link_name,
+                                                                    tcp_link_name = tcp_link_name,
+                                                                    center_link_name = center_link_name,
+                                                                    holding_points_link_name_prefix = holding_points_link_name_prefix,
+                                                                    prism_joint_effort = prism_joint_effort,
+                                                                    rev_joint_effort = rev_joint_effort,
+                                                                    prism_joint_max_velocity = prism_joint_max_velocity,
+                                                                    rev_joint_max_velocity = rev_joint_max_velocity,
+                                                                    visualize = visualize)
+
+            # print("URDF string from equal segment length:\n")
+            # print(urdf_str + "\n")
+
+            # print("Allowed collision pairs: ")
+            # print(allowed_collision_pairs)
+
+            # Next, We need to convert the URDF string into a scene graph
+            scene_graph = parseURDFString(urdf_str, locator).release()
+
+            # Then, we need to parse the SRDF file and create an SRDF model
+            srdf_url_or_path = "/home/burak/catkin_ws_deformable/src/deformable_description/urdf/pole_automatic/pole_automatic.srdf" # TODO: Must be passed
+            srdf_fname = FilesystemPath(locator.locateResource(srdf_url_or_path).getFilePath())
+
+            srdf_model = SRDFModel()
+            srdf_model.initFile(scene_graph, str(srdf_fname), locator)
+
+            # Process the SRDF allowed collisions in the robot scene graph 
+            # (for a generic pole srdf it should be empty,)
+            # (and we will process them manually based on the pairs obtained from the dlo urdf creator.)
+            # (but let's keep it just in case we need to add some allowed collisions IN THE SRDF in the future)
+            processSRDFAllowedCollisions(scene_graph, srdf_model)
+
+            # Finally we need to create the commands to apply the robot to the environment
+            cmds = Commands()
+
+            add_scene_graph_command = AddSceneGraphCommand(scene_graph)
+            cmds.push_back(add_scene_graph_command)
+
+            # Add other SRDF related commands as well
+            add_contact_managers_plugin_info_cmd = AddContactManagersPluginInfoCommand(srdf_model.contact_managers_plugin_info)
+            cmds.push_back(add_contact_managers_plugin_info_cmd)
+
+            add_kinematics_information_cmd = AddKinematicsInformationCommand(srdf_model.kinematics_information)
+            cmds.push_back(add_kinematics_information_cmd)
+
+            # Add the commands for the calibration information in the SRDF
+            for cal in srdf_model.calibration_info.joints:
+                change_joint_origin_cmd = ChangeJointOriginCommand(cal.first, cal.second)
+                cmds.push_back(change_joint_origin_cmd)
+
+            # Check srdf for collision margin data 
+            if isinstance(srdf_model.collision_margin_data, CollisionMarginData):
+                change_collision_margins_cmd = ChangeCollisionMarginsCommand(srdf_model.collision_margin_data, CollisionMarginOverrideType_REPLACE)
+                cmds.push_back(change_collision_margins_cmd)
+
+            # Apply the commands to the environment
+            if not env.isInitialized():
+                print("Environment is not initialized yet, let's initialize it")
+                assert env.init(cmds)
             else:
-                writer.writerow([experiment_id, simplified_dlo_num_segments, avr_state_approx_error, 
-                                planning_success, planning_time_ompl, planning_time_trajopt, 
-                                total_planning_time, 0.0, 0.0])
+                print("Environment is already initialized, let's apply the commands")
+                env.applyCommands(cmds)
                 
-            print(f"Results appended to the file '{perf_results_csv_file}'.")
-        # --------------------------------------------------------------------------------------------
-        
-        # --------------------------------------------------------------------------------------------
-        # Save the generated paths to a pickle file
-        print("\nSaving the generated paths to a pickle file\n")
-        
-        # Variables to save to the pickle file:
-        plan_data_ompl = (ompl_path, ompl_path_points, ompl_path_cumulative_lengths, ompl_path_cumulative_rotations,
-                        ompl_path_direction_vectors, ompl_path_rotation_vectors, ompl_path_of_particles,
-                        ompl_path_points_of_particles, ompl_path_cumulative_lengths_of_particles,
-                        ompl_path_cumulative_rotations_of_particles, ompl_path_direction_vectors_of_particles,
-                        ompl_path_rotation_vectors_of_particles)
-        plan_data_trajopt = (trajopt_path, trajopt_path_points, trajopt_path_cumulative_lengths, trajopt_path_cumulative_rotations,
-                            trajopt_path_direction_vectors, trajopt_path_rotation_vectors, trajopt_path_of_particles,
-                            trajopt_path_points_of_particles, trajopt_path_cumulative_lengths_of_particles,
-                            trajopt_path_cumulative_rotations_of_particles, trajopt_path_direction_vectors_of_particles,
-                            trajopt_path_rotation_vectors_of_particles)
-        performance_data = (experiment_id, simplified_dlo_num_segments, avr_state_approx_error, planning_success,
-                            planning_time_ompl, planning_time_trajopt, total_planning_time, ompl_path_length, trajopt_path_length)
-        initial_n_target_states = (initial_full_state, initial_approximated_state_pos, initial_approximated_state_joint_pos, 
-                                target_full_state, target_approximated_state_pos, target_approximated_state_joint_pos)
-        
-        # Create object to save to the pickle file
-        plan_data = [plan_data_ompl, plan_data_trajopt, performance_data, initial_n_target_states]
-        
-        # File path and name: 
-        current_file_dir = os.path.dirname(os.path.abspath(__file__))
-        
-        # Create a folder for the results
-        results_folder = os.path.join(current_file_dir, saving_folder_name)
-        
-        if not os.path.exists(results_folder):
-            os.makedirs(results_folder)
-            print(f"Directory '{results_folder}' created.")
+            # Update the viewer
+            if viewer_enabled:
+                viewer.update_environment(env, [0,0,0])
+            # -----------------------------------------------------------------------
+
+            # -----------------------------------------------------------------------
+            # Add allowed collision pairs to the environment obtained from the dlo urdf creator
+            acm = AllowedCollisionMatrix()
+
+            for pair in allowed_collision_pairs:
+                acm.addAllowedCollision(pair[0], pair[1], pair[2]) # link1, link2, reason
+                
+            modify_allowed_collisions_command = ModifyAllowedCollisionsCommand(acm, ModifyAllowedCollisionsType_ADD)
+
+            cmds = Commands()
+            cmds.push_back(modify_allowed_collisions_command)
+            env.applyCommands(cmds)
+
+            # May not be necessary but:
+            if viewer_enabled:
+                viewer.update_environment(env, [0,0,0])
+            # -----------------------------------------------------------------------
+
+            # -----------------------------------------------------------------------
+            # Let's fill in the manipulator info for the robot
+            tcp_frame = "tool0"  # specified in the vel controller yaml file
+            manipulator = "manipulator" # defined in the srdf file and specified in the vel controller yaml file
+            working_frame = "base_link" # defined in the srdf file and specified in the vel controller yaml file
+
+            manip_info = ManipulatorInfo()
+            manip_info.tcp_frame = tcp_frame
+            manip_info.manipulator = manipulator
+            manip_info.working_frame = working_frame
             
-        # File name for the results
-        # Ensure experiment_id is always three digits long with leading zeros
-        formatted_experiment_id = f"{experiment_id:03d}"
-        perf_results_pkl_file = f"scene_{mingruiyu_scene_id}_experiment_{formatted_experiment_id}_data.pkl"
-        
-        # Save the plan data to the pickle file
-        with open(os.path.join(results_folder, perf_results_pkl_file), 'wb') as outp:  # Overwrites any existing file.
-            pickle.dump(plan_data, outp, pickle.HIGHEST_PROTOCOL)
-        
-        print(f"Paths are saved to the file '{perf_results_pkl_file}'.")
-        # --------------------------------------------------------------------------------------------
+            # Get the kinematic group from the environment, needed for forward kinematics
+            kin_group = env.getKinematicGroup(manip_info.manipulator)
+            # -----------------------------------------------------------------------
+
+            # -----------------------------------------------------------------------
+            # Get the joint names from the environment:
+            joint_group = env.getJointGroup(manip_info.manipulator)
+            joint_names = list(joint_group.getJointNames())
+
+            # Another way to get the joint names:
+            # self.joint_names = list(self.env.getGroupJointNames("manipulator"))
+
+            # print("joint_names: ", joint_names)
+            # print("")
+            # -----------------------------------------------------------------------
+
+            # -----------------------------------------------------------------------
+            # Set GOAL STATE of the robot in the environment
             
-        print("--------------------------------------------------------------------")
-        is_num_segments_validated = True
-        # input("Press enter to continue to the next simplified_dlo_num_segments")
+            # # Example: Normally this state will be obtained from the dlo simulator and passed to the planner the controller
+            # goal_joint_positions = np.zeros(len(joint_names)) # 2*simplified_dlo_num_segments+3
+            # goal_joint_positions[0] = -0.2 # x
+            # goal_joint_positions[1] = 0.5 # y
+            # goal_joint_positions[2] = 0.2 # z
+            # goal_joint_positions[3] = np.pi/2 # orientation x
+            # # Let the rest of the state be zeros
+            
+            goal_joint_positions = target_approximated_state_joint_pos.flatten()
+
+            # Set the initial state of the robot in the environment
+            env.setState(joint_names, goal_joint_positions)
+
+            if viewer_enabled:
+                # viewer.update_environment(self.env, [0,0,0])
+                viewer.update_joint_positions(joint_names, goal_joint_positions)
+            # -----------------------------------------------------------------------
+
+            # input("Press enter to confirm the goal state")
+            
+            # # -----------------------------------------------------------------------
+            # # Set INTERMEDIATE STATE of the robot in the environment
+            
+            # # # Example: Normally this state will be obtained from the dlo simulator and passed to the planner the controller
+            # intermediate_joint_positions = np.zeros(len(joint_names)) # 2*simplified_dlo_num_segments+3
+            # intermediate_joint_positions[0] = -0.25 # x
+            # intermediate_joint_positions[1] = 0.25 # y
+            # intermediate_joint_positions[2] = 0.15 # z
+            # intermediate_joint_positions[3] = np.pi/2 # orientation x
+            # # Let the rest of the state be zeros
+            
+            # # Set the initial state of the robot in the environment
+            # env.setState(joint_names, intermediate_joint_positions)
+
+            # if viewer_enabled:
+            #     # viewer.update_environment(self.env, [0,0,0])
+            #     viewer.update_joint_positions(joint_names, intermediate_joint_positions)
+            # # -----------------------------------------------------------------------
+
+            # input("Press enter to confirm the INTERMEDIATE state")
+
+            # -----------------------------------------------------------------------
+            # Set INITIAL STATE of the robot in the environment
+            
+            # # Example: Normally this state will be obtained from the dlo simulator and passed to the planner the controller
+            # initial_joint_positions = np.zeros(len(joint_names)) # 2*simplified_dlo_num_segments+3
+            # initial_joint_positions[0] = -0.2 # x
+            # initial_joint_positions[1] = 0.5 # y
+            # initial_joint_positions[2] = 0.5 # z
+            # initial_joint_positions[3] = np.pi/2 # orientation x
+            # # Let the rest of the state be zeros
+            
+            initial_joint_positions = initial_approximated_state_joint_pos.flatten()
+
+            # Set the initial state of the robot in the environment
+            env.setState(joint_names, initial_joint_positions)
+
+            if viewer_enabled:
+                # viewer.update_environment(self.env, [0,0,0])
+                viewer.update_joint_positions(joint_names, initial_joint_positions)
+            # -----------------------------------------------------------------------
+
+            # input("Press enter to confirm the Start state and initiate the planning")
+
+
+            # TODO: ADD DISTANCE TO COLLISION CHECKING FOR BOTH THE INITIAL AND GOAL STATES
+
+
+            # We will now start the planning from the initial state to the goal state!!!    
+
+            # -----------------------------------------------------------------------
+            # Create a list of StateWaypointPoly
+
+            state_waypoints = []
+
+            # Add the initial state waypoint
+            initial_state_waypoint = StateWaypointPoly_wrap_StateWaypoint(StateWaypoint(joint_names, initial_joint_positions))
+            state_waypoints.append(initial_state_waypoint)
+
+            # # Add the intermediate waypoints 
+            # intermediate_state_waypoint = StateWaypointPoly_wrap_StateWaypoint(StateWaypoint(joint_names, intermediate_joint_positions))
+            # state_waypoints.append(intermediate_state_waypoint)
+
+            # Add the goal state waypoint
+            goal_state_waypoint = StateWaypointPoly_wrap_StateWaypoint(StateWaypoint(joint_names, goal_joint_positions))
+            state_waypoints.append(goal_state_waypoint)
+            # -----------------------------------------------------------------------
+
+            # -----------------------------------------------------------------------
+            # Set move instructions from the state waypoints
+            move_instructions = []
+                    
+            for state_waypoint in state_waypoints:
+                move_instruction = MoveInstructionPoly_wrap_MoveInstruction(MoveInstruction(state_waypoint, 
+                                                                                            MoveInstructionType_FREESPACE, 
+                                                                                            "DEFAULT"))
+                move_instructions.append(move_instruction)
+            # -----------------------------------------------------------------------
+
+            # -----------------------------------------------------------------------
+            # Create input command program
+
+            # Create the input command program using CompositeInstruction
+            program = CompositeInstruction("DEFAULT")
+            # program = CompositeInstruction("freespace_profile")
+            program.setManipulatorInfo(manip_info)
+                
+            # Add the MoveInstructionPoly objects to the CompositeInstruction
+            for move_instruction in move_instructions:
+                program.appendMoveInstruction(move_instruction)
+                
+            # Print diagnosics
+            program._print("Program: ")
+
+            ## Create an AnyPoly containing the program. 
+            # This explicit step is required because the Python bindings do not
+            # support implicit conversion from the CompositeInstruction to the AnyPoly.
+            program_anypoly = AnyPoly_wrap_CompositeInstruction(program)
+            # -----------------------------------------------------------------------
+
+            # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+            # ++++++++++++++++++++++++++++++++++++++++++++ OMPL PLANNING ++++++++++++++++++++++++++++++++++++++++++++++++++++++
+            # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+            # --------------------------------------------------------------------------------------------
+            # Create the task composer node. In this case the FreespacePipeline is used. Many other are available.
+            task = factory.createTaskComposerNode("OMPLPipelineAlone")
+            
+            # Get the output keys for the task
+            task_output_key = task.getOutputKeys()[0]
+
+            # Create an executor to run the task
+            task_executor = factory.createTaskComposerExecutor("TaskflowExecutor")
+            # --------------------------------------------------------------------------------------------
+
+            # -----------------------------------------------------------------------
+            # Set profile dictionary 
+            # Create a profile dictionary. Profiles can be customized by adding to this dictionary and setting the profiles
+            # in the instructions.
+
+            profiles = ProfileDictionary()
+
+            add_MinLengthProfile(profiles, "DEFAULT", length=40)
+            add_OMPLDefaultPlanProfile(profiles, "DEFAULT")
+            # add_TrajOptPlanProfile(profiles, "DEFAULT", len(initial_joint_positions))
+            # -----------------------------------------------------------------------
+
+            # -----------------------------------------------------------------------
+            # Create the task problem and 
+            print("Creating the task planning problem..")
+
+            task_planning_problem = PlanningTaskComposerProblem(env, profiles)        
+            task_planning_problem.input = program_anypoly
+            # task_planning_problem.input = program
+
+            print("Task planning problem created.")
+            # -----------------------------------------------------------------------
+            
+            # -----------------------------------------------------------------------
+            # Solve task
+            print("Planning the task..")
+            stopwatch = Timer()
+            stopwatch.start()
+
+            # Run the task and wait for completion
+            future = task_executor.run(task.get(), task_planning_problem)
+            future.wait()
+
+            stopwatch.stop()
+            planning_time_ompl = stopwatch.elapsedSeconds()
+            print(f"OMPL PLANNING TOOK {planning_time_ompl} SECONDS.")
+
+            # -----------------------------------------------------------------------
+
+            # --------------------------------------------------------------------------------------------
+            # Get the results of the global plan
+            try:
+                # Retrieve the output, converting the AnyPoly back to a CompositeInstruction
+                results_as_any_poly = future.context.data_storage.getData(task_output_key)
+                results = AnyPoly_as_CompositeInstruction(results_as_any_poly)
+            except Exception:
+                ## Assertions failed, fall back to the fallback plan
+                print("Error getting the results of the OMPL plan")
+                print("{}".format(traceback.format_exc()))
+            #     planning_success = 0
+                
+            if len(results) < 2:
+                planning_success = 0
+                print("OMPL: Path length is less than 2. Planning failed!!")
+            # --------------------------------------------------------------------------------------------
+
+            # --------------------------------------------------------------------------------------------
+            # Plan sanity check
+            try:
+                # Display the output
+                # Print out the resulting waypoints
+                for instr in results:
+                    assert instr.isMoveInstruction()
+                    move_instr1 = InstructionPoly_as_MoveInstructionPoly(instr)
+                    wp1 = move_instr1.getWaypoint()
+                    assert wp1.isStateWaypoint()
+                    wp = WaypointPoly_as_StateWaypointPoly(wp1)
+                    # print("-------------------------------------------------------------")
+                    # print(f"Joint Time: {wp.getTime()}")
+                    # print(f"Joint Positions: {wp.getPosition().flatten()} time: {wp.getTime()}")
+                    # print("Joint Names: " + str(list(wp.getNames())))
+                    # print(f"Joint Velocities: {wp.getVelocity().flatten()}")
+                    # print(f"Joint Accelerations: {wp.getAcceleration().flatten()}")
+                    # print(f"Joint Efforts: {wp.getEffort().flatten()}")
+                    # print("-------------------------------------------------------------")
+            except Exception:
+                ## Assertions failed, fall back to the fallback plan
+                print("Error getting the results of the global plan")
+                print("{}".format(traceback.format_exc()))
+                print("Using the fallback plan")
+                # results = results_fallback # TODO
+                planning_success = 0
+            # --------------------------------------------------------------------------------------------
+            
+            # --------------------------------------------------------------------------------------------
+            # Visualize the results in the viewer
+            if viewer_enabled:
+                try:
+                    # Update the viewer with the results to animate the trajectory
+                    # Open web browser to http://localhost:8000 to view the results
+                    viewer.clear_all_markers()
+                    viewer.update_trajectory(results)
+                    viewer.plot_trajectory(results, manip_info)
+                except Exception:
+                    print("Error updating the viewer with the results:")
+                    print("{}".format(traceback.format_exc()))
+            # # --------------------------------------------------------------------------------------------
+            
+            # --------------------------------------------------------------------------------------------
+            # TODO: Process the results of the OMPL planner, e.g. check the path length, etc.
+            try:
+                (
+                ompl_path,
+                ompl_path_points,
+                ompl_path_cumulative_lengths,
+                ompl_path_cumulative_rotations,
+                ompl_path_direction_vectors,
+                ompl_path_rotation_vectors, 
+                ompl_path_of_particles,
+                ompl_path_points_of_particles,
+                ompl_path_cumulative_lengths_of_particles,
+                ompl_path_cumulative_rotations_of_particles,
+                ompl_path_direction_vectors_of_particles,
+                ompl_path_rotation_vectors_of_particles
+                ) = process_planner_results(results, 
+                                            center_link_name, 
+                                            holding_points_link_name_prefix, 
+                                            full_dlo_holding_segment_ids,
+                                            kin_group)
+                    
+                # Calculate the ompl_path length as average of the ompl_path lengths of the centroid and the holding points
+                ompl_path_length = ompl_path_cumulative_lengths[-1]
+                i = 1.0
+                for id in full_dlo_holding_segment_ids:
+                    ompl_path_length += ompl_path_cumulative_lengths_of_particles[id][-1]
+                    i += 1.0
+                ompl_path_length = ompl_path_length / i # Average ompl_path length of the centroid and the holding points
+            except Exception:
+                print("Error processing the results of the OMPL planner")
+                # print("{}".format(traceback.format_exc()))
+            # --------------------------------------------------------------------------------------------
+                
+            # input("Press enter to continue to the TrajOpt planner for smoothing")
+
+            # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+            # +++++++++++++++++++++++++++++++++++++++++++ TRAJOPT PLANNING ++++++++++++++++++++++++++++++++++++++++++++++++++++
+            # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+            # --------------------------------------------------------------------------------------------
+            # Prepare the previous results for the TrajOpt planner
+            joint_waypoints = []
+            try:
+                for i, instr in enumerate(results):
+                    assert instr.isMoveInstruction()
+                    move_instr1 = InstructionPoly_as_MoveInstructionPoly(instr)
+                    wp1 = move_instr1.getWaypoint()
+                    assert wp1.isStateWaypoint()
+                    wp = WaypointPoly_as_StateWaypointPoly(wp1)
+                    # print("-------------------------------------------------------------")
+                    # print(f"Joint Time: {wp.getTime()}")
+                    # print(f"Joint Positions: {wp.getPosition().flatten()}")
+                    # print("Joint Names: " + str(list(wp.getNames())))
+                    # print(f"Joint Velocities: {wp.getVelocity().flatten()}")
+                    # print(f"Joint Accelerations: {wp.getAcceleration().flatten()}")
+                    # print(f"Joint Efforts: {wp.getEffort().flatten()}")
+                    # print("-------------------------------------------------------------")
+                    
+                    # Joint waypoint
+                    jw = JointWaypoint()
+                    jw.setNames(wp.getNames())
+                    # jw.setNames(list(wp.getNames()))
+                    
+                    jw.setPosition(wp.getPosition())
+                    # jw.setPosition(wp.getPosition().flatten())
+                    
+                    if i == 0 or i == len(results)-1:
+                        jw.setIsConstrained(True) # Constrain the start and end waypoints
+                    else:
+                        jw.setIsConstrained(False) # Free waypoints
+                    
+                    # Joint waypoint poly
+                    jwp = JointWaypointPoly_wrap_JointWaypoint(jw)
+                    joint_waypoints.append(jwp)
+                    
+            except Exception:
+                print("Error preparing the OMPL results for the TrajOpt plan")
+                print("{}".format(traceback.format_exc()))
+                planning_success = 0
+                
+            # Set move instructions from the joint waypoints
+            move_instructions = []
+            for jwp in joint_waypoints:
+                mi = MoveInstruction(jwp, MoveInstructionType_FREESPACE, "DEFAULT")
+                move_instructions.append(MoveInstructionPoly_wrap_MoveInstruction(mi))
+                
+            # Create the input command program using CompositeInstruction
+            program = CompositeInstruction("DEFAULT")
+            program.setManipulatorInfo(manip_info)
+            
+            # Add the MoveInstructionPoly objects to the CompositeInstruction
+            for move_instruction in move_instructions:
+                program.appendMoveInstruction(move_instruction)
+                
+            # # Print diagnosics
+            # program._print("Program for TrajOpt: ")
+            
+            ## Create an AnyPoly containing the program.
+            program_anypoly = AnyPoly_wrap_CompositeInstruction(program)
+            # --------------------------------------------------------------------------------------------
+
+            # --------------------------------------------------------------------------------------------
+            # Create the task composer node. In this case the FreespacePipeline is used. Many other are available.
+            # task = factory.createTaskComposerNode("OMPLPipelineAlone")
+            task = factory.createTaskComposerNode("TrajOptPipelineAlone")
+
+            # Get the output keys for the task
+            task_output_key = task.getOutputKeys()[0]
+
+            # Create an executor to run the task
+            task_executor = factory.createTaskComposerExecutor("TaskflowExecutor")
+            # --------------------------------------------------------------------------------------------
+
+            # -----------------------------------------------------------------------
+            # Set profile dictionary 
+            # Create a profile dictionary. Profiles can be customized by adding to this dictionary and setting the profiles
+            # in the instructions.
+
+            profiles = ProfileDictionary()
+
+            add_MinLengthProfile(profiles, "DEFAULT", length=70)
+            # add_OMPLDefaultPlanProfile(profiles, "DEFAULT")
+            add_TrajOptPlanProfile(profiles, "DEFAULT", len(initial_joint_positions))
+            # -----------------------------------------------------------------------
+
+            # -----------------------------------------------------------------------
+            # Create the task problem and 
+            print("Creating the task planning problem..")
+
+            task_planning_problem = PlanningTaskComposerProblem(env, profiles)        
+            task_planning_problem.input = program_anypoly        
+            # task_planning_problem.input = results_as_any_poly        
+
+            print("Task planning problem created.")
+            # -----------------------------------------------------------------------
+
+            # -----------------------------------------------------------------------
+            # Solve task
+            print("Planning the TRAJOPT task..")
+            stopwatch = Timer()
+            stopwatch.start()
+
+            # Run the task and wait for completion
+            future = task_executor.run(task.get(), task_planning_problem)
+            future.wait()
+
+            stopwatch.stop()
+            planning_time_trajopt = stopwatch.elapsedSeconds()
+            print(f"TRAJOPT PLANNING TOOK {planning_time_trajopt} SECONDS.")
+            # -----------------------------------------------------------------------
+
+            # --------------------------------------------------------------------------------------------
+            # Get the results of the global plan
+            try:
+                # Retrieve the output, converting the AnyPoly back to a CompositeInstruction
+                results_as_any_poly = future.context.data_storage.getData(task_output_key)
+                results = AnyPoly_as_CompositeInstruction(results_as_any_poly)
+            except Exception:
+                ## Assertions failed, fall back to the fallback plan
+                print("Error getting the results of the TRAJOPT plan")
+                print("{}".format(traceback.format_exc()))
+                planning_success = 0
+                
+            if len(results) < 2:
+                planning_success = 0
+                print("TrajOpt: Path length is less than 2. Planning failed!!")
+            # --------------------------------------------------------------------------------------------
+
+            # --------------------------------------------------------------------------------------------
+            # Plan sanity check
+            try:
+                # Display the output
+                # Print out the resulting waypoints
+                for instr in results:
+                    assert instr.isMoveInstruction()
+                    move_instr1 = InstructionPoly_as_MoveInstructionPoly(instr)
+                    wp1 = move_instr1.getWaypoint()
+                    assert wp1.isStateWaypoint()
+                    wp = WaypointPoly_as_StateWaypointPoly(wp1)
+                    # print("-------------------------------------------------------------")
+                    # print(f"Joint Time: {wp.getTime()}")
+                    # print(f"Joint Positions: {wp.getPosition().flatten()} time: {wp.getTime()}")
+                    # print("Joint Names: " + str(list(wp.getNames())))
+                    # print(f"Joint Velocities: {wp.getVelocity().flatten()}")
+                    # print(f"Joint Accelerations: {wp.getAcceleration().flatten()}")
+                    # print(f"Joint Efforts: {wp.getEffort().flatten()}")
+                    # print("-------------------------------------------------------------")
+            except Exception:
+                ## Assertions failed, fall back to the fallback plan
+                print("Error getting the results of the global plan")
+                print("{}".format(traceback.format_exc()))
+                print("Using the fallback plan")
+                # results = results_fallback # TODO
+                planning_success = 0
+            # --------------------------------------------------------------------------------------------
+            
+            # --------------------------------------------------------------------------------------------
+            # Visualize the results in the viewer
+            if viewer_enabled:
+                try:
+                    # Update the viewer with the results to animate the trajectory
+                    # Open web browser to http://localhost:8000 to view the results
+                    viewer.clear_all_markers()
+                    viewer.update_trajectory(results)
+                    viewer.plot_trajectory(results, manip_info)
+                except Exception:
+                    print("Error updating the viewer with the results:")
+                    print("{}".format(traceback.format_exc()))
+            # # --------------------------------------------------------------------------------------------
+            
+            # --------------------------------------------------------------------------------------------
+            # Process the results of the TrajOpt planner, e.g. check the path length, etc.
+            try:
+                (
+                trajopt_path,
+                trajopt_path_points,
+                trajopt_path_cumulative_lengths,
+                trajopt_path_cumulative_rotations,
+                trajopt_path_direction_vectors,
+                trajopt_path_rotation_vectors, 
+                trajopt_path_of_particles,
+                trajopt_path_points_of_particles,
+                trajopt_path_cumulative_lengths_of_particles,
+                trajopt_path_cumulative_rotations_of_particles,
+                trajopt_path_direction_vectors_of_particles,
+                trajopt_path_rotation_vectors_of_particles
+                ) = process_planner_results(results, 
+                                            center_link_name, 
+                                            holding_points_link_name_prefix, 
+                                            full_dlo_holding_segment_ids,
+                                            kin_group)
+                    
+                # Calculate the trajopt_path length as average of the trajopt_path lengths of the centroid and the holding points
+                trajopt_path_length = trajopt_path_cumulative_lengths[-1]
+                i = 1.0
+                for id in full_dlo_holding_segment_ids:
+                    trajopt_path_length += trajopt_path_cumulative_lengths_of_particles[id][-1]
+                    i += 1.0
+                trajopt_path_length = trajopt_path_length / i # Average path length of the centroid and the holding points
+            except Exception:
+                print("Error processing the results of the TrajOpt planner")
+                # print("{}".format(traceback.format_exc()))
+            # --------------------------------------------------------------------------------------------
+            
+            # # --------------------------------------------------------------------------------------------
+            # # OPTIONAL: Plot the path points
+            # try:
+            #     ax = plt.figure().add_subplot(projection='3d')
+
+            #     # Add title with the number of segments
+            #     ax.set_title("Generated Paths of Centroid and Holding Points\n w/ Number of Segments = " + str(simplified_dlo_num_segments), fontsize=30)
+
+            #     ax.plot(initial_full_state[:,0], # x
+            #             initial_full_state[:,1], # y
+            #             initial_full_state[:,2], # z
+            #             # 'og', label='Initial State: Original', markersize=10, fillstyle='none')
+            #             'Xg', label='Initial State: Original Centers', markersize=10,  mec = 'k', alpha=.5)
+                
+            #     ax.plot(initial_approximated_state_pos[:,0], # x
+            #             initial_approximated_state_pos[:,1], # y
+            #             initial_approximated_state_pos[:,2], # z
+            #             '-g', label='Initial State: Approximation Line', markersize=12, linewidth=8)
+            #             # '-g', label='Initial State: Approximation', markersize=12, linewidth=6, alpha=.5)
+
+            #     ax.plot(target_full_state[:,0], # x
+            #             target_full_state[:,1], # y
+            #             target_full_state[:,2], # z
+            #             # 'or', label='Target State: Original', markersize=10, fillstyle='none')
+            #             'Xr', label='Target State: Original Centers', markersize=10,  mec = 'k', alpha=.5)
+                
+            #     ax.plot(target_approximated_state_pos[:,0], # x
+            #             target_approximated_state_pos[:,1], # y
+            #             target_approximated_state_pos[:,2], # z
+            #             '-r', label='Target State: Approximation Line', markersize=12, linewidth=8)
+            #             # '-r', label='Target State: Approximation', markersize=12, linewidth=6, alpha=.5)
+                
+            #     # Plot the centroid path points before smoothing
+            #     ax.plot(ompl_path_points[:,0], # x
+            #             ompl_path_points[:,1], # y
+            #             ompl_path_points[:,2], # z
+            #             ':ok', label='Centroid Path (before smoothing)', markersize=2, linewidth=1)
+                
+            #     path_colors = ['b', 'm', 'c', 'y', 'k', 'g', 'r']
+                
+            #     # Plot the holding points path points before smoothing
+            #     i = 0
+            #     for id in full_dlo_holding_segment_ids:
+            #         ax.plot(ompl_path_points_of_particles[id][:,0], # x
+            #                 ompl_path_points_of_particles[id][:,1], # y
+            #                 ompl_path_points_of_particles[id][:,2], # z
+            #                 ':o'+path_colors[i], label='Point ' + str(id) + ' Path (before smoothing)', markersize=2, linewidth=1)
+            #         i += 1
+                    
+            #     # Plot the centroid path points after smoothing
+            #     ax.plot(trajopt_path_points[:,0], # x
+            #             trajopt_path_points[:,1], # y
+            #             trajopt_path_points[:,2], # z
+            #             '--^k', label='Centroid Path (after smoothing)', markersize=4, linewidth=2)
+                
+            #     # Plot the holding points path points after smoothing
+            #     i = 0
+            #     for id in full_dlo_holding_segment_ids:
+            #         ax.plot(trajopt_path_points_of_particles[id][:,0], # x
+            #                 trajopt_path_points_of_particles[id][:,1], # y
+            #                 trajopt_path_points_of_particles[id][:,2], # z
+            #                 '--^'+path_colors[i], label='Point ' + str(id) + ' Path (after smoothing)', markersize=4, linewidth=2)
+            #         i += 1
+                        
+            #     ax.legend(fontsize=20)
+            #     ax.tick_params(axis='both', which='major', labelsize=20)
+            #     # ax.set_aspect('equal')
+            #     set_axes_equal(ax)
+            #     plt.show()
+            # except Exception:
+            #     print("Error plotting the path points")
+            #     # print("{}".format(traceback.format_exc()))
+            # # --------------------------------------------------------------------------------------------
+            
+            # --------------------------------------------------------------------------------------------
+            print("Planning with ", simplified_dlo_num_segments, " segments is completed.")
+            
+            # Calculate the total planning time
+            total_planning_time = 0.0
+            if planning_time_ompl:
+                total_planning_time += planning_time_ompl
+            if planning_time_trajopt:
+                total_planning_time += planning_time_trajopt
+            
+            print("Total planning time: ", total_planning_time, " seconds.")
+            print("--------------------------------------------------------------------")
+
+            # --------------------------------------------------------------------------------------------
+            # Save the performance results to a csv file
+            print("Saving the performance results to a csv file:\n")
+            
+            # Variables to save to the csv file:
+            # - Task ID = mingruiyu_scene_id
+            # - experiment_id 
+            # - simplified_dlo_num_segments
+            # - average state approximation_error = max of initial_approximated_state_avg_error and target_approximated_state_avg_error 
+            # - planning_success = 1/0
+            # - planning_time_ompl
+            # - planning_time_trajopt
+            # - total_planning_time
+            # - ompl_path_length
+            # - trajopt_path_length
+            avr_state_approx_error = max(initial_approximated_state_avg_error, target_approximated_state_avg_error)
+            
+            print("- Experiment ID: ", experiment_id)
+            print("- Simplified DLO Num Segments: ", simplified_dlo_num_segments)
+            print("- Average State Approximation Error: ", avr_state_approx_error)
+            print("- Planning Success: ", planning_success)
+            print("- Planning Time OMPL: ", planning_time_ompl)
+            print("- Planning Time Trajopt: ", planning_time_trajopt)
+            print("- Total Planning Time: ", total_planning_time)
+            print("- OMPL Path Length: ", ompl_path_length)
+            print("- Trajopt Path Length: ", trajopt_path_length)
+            print("")
+            
+            # File path and name: 
+            current_file_dir = os.path.dirname(os.path.abspath(__file__))
+            
+            # Create a folder for the results
+            results_folder = os.path.join(current_file_dir, saving_folder_name)
+            
+            if not os.path.exists(results_folder):
+                os.makedirs(results_folder)
+                print(f"Directory '{results_folder}' created.")
+                
+            # File name for the results
+            perf_results_csv_file = f"scene_{mingruiyu_scene_id}_experiment_results.csv"
+            
+            # If the file does not exist, create it and write the header
+            if not os.path.exists(os.path.join(results_folder, perf_results_csv_file)):
+                with open(os.path.join(results_folder, perf_results_csv_file), 'w', newline='') as file:
+                    writer = csv.writer(file)
+                    writer.writerow(["experiment_id", "num_segments", "avr_state_approx_error", 
+                                    "planning_success", "planning_time_ompl", "planning_time_trajopt", 
+                                    "total_planning_time", "ompl_path_length", "trajopt_path_length"])
+                    
+                    print(f"File '{perf_results_csv_file}' created and header written.")
+                    
+            # Append the results to the csv file
+            with open(os.path.join(results_folder, perf_results_csv_file), 'a', newline='') as file:
+                writer = csv.writer(file)
+                
+                if planning_success:
+                    writer.writerow([experiment_id, simplified_dlo_num_segments, avr_state_approx_error, 
+                                    planning_success, planning_time_ompl, planning_time_trajopt, 
+                                    total_planning_time, ompl_path_length, trajopt_path_length])
+                else:
+                    writer.writerow([experiment_id, simplified_dlo_num_segments, avr_state_approx_error, 
+                                    planning_success, planning_time_ompl, planning_time_trajopt, 
+                                    total_planning_time, 0.0, 0.0])
+                    
+                print(f"Results appended to the file '{perf_results_csv_file}'.")
+            # --------------------------------------------------------------------------------------------
+            
+            # --------------------------------------------------------------------------------------------
+            # Save the generated paths to a pickle file
+            print("\nSaving the generated paths to a pickle file\n")
+            
+            # Variables to save to the pickle file:
+            plan_data_ompl = (ompl_path, ompl_path_points, ompl_path_cumulative_lengths, ompl_path_cumulative_rotations,
+                            ompl_path_direction_vectors, ompl_path_rotation_vectors, ompl_path_of_particles,
+                            ompl_path_points_of_particles, ompl_path_cumulative_lengths_of_particles,
+                            ompl_path_cumulative_rotations_of_particles, ompl_path_direction_vectors_of_particles,
+                            ompl_path_rotation_vectors_of_particles)
+            plan_data_trajopt = (trajopt_path, trajopt_path_points, trajopt_path_cumulative_lengths, trajopt_path_cumulative_rotations,
+                                trajopt_path_direction_vectors, trajopt_path_rotation_vectors, trajopt_path_of_particles,
+                                trajopt_path_points_of_particles, trajopt_path_cumulative_lengths_of_particles,
+                                trajopt_path_cumulative_rotations_of_particles, trajopt_path_direction_vectors_of_particles,
+                                trajopt_path_rotation_vectors_of_particles)
+            performance_data = (experiment_id, simplified_dlo_num_segments, avr_state_approx_error, planning_success,
+                                planning_time_ompl, planning_time_trajopt, total_planning_time, ompl_path_length, trajopt_path_length)
+            initial_n_target_states = (initial_full_state, initial_approximated_state_pos, initial_approximated_state_joint_pos, 
+                                    target_full_state, target_approximated_state_pos, target_approximated_state_joint_pos)
+            
+            # Create object to save to the pickle file
+            plan_data = [plan_data_ompl, plan_data_trajopt, performance_data, initial_n_target_states]
+            
+            # File path and name: 
+            current_file_dir = os.path.dirname(os.path.abspath(__file__))
+            
+            # Create a folder for the results
+            results_folder = os.path.join(current_file_dir, saving_folder_name)
+            
+            if not os.path.exists(results_folder):
+                os.makedirs(results_folder)
+                print(f"Directory '{results_folder}' created.")
+                
+            # File name for the results
+            # Ensure experiment_id is always three digits long with leading zeros
+            formatted_experiment_id = f"{experiment_id:03d}"
+            perf_results_pkl_file = f"scene_{mingruiyu_scene_id}_experiment_{formatted_experiment_id}_data.pkl"
+            
+            # Save the plan data to the pickle file
+            with open(os.path.join(results_folder, perf_results_pkl_file), 'wb') as outp:  # Overwrites any existing file.
+                pickle.dump(plan_data, outp, pickle.HIGHEST_PROTOCOL)
+            
+            print(f"Paths are saved to the file '{perf_results_pkl_file}'.")
+            # --------------------------------------------------------------------------------------------
+                
+            print("--------------------------------------------------------------------")
+            is_num_segments_validated = True
+            # input("Press enter to continue to the next simplified_dlo_num_segments")
 
 # wait for user input to keep the viewer alive
 input("Experiments are completed, Press enter to exit..")
