@@ -1,11 +1,13 @@
+## ----------------------------------------------------------------------------------------
 nominal_control_enabled: True # default:True
 obstacle_avoidance_enabled: True # default:True 
 stress_avoidance_enabled: True # default:True 
 
 # if the control output is invalid for this time, the controller stops:
 valid_control_output_wait_timeout: 5.0 # (seconds) 
+## ----------------------------------------------------------------------------------------
 
-## -------------------------------------------------------
+## ----------------------------------------------------------------------------------------
 ## Nominal Velocity controller parameters
 
 # Nominal Controller Gains [x,y,z, Rx,Ry,Rz]
@@ -22,33 +24,77 @@ tip_particles: [0,39]
 
 # Grommet poses as targets for the tip points
 # Each element holds [[x,y,z],[Rx,Ry,Rz(euler angles in degrees)]]
-target_poses: [[[-1, -1, 0.14], [5,   0, 90]],
-               [[ 1, -1, 0.14], [175, 0, 90]]]
+# # For TENT BUILDING
+# target_poses: [[[-1, -1, 0.14], [5,   0, 90]],
+#                [[ 1, -1, 0.14], [175, 0, 90]]]
 
 # # For TEST
 # target_poses: [[[-1.215,  2.00, 0.5], [90, 0, 0]],
 #                [[-1.215, -0.43, 0.5], [90, 0, 0]]]
 
-# # For TEST with corridor
-target_poses: [[[2.5,  1.67601, 0.5], [90, 0, 0]],
-               [[2.5, -1.67601, 0.5], [90, 0, 0]]]
+# # # For TEST with corridor
+# target_poses: [[[2.5,  1.67601, 0.5], [90, 0, 0]],
+#                [[2.5, -1.67601, 0.5], [90, 0, 0]]]
+
+# # For Mingrui Yu Scene 1
+target_poses: [[[-0.20,  0.10, 0.25], [90, 0, 0]],
+               [[+0.00, -0.20, 0.10], [90, 0, 90]]] 
+
+# # # For Mingrui Yu Scene 2
+# target_poses: [[[-0.24,  0.08, 0.3], [90, 0, 70]],
+#                [[+0.24,  0.08, 0.3], [90, 0, 110]]] 
+
+# # # For Mingrui Yu Scene 3
+# target_poses: [[[+0.00,  0.2, 0.1], [90, 0, -20]],
+#                [[+0.00, -0.2, 0.1], [90, 0,  20]]] 
+
+# # # For Mingrui Yu Scene 4
+# target_poses: [[[0.2,  0.03, 0.12], [90, 0, -85]],
+#                [[0.2, -0.27, 0.12], [90, 0,  85]]] 
+
+
+# Saving directory of Initial and Target states of the tent pole for the path planning
+# The position and orientation of the each segment of the tent pole is saved as a state
+# as a csv file in this directory
+state_saving_directory: "~/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/"
+
+## Initial State File for the Tent Pole
+# The initial state file is used to load the initial poses of the tent pole
+# If not specified, the initial poses are expected to manually set using the set_n_save_initial_state service
+# initial_state_file: "" 
+initial_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_1_initial_states.csv"
+# initial_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_2_initial_states.csv"
+# initial_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_3_initial_states.csv"
+# initial_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_4_initial_states.csv"
+
+
+## Target State File for the Tent Pole
+# The target state file is used to load the target poses of the tent pole
+# If not specified, the target poses are expected to manually set using the set_n_save_target_state service
+# target_state_file: "" 
+target_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_1_target_states.csv"
+# target_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_2_target_states.csv"
+# target_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_3_target_states.csv"
+# target_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_4_target_states.csv"
+
 
 # Maximum velocity limits for each robot
 # Any velocity command exceeding these limits will be scaled down to these values
-max_linear_velocity: 0.2 # 0.1 # [m/s]
-max_angular_velocity: 0.3 # 0.15 # [rad/s]
+max_linear_velocity: 0.2 # 0.2 # 0.1 # [m/s]
+max_angular_velocity: 0.3 # 0.3 # 0.15 # [rad/s]
 
 # Acceptable error for the target pose to stop the controller
 # If the average error is less than this value, the controller stops
-acceptable_pos_err_avr_norm: 0.05 # 0.1 # 0.2 # [m] # note: d_obstacle_offset is added to this value
-acceptable_ori_err_avr_norm: 0.01 # 0.1 # [rad] 
+acceptable_pos_err_avr_norm: 0.001 # 0.05 # 0.1 # 0.2 # [m] # note: d_obstacle_offset is added to this value ,NOPE it is not added
+acceptable_ori_err_avr_norm: 0.001 # 0.01 # 0.1 # [rad] 
+## ----------------------------------------------------------------------------------------
 
-
-## -------------------------------------------------------
+## ----------------------------------------------------------------------------------------
 ## Path planning parameters
 path_tracking_control_enabled: True # default: True
 
-path_planning_tesseract_enabled: False # default: False # For Tesseract Path planning
+path_planning_tesseract_enabled: True # default: False # For Tesseract Path planning
+path_planning_pre_saved_paths_enabled: True # default: False # For Pre-saved Paths
 
 
 # Path tracking controller gains [x,y,z, Rx,Ry,Rz]
@@ -63,43 +109,72 @@ kd_path_tracking: [0.0,0.0,0.0, 0.0,0.0,0.0]
 # the path tracking controller smoothly to the nominal controller
 # when the robot is close to the end of path. 
 # See: https://www.desmos.com/calculator/lw1rirjtab
-d_path_tracking_start_switch_off_distance: 0.35 # the distance from the end of the path to start switching off the path tracking controller
-d_path_tracking_complete_switch_off_distance: 0.05 # the distance from the end of the path to completely switch off the path tracking controller
+d_path_tracking_start_switch_off_distance: 0.1 # 0.35 # the distance from the end of the path to start switching off the path tracking controller
+d_path_tracking_complete_switch_off_distance: 0.01 # the distance from the end of the path to completely switch off the path tracking controller
 
 # Feedforward velocity scale factors for the path tracking controller
 # These values are multiplied with the maximum velocity limits to scale down the velocity commands of the path tracking
 # They are in the range of [0,1]. If the value is 1.0, the maximum velocity limits are used as the feedforward velocity commands.
 path_tracking_feedforward_linear_velocity_scale_factor: 0.6 # 0.5
 path_tracking_feedforward_angular_velocity_scale_factor: 0.6 # 0.5
+## ----------------------------------------------------------------------------------------
 
-## -------------------------------------------------------
+## ------------------------------------------------------------------------------------------------------
 ## Path planning parameters for the Tesseract Path Planning
 # The path planning is done using the Tesseract library
 # The path is generated between the target pose and the current pose of the robot
-
-# Saving directory of Initial and Target states of the tent pole for the path planning
-# The position and orientation of the each segment of the tent pole is saved as a state
-# as a csv file in this directory
-state_saving_directory: "~/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/"
 
 # Tesseract uses the GeneralResourceLocator to find resources on the file system. The GeneralResourceLocator
 # uses the TESSERACT_RESOURCE_PATH environmental variable.
 tesseract_resource_path: "~/catkin_ws_deformable/src/"
 
-# Tesseract uses a simplified version of the tent pole as a robot model
-# This robot model is a floating 6 DOF frame controlled with a 3 DOF prismatic joint and a 3 DOF revolute joint
-# Then this frame is attached to the center of the tent pole
-# The tent pole can be simplified as a rigid link or a chain of rigid links that are connected with revolute joints
-# The design of the tent pole is defined in the tesseract tent pole urdf file
-# tesseract_tent_pole_urdf: "package://deformable_description/urdf/pole_1_links_6DOF/pole_1_links.urdf"
-tesseract_tent_pole_urdf: "package://deformable_description/urdf/pole_2_links_7DOF/pole_2_links.urdf"
-# tesseract_tent_pole_urdf: "package://deformable_description/urdf/pole_2_links_9DOF/pole_2_links.urdf"
+## SPECIFY THE URDF FILE FOR THE TENT POLE
+## Explanation: 
+## - Tesseract uses a simplified version of the tent pole as a robot model#
+## - This robot model is a floating 6 DOF frame controlled with a 3 DOF prismatic joint and a 3 DOF revolute joint
+## - Then this frame is attached to the center of the tent pole
+## - The tent pole can be simplified as a rigid link or a chain of rigid links that are connected with revolute joints
+## - The design of the tent pole is defined in the tesseract tent pole urdf file
+## IMPORTANT: AUTOMATIC DLO URDF GENERATION FEATURE
+##            If tesseract_tent_pole_urdf is not specified, dlo_urdf_creator is used to create the URDF automatically, 
+##            and the number of links are automically determined by initial and target poses of the tent pole dependingon the collision scene.
+##            The default maximum number of links is the number of segments in the tent pole simulation
+##            however, using more links may cause the path planning to be slower. 
+##            Therefore, it may be useful to specify the maximum number of links allowed for the automatic creation.
 
-# Tesseract also requires an srdf file that supports the planning of the tent pole
-# The srdf file defines the planning groups, the allowed collision matrix, etc.
+tesseract_tent_pole_urdf: "" # If not specified, dlo_urdf_creator is used to create the URDF automatically
+
+# tesseract_tent_pole_urdf: "package://deformable_description/urdf/pole_1_links_6DOF/pole_1_links.urdf"
+# tesseract_tent_pole_urdf: "package://deformable_description/urdf/pole_2_links_7DOF/pole_2_links.urdf"
+# tesseract_tent_pole_urdf: "package://deformable_description/urdf/pole_2_links_9DOF/pole_2_links.urdf"
+# tesseract_tent_pole_urdf: "package://deformable_description/urdf/poles_mingrui_yu/pole_1_links_6DOF/pole_1_links.urdf"
+# tesseract_tent_pole_urdf: "package://deformable_description/urdf/poles_mingrui_yu/pole_2_links_7DOF/pole_2_links.urdf"
+# tesseract_tent_pole_urdf: "package://deformable_description/urdf/poles_mingrui_yu/pole_2_links_9DOF/pole_2_links.urdf"
+
+# Maximum number of links allowed for the automatic creation of the URDF
+# If not specified, or specified as a non positive number, the number of segments in the tent pole simulation is used.
+# If specified number is more than the number of segments in the tent pole simulation, 
+# the number of segments in the tent pole simulation is used with a warning.
+automatic_tent_pole_max_links: 10 
+
+## SPECIFY THE SRDF FILE FOR THE TENT POLE
+## Explanation: 
+## - Tesseract also requires an srdf file that supports the planning of the tent pole
+## - The srdf file defines the planning groups, the allowed collision matrix, etc.
+## IMPORTANT: AUTOMATIC DLO URDF GENERATION FEATURE
+##            If dlo_urdf_creator is used to create the URDF automatically, the SRDF file should be specified manually
+##            as the generic srdf file specified with the `pole_automatic.srdf` file. 
+##            The disable_collisions tags are dynamically handled within the planner
+
+tesseract_tent_pole_srdf: "package://deformable_description/urdf/pole_automatic/pole_automatic.srdf" # generic srdf file for the automatic creation of the URDF. The disable_collisions tags are dynamically handled within the planner.
+
 # tesseract_tent_pole_srdf: "package://deformable_description/urdf/pole_1_links_6DOF/pole_1_links.srdf"
-tesseract_tent_pole_srdf: "package://deformable_description/urdf/pole_2_links_7DOF/pole_2_links.srdf"
+# tesseract_tent_pole_srdf: "package://deformable_description/urdf/pole_2_links_7DOF/pole_2_links.srdf"
 # tesseract_tent_pole_srdf: "package://deformable_description/urdf/pole_2_links_9DOF/pole_2_links.srdf"
+# tesseract_tent_pole_srdf: "package://deformable_description/urdf/poles_mingrui_yu/pole_1_links_6DOF/pole_1_links.srdf"
+# tesseract_tent_pole_srdf: "package://deformable_description/urdf/poles_mingrui_yu/pole_2_links_7DOF/pole_2_links.srdf"
+# tesseract_tent_pole_srdf: "package://deformable_description/urdf/poles_mingrui_yu/pole_2_links_9DOF/pole_2_links.srdf"
+
 
 ## SPECIFY THE TCP FRAME, MANIPULATOR GROUP AND MANIPULATOR WORKING FRAME 
 tesseract_tent_pole_tcp_frame: "tool0" # The name of the tool center point frame in the tent pole urdf file
@@ -109,6 +184,18 @@ tesseract_tent_pole_manipulator_working_frame: "base_link" # The name of the wor
 ## SPECIFY IF THE DEFAULT TESSERACT VIEWER IS USED
 # If True, the default tesseract viewer is also used to visualize the planning scene through http://localhost:8000/
 tesseract_use_default_viewer: True # default: False 
+## ------------------------------------------------------------------------------------------------------
+
+## ------------------------------------------------------------------------------------------------------
+## Parameters for the Experiments with pre-saved paths
+
+# Scene of the experiment, we use Mingrui Yu's scenes (1,2,3,4)
+experiments_scene_id: "1" 
+# The pre-saved experiments has a range, e.g 1-100, in the directory make sure the paths exist given this range
+experiments_range: [1,3]
+# Given the directory below we assume there exists sub folders with names "scene_<experiments_scene_id>"
+experiments_saved_paths_directory: "~/catkin_ws_deformable/src/deformable_manipulations_tent_building/src/tesseract_planner/generated_plans_i9_10885h"
+## ------------------------------------------------------------------------------------------------------
 
 ## -------------------------------------------------------
 ## Obstacle avoidance parameters
@@ -156,5 +243,4 @@ c3_alpha_ft: [90.0, 90.0, 90.0, 30.0, 30.0, 30.0] # linear slope if h < 0 # Incr
 # c3_alpha_ft: [200.0, 200.0, 200.0, 30.0, 30.0, 30.0] # linear slope if h < 0 # Increase this to remove the offset violation more agressively
 # c3_alpha_ft: [400.0, 400.0, 400.0, 30.0, 30.0, 30.0] # linear slope if h < 0 # Increase this to remove the offset violation more agressively
 # c3_alpha_ft: [70.0, 70.0, 70.0, 90.0, 90.0, 90.0] # SEEMS TOO AGRESSIVE FOR Tx,Ty,Tz
-
 ## -------------------------------------------------------

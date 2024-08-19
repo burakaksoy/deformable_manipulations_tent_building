@@ -8,7 +8,7 @@ set_sim_rate_auto: false  # to set the simulation rate and dt automaticall, do n
 num_substeps: 40 # 40  #40 # Number of substeps per iteration based on 2019 Small Steps XPBD paper.
 num_steps: 1 # experimental only. do not change from 1
 
-dlo_l: 3.3528 # 2.25 # 3.3528 # dlo length in meters
+dlo_l: 0.5 # 2.25 # 3.3528 # dlo length in meters
 dlo_r: 0.0035 # 0.0035 # 0.0035 # dlo radius in meters
 dlo_density: 1792.89 # dlo mass per meter cube (kg/m^3)
 dlo_num_segments: 40 # max 45 # number of segment in dlo (int)
@@ -30,14 +30,34 @@ use_zero_stretch_stiffness: true
 global_damp_coeff_v: 1.1e-0 # 1.1e-0 # 9.9e-1 # 5.9e-1 # 0.0 # 5.9e-1 # 2.1e-4; // 0.9e-3
 global_damp_coeff_w: 1.1e-0 # 0.9e-1 # 0.9e-2 # 0.9e-3 # 0.0 # 0.9e-3 # 2.1e-4;
 
+## DLO INITIAL TRANSFORMATIONS 
 # DLO Initial Transformations (By Default, the dlo is laying in +y-axis to -y-axis direction centered at the origin)
 # initial_height: 0.0 # initial dlo height from ground (m) (Deprecated, use dlo_translation instead)
-dlo_translation: [0, 1, 1.5] # [0.675, 0.0, 2.0] # [0.33, 0.37, 2.2] # [0, 0, 0]
+
+# mingruiyu scene 1
+dlo_translation: [0.25, 0, 0.1] 
 dlo_rotationAxis: [0, 0, 1] # [1, 0, 0]
-dlo_rotationAngle: 1.5708 # 1.508 # 1.5708 # Radians
+dlo_rotationAngle: 0.0 # Radians
+
+# # mingruiyu scene 2
+# dlo_translation: [0.0, 0, 0.3] 
+# dlo_rotationAxis: [0, 0, 1] # [1, 0, 0]
+# dlo_rotationAngle: -1.5708 # Radians
+
+# # mingruiyu scene 3
+# dlo_translation: [0, 0, 0.45] 
+# dlo_rotationAxis: [0, 0, 1] # [1, 0, 0]
+# dlo_rotationAngle: 0.0 # Radians
+
+# # mingruiyu scene 4
+# dlo_translation: [-0.05, 0.05, 0.1] 
+# dlo_rotationAxis: [0, 0, 1] # [1, 0, 0]
+# dlo_rotationAngle: -1.5708 # Radians
+
+
 # dlo_scale: [1, 1, 1] # NOT USED, use dlo_l and dlo_r parameters instead
 
-custom_static_particles: [5,34] # [0,39] # [5,34] # [0,27] # specify the particle (segment) ids to set as static
+custom_static_particles: [0,39] # [0,39] # [5,34] # [0,27] # specify the particle (segment) ids to set as static
 # Note: we also create an odom subscriber for each custom static particle to update their poses online.
 # Note: The specified ids must be in range of "dlo_num_segments" parameter.
 
@@ -61,20 +81,32 @@ dlo_state_pub_rate: 50.0 # Hz, frequency to publish dlo state as a feedback to s
 rendering_rb_rate: 5.0 # Hz, frequency to publish the rigid body meshes to RVIZ visualization markers
 min_dist_to_rb_pub_rate: 50.0 # Hz, frequency to publish minimum distances to the rigid bodies 
 
-# Rigid body scene .json file, If empty, no rigid bodies exist in the simulator
+## RIGID BODY SCENE .json FILE PATH
+# If empty, no rigid bodies exist in the simulator
 # rb_scene_config_path: ""
+
+# Scenes for Tent Building
 # rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/DloOnCube_5.json
 # rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/DloOnCylinderUnitBox.json
 # rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/DloOnCylinderVaseUnitBox.json
 # rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/DloOnFloor.json
 # rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/TentBuilding.json
-rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/l_shape_corridor_width_0.8.json
+
+# Scenes for Corridor Maneuver
+# rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/l_shape_corridor_width_0.8.json
 # rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/l_shape_corridor_width_0.9.json
 # rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/l_shape_corridor_width_1.0.json
 # rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/l_shape_corridor_width_1.0_simplified.json
 # rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/l_shape_corridor_width_1.1.json
 # rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/l_shape_corridor_width_1.2.json
 
+# Scenes for Mingrui Yu comparisons
+# rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/scene_mingruiyu_0.json
+rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/scene_mingruiyu_1.json
+# rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/scene_mingruiyu_2.json
+# rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/scene_mingruiyu_3.json
+# rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/scene_mingruiyu_4.json
+# rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/scene_mingruiyu_5.json
 
 # DLO VISUALIZATION RELATED PARAMETERS
 

@@ -32,6 +32,8 @@ from scipy.spatial import KDTree
 
 from tesseract_planner import TesseractPlanner
 
+from presaved_paths_experiments_manager import PresavedPathsExperimentsManager
+
 # Set print options to reduce precision and increase line width
 np.set_printoptions(precision=2, linewidth=200)
 
@@ -182,6 +184,15 @@ class VelocityControllerNode:
         for i, particle in enumerate(self.tip_particles):
             self.target_poses[particle] = self.calculate_pose_msg(target_poses_basic[i])
 
+        # Full initial and target states of the deformable object if they are provided in the parameters
+        self.initial_state_file = rospy.get_param("~initial_state_file", "")
+        self.target_state_file = rospy.get_param("~target_state_file", "")
+        # Load the initial and target states if they are provided
+        if self.initial_state_file:
+            assert self.load_state("initial", self.initial_state_file)
+        if self.target_state_file:
+            assert self.load_state("target", self.target_state_file)
+
         ## ----------------------------------------------------------------------------------------
         ## SETUP FOR DEFORMABLE OBJECT STATE READINGS FROM SIMULATION PERTURBATIONS
 
@@ -305,15 +316,15 @@ class VelocityControllerNode:
             self.subs_min_distance_dth_x[particle] = rospy.Subscriber(min_distance_dth_x_topic_name, MinDistanceDataArray, self.min_distance_array_dth_x_callback, particle, queue_size=10)
             self.subs_min_distance_dth_y[particle] = rospy.Subscriber(min_distance_dth_y_topic_name, MinDistanceDataArray, self.min_distance_array_dth_y_callback, particle, queue_size=10)
             self.subs_min_distance_dth_z[particle] = rospy.Subscriber(min_distance_dth_z_topic_name, MinDistanceDataArray, self.min_distance_array_dth_z_callback, particle, queue_size=10)
-
         ## ----------------------------------------------------------------------------------------
 
         ## ----------------------------------------------------------------------------------------
         ### Path planning parameters and variables
         self.path_tracking_control_enabled = rospy.get_param("~path_tracking_control_enabled", True)
         self.path_planning_tesseract_enabled = rospy.get_param("~path_planning_tesseract_enabled", False)
+        self.path_planning_pre_saved_paths_enabled = rospy.get_param("~path_planning_pre_saved_paths_enabled", False)
                     
-        if self.path_planning_tesseract_enabled:
+        if self.path_planning_tesseract_enabled and not self.path_planning_pre_saved_paths_enabled:
             
             # Get deformable object simulator scene json file path from the ROS parameter server
             self.rb_scene_config_path = None
@@ -393,9 +404,28 @@ class VelocityControllerNode:
             self.update_path_status_timer_callback_lock = threading.Lock()
             # Create timer to update the path status and tracking
             self.update_path_status_timer = rospy.Timer(rospy.Duration(1. / self.pub_rate_odom), self.update_path_status_timer_callback)
-
+        ## ----------------------------------------------------------------------------------------
+        
+        ## ----------------------------------------------------------------------------------------
+        ## Experiments with pre-saved paths paramaters and variables
+        self.experiments_scene_id = rospy.get_param("~experiments_scene_id", "1")
+        self.experiments_range = rospy.get_param("~experiments_range", [1,100])
+        self.experiments_saved_paths_directory = rospy.get_param("~experiments_saved_paths_directory")
+        
+        # self.experiments_enabled = False # Flag to enable/disable the experiments
+        
+        # Create the service server for enable/disable the experiments
+        self.set_enable_experiments_server = rospy.Service('~set_enable_experiments', SetBool, self.set_enable_experiments)
+        
+        # Create the experiments manager object
+        self.experiments_manager = PresavedPathsExperimentsManager(self, 
+                                                                   self.experiments_scene_id, 
+                                                                   self.experiments_range, 
+                                                                   self.experiments_saved_paths_directory)
+        
         ## ----------------------------------------------------------------------------------------
 
+        ## ----------------------------------------------------------------------------------------
         # Control output wait timeout
         self.valid_control_output_wait_timeout = rospy.get_param("~valid_control_output_wait_timeout", 5.0) # seconds
         if self.valid_control_output_wait_timeout <= 0.0:
@@ -416,6 +446,7 @@ class VelocityControllerNode:
 
         # # Event to control the execution of one callback based on user input
         # self.proceed_event = threading.Event()
+        ## ----------------------------------------------------------------------------------------
 
     #     # Start thread for user input
     #     self.input_thread = threading.Thread(target=self.user_input_thread)
@@ -529,7 +560,6 @@ class VelocityControllerNode:
 
         return dlo_state
         
-    
     def save_state_dict_to_csv(self, state_dict, file_path):
         # Save the state dictionary to a csv file
         # The file path is given as the argument
@@ -541,8 +571,49 @@ class VelocityControllerNode:
 
         # Save the DataFrame to the output file
         df.to_csv(file_path, index=False)
-        
 
+    def read_state_dict_from_csv(self, file):
+        # Load the data from the CSV file
+        df = pd.read_csv(file)
+        
+        # Convert DataFrame to dictionary
+        state_dict = df.to_dict(orient='list')
+        return state_dict
+    
+    def load_state(self, state_type, state_file):
+        # Load the state from the file
+        state_dict = self.read_state_dict_from_csv(state_file)
+        
+        if state_type == "initial":
+            self.initial_full_state_dict = state_dict
+            return True
+        elif state_type == "target":
+            self.target_full_state_dict = state_dict
+            return True
+        else:
+            rospy.logerr("Unknown state type: {}".format(state_type))
+            return False
+    
+    def calculate_state_rmse_error(self, state_dict1, state_dict2):
+        # Calculate the position error between two states
+        # The states are given as dictionaries with the following keys:
+        # 'id', 'p_x', 'p_y', 'p_z', 'o_x', 'o_y', 'o_z', 'o_w'
+        
+        # Convert the dictionaries to numpy arrays
+        state1 = self.convert_state_dict_to_numpy(state_dict1)[:,:3] # Extract the position components
+        state2 = self.convert_state_dict_to_numpy(state_dict2)[:,:3] # Extract the position components
+        
+        # Calculate the error
+        error = state1 - state2 # shape: (n, 3)
+        # Calculate the Root Mean Squared Error (RMSE)
+        rmse = np.sqrt(np.mean(np.linalg.norm(error, axis=1)**2))
+        return rmse 
+    
+    def calculate_final_task_error(self):
+        # Calculate the final task error between the current and target states
+        current_state_dict = self.parse_state_as_dict(self.current_full_state)
+        return self.calculate_state_rmse_error(current_state_dict, self.target_full_state_dict)
+    
     def set_enable_controller(self, request):
         self.controller_enabler(request.data, cause="manual")
         return SetBoolResponse(True, 'Successfully set enabled state to {}'.format(request.data))
@@ -576,6 +647,7 @@ class VelocityControllerNode:
 
             status_msg.stress_avoidance_performance_avr = 0.0
             status_msg.min_distance = float('inf')
+            rospy.loginfo("-------------- Controller is enabled --------------")
         else:
             self.controller_disabled_time = rospy.Time.now()
             # Calculate the duration when the controller is disabled
@@ -587,12 +659,9 @@ class VelocityControllerNode:
 
             # ----------------------------------------------------------------------------------------
             ## Print the performance metrics suitable for a csv file
-            rospy.loginfo("---------------------------- Controller is disabled ----------------------------")
+            rospy.loginfo("-------------- Controller is Disabled --------------")
             rospy.loginfo("Performance metrics (CSV suitable):")
-            rospy.loginfo("Titles: ft_on, collision_on, success, min_distance, rate, duration, stress_avoidance_performance_avr, stress_avoidance_performance_ever_zero, start_time")
-            # print("---------------------------- Controller is disabled ----------------------------")
-            # print("Performance metrics (CSV suitable):")
-            # print("Titles: ft_on, collision_on, success, min_distance, rate, duration, stress_avoidance_performance_avr, stress_avoidance_performance_ever_zero, start_time")
+            rospy.loginfo("Titles: ft_on, collision_on, success, min_distance, rate, duration, stress_avoidance_performance_avr, stress_avoidance_performance_ever_zero, start_time, final_task_error")
 
             ft_on_str = "1" if self.stress_avoidance_enabled else "0"
             collision_on_str = "1" if self.obstacle_avoidance_enabled else "0"
@@ -604,28 +673,30 @@ class VelocityControllerNode:
             stress_avoidance_performance_ever_zero_str = "1" if self.stress_avoidance_performance_ever_zero else "0"
             # Create start time string with YYYY-MM-DD-Hour-Minute-Seconds format for example 2024-12-31-17-41-34
             start_time_str = self.controller_enabled_time_str
+            # Calculate the final task error as RMSE between the current and target states
+            final_task_error_str = str(self.calculate_final_task_error())
 
-            csv_line = "Result: " + ",".join([ft_on_str, collision_on_str, success_str, min_distance_str, rate_str, duration_str, stress_avoidance_performance_avr_str, stress_avoidance_performance_ever_zero_str, start_time_str])
+            execution_results = [ft_on_str, collision_on_str, success_str, min_distance_str, rate_str, duration_str, stress_avoidance_performance_avr_str, stress_avoidance_performance_ever_zero_str, start_time_str,final_task_error_str]
+            csv_line = "Result: " + ",".join(execution_results)
             # Print the csv line green color if the controller is successful else red color
             if (cause == "automatic"):
                 # Print the csv line orange color if stress avoidance performance is ever zero
                 if self.stress_avoidance_performance_ever_zero:
-                    # rospy.loginfo("\033[93m" + csv_line + "\033[0m")
-                    rospy.loginfo(csv_line)
-                    # print(csv_line)
+                    rospy.loginfo("\033[93m" + csv_line + "\033[0m")
+                    # rospy.loginfo(csv_line)
                 else:
                     # Print the csv line green color if the controller is successful and stress avoidance performance is never zero
-                    # rospy.loginfo("\033[92m" + csv_line + "\033[0m")
-                    rospy.loginfo(csv_line)
-                    # print(csv_line)
+                    rospy.loginfo("\033[92m" + csv_line + "\033[0m")
+                    # rospy.loginfo(csv_line)
             else:
-                # rospy.loginfo("\033[91m" + csv_line + "\033[0m")
-                rospy.loginfo(csv_line)
-                # print(csv_line)
+                rospy.loginfo("\033[91m" + csv_line + "\033[0m")
+                # rospy.loginfo(csv_line)
             # ----------------------------------------------------------------------------------------
 
             # Reset the planned path variables
             self.reset_planned_path_variables()
+            
+            self.experiments_manager.end_experiment(cause=cause, execution_results=execution_results)
 
         
         # Publish the status message
@@ -1198,7 +1269,7 @@ class VelocityControllerNode:
         # init_t = time.time() # For timing
         try:
             # problem.solve() # Selects automatically
-            problem.solve(solver=cp.CLARABEL) #  
+            # problem.solve(solver=cp.CLARABEL) #  
             # problem.solve(solver=cp.CLARABEL, tol_gap_abs=1e-4, tol_gap_rel=1e-4, tol_feas=1e-4) #  
             # problem.solve(solver=cp.CVXOPT) # (warm start capable)
             # problem.solve(solver=cp.ECOS) # 
@@ -1209,7 +1280,7 @@ class VelocityControllerNode:
             # problem.solve(solver=cp.MOSEK) # Encountered unexpected exception importing solver CBC
             # problem.solve(solver=cp.OSQP, eps_abs=1e-4, eps_rel=1e-4, time_limit=(3./ self.pub_rate_odom), warm_starting=True) #  (default) (warm start capable)
             # problem.solve(solver=cp.OSQP, eps_abs=1e-5, eps_rel=1e-3) #  (default) (warm start capable)
-            # problem.solve(solver=cp.OSQP) #  (default) (warm start capable)
+            problem.solve(solver=cp.OSQP) #  (default) (warm start capable)
             # problem.solve(solver=cp.PDLP) # NOT SUITABLE
             # problem.solve(solver=cp.SCIPY) # NOT SUITABLE 
             # problem.solve(solver=cp.SCS) # (warm start capable)
@@ -1915,7 +1986,7 @@ class VelocityControllerNode:
                 ## ----------------------------------------------------------------------------------------------
                 if self.path_planning_tesseract_enabled:
                     ## ----------------------------------------------------------------------------------------------
-                    if (not self.planned_path):
+                    if (not self.planned_path) and (not self.path_planning_pre_saved_paths_enabled):
                         """
                         Calculate the tesseract planned path
                         """
@@ -1976,6 +2047,26 @@ class VelocityControllerNode:
             finally:
                 self.update_path_status_timer_callback_lock.release()  
                 # pass      
+
+    def set_path(self, path_variables):
+        """
+        Sets the path variables.
+        """
+        rospy.loginfo("Setting the path variables.")
+        
+        (self.planned_path,
+        self.planned_path_points,
+        self.planned_path_cumulative_lengths,
+        self.planned_path_cumulative_rotations,
+        self.planned_path_direction_vectors,
+        self.planned_path_rotation_vectors,
+        self.planned_path_of_particles,
+        self.planned_path_points_of_particles,
+        self.planned_path_cumulative_lengths_of_particles,
+        self.planned_path_cumulative_rotations_of_particles,
+        self.planned_path_direction_vectors_of_particles,
+        self.planned_path_rotation_vectors_of_particles) = path_variables
+        return
             
     def calculate_centroid_pose_of_target_poses(self):
         """
@@ -2252,6 +2343,23 @@ class VelocityControllerNode:
             current_target_point_of_particle.point = pose.position
             self.info_pub_planned_path_current_target_point_particles[particle].publish(current_target_point_of_particle) # Publish the current target point of the particle
 
+    ## ----------------------------------------------------------------------------------------
+    
+    ## ----------------------------------------------------------------------------------------
+    ## -------------------------- EXPERIMENTS WITH PRE-SAVED PATHS ----------------------------
+    def set_enable_experiments(self, request):
+        self.experiments_enabler(request.data, cause="manual")
+        return SetBoolResponse(True, 'Successfully set Experiments enabled state to {}'.format(request.data))
+    
+    def experiments_enabler(self, enable, cause="manual"):
+        if enable:
+            self.experiments_manager.start_next_experiment()
+            rospy.loginfo("Experiments enabled by " + cause + ".")
+            
+        else:
+            self.controller_enabler(False, cause="manual")
+            rospy.loginfo("Experiments disabled by " + cause + ".")
+                    
     ## ----------------------------------------------------------------------------------------
 
 if __name__ == "__main__":
