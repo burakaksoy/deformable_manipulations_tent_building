@@ -1765,8 +1765,13 @@ while (simplified_dlo_num_segments <= max_simplified_dlo_num_segments
                                     kin_group)
             
         # Calculate the ompl_path length as average of the ompl_path lengths of the centroid and the holding points
-        ompl_path_length = ompl_path_cumulative_lengths[-1]
-        i = 1.0
+        
+        ompl_path_length = ompl_path_cumulative_lengths[-1] # Use this if the centroid is also included
+        i = 1.0 # Use this if the centroid is also included 
+        
+        # ompl_path_length = 0.0 # Initialize the ompl_path length # Use this if the centroid is NOT included
+        # i = 0.0 # Use this if the centroid is NOT included
+        
         for id in full_dlo_holding_segment_ids:
             ompl_path_length += ompl_path_cumulative_lengths_of_particles[id][-1]
             i += 1.0
@@ -1976,8 +1981,13 @@ while (simplified_dlo_num_segments <= max_simplified_dlo_num_segments
                                     kin_group)
             
         # Calculate the trajopt_path length as average of the trajopt_path lengths of the centroid and the holding points
-        trajopt_path_length = trajopt_path_cumulative_lengths[-1]
-        i = 1.0
+        
+        trajopt_path_length = trajopt_path_cumulative_lengths[-1] # Use this if the centroid is also included
+        i = 1.0 # Use this if the centroid is also included
+        
+        # trajopt_path_length = 0.0 # Initialize the ompl_path length # Use this if the centroid is NOT included
+        # i = 0.0 # Use this if the centroid is NOT included
+        
         for id in full_dlo_holding_segment_ids:
             trajopt_path_length += trajopt_path_cumulative_lengths_of_particles[id][-1]
             i += 1.0
