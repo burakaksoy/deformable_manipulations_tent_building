@@ -196,7 +196,6 @@ def add_MinLengthProfile(profiles, name, length=100):
 
     ProfileDictionary_addProfile_MinLengthProfile(profiles, MINLENGTH_DEFAULT_NAMESPACE, name, min_length_profile)
     
-
 def add_TrajOptPlanProfile(profiles, name, num_joints):
     """Add a TrajOptPlanProfile to the ProfileDictionary
 
@@ -219,8 +218,13 @@ def add_TrajOptPlanProfile(profiles, name, num_joints):
     # trajopt_plan_profile.joint_coeff = np.array([0,0,0,0,0,0,0], dtype=np.float64)
     
     joint_coeff = np.ones(num_joints, dtype=np.float64)
-    joint_coeff[:3] = 1000 # x, y, z
-    joint_coeff[3:5] = 100 # rx, ry of the initial segment orientation
+    # joint_coeff[:2] = 2 # x, y
+    # joint_coeff[2] = 1 # z
+    # joint_coeff[3:6] = 1 # rx, ry, rz of the initial segment orientation
+    # if num_joints > 6:
+    #     joint_coeff[6::3] = 10 # rx of the internal joints
+    #     joint_coeff[7::3] = 10 # ry of the internal joints
+    #     joint_coeff[8::3] = 100 # rz of the internal joints
     trajopt_plan_profile.joint_coeff = joint_coeff
 
     # trajopt_plan_profile.constraint_error_functions # ???
@@ -243,29 +247,29 @@ def add_TrajOptPlanProfile(profiles, name, num_joints):
     trajopt_composite_profile = TrajOptDefaultCompositeProfile()
 
     trajopt_composite_profile.collision_cost_config.enabled = True # If true, a collision cost term will be added to the problem. Default: true*/
-    trajopt_composite_profile.collision_cost_config.use_weighted_sum = False # Use the weighted sum for each link pair. This reduces the number equations added to the problem. If set to true, it is recommended to start with the coeff set to one Default: false*/
-    trajopt_composite_profile.collision_cost_config.safety_margin = 0.005 # 0.025 # 0.0150 # 2.5cm #  Max distance in which collision costs will be evaluated. Default: 0.025*/
-    trajopt_composite_profile.collision_cost_config.safety_margin_buffer = 0.01 # Distance beyond buffer_margin in which collision optimization will be evaluated. This is set to 0 by default (effectively disabled) for collision costs.
+    trajopt_composite_profile.collision_cost_config.use_weighted_sum = True # Use the weighted sum for each link pair. This reduces the number equations added to the problem. If set to true, it is recommended to start with the coeff set to one Default: false*/
+    trajopt_composite_profile.collision_cost_config.safety_margin = 0.015 # 0.005 # 0.025 # 0.0150 # 2.5cm #  Max distance in which collision costs will be evaluated. Default: 0.025*/
+    trajopt_composite_profile.collision_cost_config.safety_margin_buffer = 0.0 # 0.01 # Distance beyond buffer_margin in which collision optimization will be evaluated. This is set to 0 by default (effectively disabled) for collision costs.
     trajopt_composite_profile.collision_cost_config.type = CollisionEvaluatorType_DISCRETE_CONTINUOUS # The evaluator type that will be used for collision checking. # SINGLE_TIMESTEP, DISCRETE_CONTINUOUS, CAST_CONTINUOUS. Default: DISCRETE_CONTINUOUS
     # trajopt_composite_profile.collision_cost_config.type = CollisionEvaluatorType_SINGLE_TIMESTEP # The evaluator type that will be used for collision checking. # SINGLE_TIMESTEP, DISCRETE_CONTINUOUS, CAST_CONTINUOUS. Default: DISCRETE_CONTINUOUS
     trajopt_composite_profile.collision_cost_config.coeff = 10 #0.1 # The collision coeff/weight. Default: 20*/
 
     trajopt_composite_profile.collision_constraint_config.enabled = True # If true, a collision cost term will be added to the problem. Default: true
-    trajopt_composite_profile.collision_constraint_config.use_weighted_sum = False # Use the weighted sum for each link pair. This reduces the number equations added to the problem. If set to true, it is recommended to start with the coeff set to one. Default: false
+    trajopt_composite_profile.collision_constraint_config.use_weighted_sum = True # Use the weighted sum for each link pair. This reduces the number equations added to the problem. If set to true, it is recommended to start with the coeff set to one. Default: false
     trajopt_composite_profile.collision_constraint_config.safety_margin = 0.001 # 0.01 # 0.016 # Max distance in which collision costs will be evaluated. Default: 0.01
-    trajopt_composite_profile.collision_constraint_config.safety_margin_buffer = 0.005 # 0.051 # Distance beyond buffer_margin in which collision optimization will be evaluated. Default: 0.05
+    trajopt_composite_profile.collision_constraint_config.safety_margin_buffer = 0.001 # 0.051 # Distance beyond buffer_margin in which collision optimization will be evaluated. Default: 0.05
     trajopt_composite_profile.collision_constraint_config.type = CollisionEvaluatorType_DISCRETE_CONTINUOUS # The evaluator type that will be used for collision checking. # SINGLE_TIMESTEP, DISCRETE_CONTINUOUS, CAST_CONTINUOUS. Default: DISCRETE_CONTINUOUS
     # trajopt_composite_profile.collision_constraint_config.type = CollisionEvaluatorType_SINGLE_TIMESTEP # The evaluator type that will be used for collision checking. # SINGLE_TIMESTEP, DISCRETE_CONTINUOUS, CAST_CONTINUOUS. Default: DISCRETE_CONTINUOUS
     trajopt_composite_profile.collision_constraint_config.coeff = 50 #20 # The collision coeff/weight. Default: 20
 
     # The type of contact test to perform: FIRST, CLOSEST, ALL. Default: ALL
     # trajopt_composite_profile.contact_test_type = ContactTestType_ALL # ContactTestType_CLOSEST 
-    trajopt_composite_profile.contact_test_type = ContactTestType_CLOSEST 
+    # trajopt_composite_profile.contact_test_type = ContactTestType_ALL
 
     trajopt_composite_profile.smooth_velocities = True # If true, a joint velocity cost with a target of 0 will be applied for all timesteps Default: true
     # trajopt_composite_profile.velocity_coeff = np.array([10, 10, 1, 100, 100, 100, 1], dtype=np.float64) # This default to all ones, but allows you to weight different joints differently. Default: Eigen::VectorXd::Ones(num_joints)
 
-    trajopt_composite_profile.smooth_accelerations = False # If true, a joint acceleration cost with a target of 0 will be applied for all timesteps Default: false
+    trajopt_composite_profile.smooth_accelerations = True # If true, a joint acceleration cost with a target of 0 will be applied for all timesteps Default: false
     # trajopt_composite_profile.acceleration_coeff = np.array([1], dtype=np.float64) # This default to all ones, but allows you to weight different joints differently. Default: Eigen::VectorXd::Ones(num_joints)
 
     trajopt_composite_profile.smooth_jerks = False # If true, a joint jerk cost with a target of 0 will be applied for all timesteps Default: false
@@ -274,10 +278,10 @@ def add_TrajOptPlanProfile(profiles, name, num_joints):
     trajopt_composite_profile.avoid_singularity = False #  If true, applies a cost to avoid kinematic singularities. Default: false
     trajopt_composite_profile.avoid_singularity_coeff = 5.0 # Optimization weight associated with kinematic singularity avoidance. Default: 5.0
 
-    trajopt_composite_profile.longest_valid_segment_fraction = 0.01 # Set the resolution at which state validity needs to be verified in order for a motion between two states to be considered valid in post checking of trajectory returned by trajopt. The resolution is equal to longest_valid_segment_fraction * state_space.getMaximumExtent(). Default: 0.01
+    trajopt_composite_profile.longest_valid_segment_fraction = 0.5 # Set the resolution at which state validity needs to be verified in order for a motion between two states to be considered valid in post checking of trajectory returned by trajopt. The resolution is equal to longest_valid_segment_fraction * state_space.getMaximumExtent(). Default: 0.01
     # Note: The planner takes the conservative of either longest_valid_segment_fraction or longest_valid_segment_length.
 
-    trajopt_composite_profile.longest_valid_segment_length = 0.1 # Set the resolution at which state validity needs to be verified in order for a motion between two states to be considered valid. If norm(state1 - state0) > longest_valid_segment_length. Default: 0.1
+    trajopt_composite_profile.longest_valid_segment_length = 0.05 # Set the resolution at which state validity needs to be verified in order for a motion between two states to be considered valid. If norm(state1 - state0) > longest_valid_segment_length. Default: 0.1
     # Note: This gets converted to longest_valid_segment_fraction. longest_valid_segment_fraction = longest_valid_segment_length / state_space.getMaximumExtent()
 
     # Arguments: (profile_dictionary, ns, profile_name, profile)
@@ -306,8 +310,8 @@ def add_TrajOptPlanProfile(profiles, name, num_joints):
     # trajopt_solver_profile.opt_info.num_threads = 0 # If greater than one, multi threaded functions are called. Default: 0
     
     trajopt_solver_profile.opt_info.max_iter = 200 # The maximum number of iterations to run the optimization. Default: 40 or 50
-    # trajopt_solver_profile.opt_info.min_approx_improve = 1e-3 # If model improves less than this, exit and report convergence. Default: 1e-4
-    # trajopt_solver_profile.opt_info.min_trust_box_size = 1e-3 # If trust region gets any smaller, exit and report convergence. Default: 1e-4
+    # trajopt_solver_profile.opt_info.min_approx_improve = 1e-5 # If model improves less than this, exit and report convergence. Default: 1e-4
+    # trajopt_solver_profile.opt_info.min_trust_box_size = 1e-5 # If trust region gets any smaller, exit and report convergence. Default: 1e-4
     
     # trajopt_solver_profile.opt_info.max_qp_solver_failures = 3 # Max number of times the QP solver can fail before optimization is aborted. Default: 3, DON'T USE
     
@@ -317,7 +321,6 @@ def add_TrajOptPlanProfile(profiles, name, num_joints):
     ## Solver Profile END
     ####################
     
-
 def add_OMPLDefaultPlanProfile(profiles, name):
     """Add a OMPLDefaultPlanProfile to the ProfileDictionary
 
@@ -428,7 +431,7 @@ def add_OMPLDefaultPlanProfile(profiles, name):
     #* max_solutions (default: 10)
         The max number of solutions. If max solutions are hit it will exit even if other threads are running.
     """
-    ompl_plan_profile.max_solutions = 10 
+    ompl_plan_profile.max_solutions = 10 # 10
     
     """
     #* simplify (default: False)
@@ -474,8 +477,10 @@ def add_OMPLDefaultPlanProfile(profiles, name):
     """
     ompl_plan_profile.planners.clear()
     
-    # range = 0.10 # the maximum distance the tree can extend towards a randomly selected sample in the configuration space during each iteration.
-    range = 0.05 # the maximum distance the tree can extend towards a randomly selected sample in the configuration space during each iteration.
+    # range = 0.15 # the maximum distance the tree can extend towards a randomly selected sample in the configuration space during each iteration.
+    range = 0.15 # the maximum distance the tree can extend towards a randomly selected sample in the configuration space during each iteration.
+    # range = 0.05 # the maximum distance the tree can extend towards a randomly selected sample in the configuration space during each iteration.
+    # range = 0.025 # the maximum distance the tree can extend towards a randomly selected sample in the configuration space during each iteration.
     # Increasing the range may help in reaching the goal faster if the environment has fewer obstacles.
     # Decreasing the range can result in a more detailed path which might be beneficial in cluttered or highly constrained spaces.
     # A large range might cause the algorithm to miss narrow passages, as large steps could overshoot small viable corridors. 
@@ -622,7 +627,6 @@ def add_OMPLDefaultPlanProfile(profiles, name):
 
     ## Plan Profile END
     ####################
-
 # -----------------------------------------------------------------------
 
 
@@ -917,9 +921,9 @@ if (max_simplified_dlo_num_segments < 1):
 # environment_limits_xyz=[-0.5, 0.5, 0, 0.5, -1, 1] # Example # TODO: Must be passed, Default: [-1, 1, -1, 1, -1, 1]
 environment_limits_xyz=[-0.5, 0.5, -0.5, 0.5, 0, 0.6] # Example # TODO: Must be passed, Default: [-1, 1, -1, 1, -1, 1]
 
-# joint_angle_limits_xy_deg=[-90, 90, -180, 180] # Example # TODO: Must be passed, Default: [-90, 90, -180, 180]
-joint_angle_limits_xy_deg=[-45, 45, -45, 45] # Example # TODO: Must be passed, Default: [-90, 90, -180, 180]
-# joint_angle_limits_xy_deg=[-30, 30, -30, 30] # Example # TODO: Must be passed, Default: [-90, 90, -180, 180]
+# joint_angle_limits_xyz_deg=[-90, 90, -180, 180, -10, 10] # Example # TODO: Must be passed, Default: [-90, 90, -180, 180, -10, 10]
+joint_angle_limits_xyz_deg=[-45, 45, -45, 45, -20, 20] # Example # TODO: Must be passed, Default: [-90, 90, -180, 180, -10, 10]
+# joint_angle_limits_xyz_deg=[-30, 30, -30, 30, -10, 10] # Example # TODO: Must be passed, Default: [-90, 90, -180, 180, -10, 10]
 
 # 6.
 approximation_error_threshold = 0.02 # Example # TODO: Must be passed, Default: 0.02
@@ -948,8 +952,8 @@ for simplified_dlo_num_segments in range(10, max_simplified_dlo_num_segments+1):
     # # The approximated DLO state as a list of points (x, y, z) with length equal to num_seg_d + 1. 
     
     # INFO: approximated_state_joint_pos: 
-    # # The joint positions of the modeled DLO as a (3+2N) x 3 numpy array. The first 3 elements are the translational joint 
-    # # angles (x, y, z) and the last 2N elements are the rotational joint angles around x and y axes for each segment respectively.
+    # # The joint positions of the modeled DLO as a (3+3N) x 3 numpy array. The first 3 elements are the translational joint 
+    # # angles (x, y, z) and the last 3N elements are the rotational joint angles around x, y, and z axes for each segment respectively.
     
     # INFO: approximated_state_avg_error:
     # # The average distance error between the original and approximated positions per original segment.
@@ -1058,34 +1062,44 @@ for simplified_dlo_num_segments in range(10, max_simplified_dlo_num_segments+1):
     # -----------------------------------------------------------------------
     # Check the joint angle limits for the initial and target states
     # INFO: Note that in joint pos, the first 3 elements are the translational joint angles (x, y, z)
-    # # and the last 2N elements are the rotational joint angles around x and y axes for each segment respectively.
-    # # But the first 2 angular joint angles are free and not limited.
+    # # and the last 3N elements are the rotational joint angles around x, y and z axes for each segment respectively.
+    # # But the first 3 angular joint angles are free and not limited.
     # # Therfore, 
-    # # ODD numbered indexes after the 5rd index are the x joint angles
-    # # EVEN numbered indexes after the 5rd index are the y joint angles
+    # # Every 3 indexes after the 6th index are the x joint angles
+    # # Every 3 indexes after the 7th index are the y joint angles
+    # # Every 3 indexes after the 8th index are the z joint angles
     print("--------------------------------------------------------------------")
-    print("Joint angle limits [x_min, x_max] (deg): ", joint_angle_limits_xy_deg[0], joint_angle_limits_xy_deg[1])
-    print("Joint angle limits [y_min, y_max] (deg): ", joint_angle_limits_xy_deg[2], joint_angle_limits_xy_deg[3])
-    print("Approximated initial state X joint pos (deg): ", np.rad2deg(initial_approximated_state_joint_pos[5::2]))
-    print("Approximated initial state Y joint pos (deg): ", np.rad2deg(initial_approximated_state_joint_pos[6::2]))
-    print("Approximated target state X joint pos (deg): ", np.rad2deg(target_approximated_state_joint_pos[5::2]))
-    print("Approximated target state Y joint pos (deg): ", np.rad2deg(target_approximated_state_joint_pos[6::2]))
+    print("Joint angle limits [x_min, x_max] (deg): ", joint_angle_limits_xyz_deg[0], joint_angle_limits_xyz_deg[1])
+    print("Joint angle limits [y_min, y_max] (deg): ", joint_angle_limits_xyz_deg[2], joint_angle_limits_xyz_deg[3])
+    print("Joint angle limits [z_min, z_max] (deg): ", joint_angle_limits_xyz_deg[4], joint_angle_limits_xyz_deg[5])
+    print("Approximated initial state X joint pos (deg): ", np.rad2deg(initial_approximated_state_joint_pos[6::3]))
+    print("Approximated initial state Y joint pos (deg): ", np.rad2deg(initial_approximated_state_joint_pos[7::3]))
+    print("Approximated initial state Z joint pos (deg): ", np.rad2deg(initial_approximated_state_joint_pos[8::3]))
+    print("Approximated target state X joint pos (deg): ", np.rad2deg(target_approximated_state_joint_pos[6::3]))
+    print("Approximated target state Y joint pos (deg): ", np.rad2deg(target_approximated_state_joint_pos[7::3]))
+    print("Approximated target state Z joint pos (deg): ", np.rad2deg(target_approximated_state_joint_pos[8::3]))
     
-    if (initial_approximated_state_joint_pos[5::2].min() < np.deg2rad(joint_angle_limits_xy_deg[0]) or
-        initial_approximated_state_joint_pos[5::2].max() > np.deg2rad(joint_angle_limits_xy_deg[1]) or
-        initial_approximated_state_joint_pos[6::2].min() < np.deg2rad(joint_angle_limits_xy_deg[2]) or
-        initial_approximated_state_joint_pos[6::2].max() > np.deg2rad(joint_angle_limits_xy_deg[3])):
-        print("\nSkipping the current simplified_dlo_num_segments: ", simplified_dlo_num_segments)
-        print("Reason: Initial state is out of the joint angle limits")
-        continue
+    if len(initial_approximated_state_joint_pos) > 6: 
+        if (initial_approximated_state_joint_pos[6::3].min() < np.deg2rad(joint_angle_limits_xyz_deg[0]) or
+            initial_approximated_state_joint_pos[6::3].max() > np.deg2rad(joint_angle_limits_xyz_deg[1]) or
+            initial_approximated_state_joint_pos[7::3].min() < np.deg2rad(joint_angle_limits_xyz_deg[2]) or
+            initial_approximated_state_joint_pos[7::3].max() > np.deg2rad(joint_angle_limits_xyz_deg[3]) or
+            initial_approximated_state_joint_pos[8::3].min() < np.deg2rad(joint_angle_limits_xyz_deg[4]) or
+            initial_approximated_state_joint_pos[8::3].max() > np.deg2rad(joint_angle_limits_xyz_deg[5])):
+            print("\nSkipping the current simplified_dlo_num_segments: ", simplified_dlo_num_segments)
+            print("Reason: Initial state is out of the joint angle limits")
+            continue
     
-    if (target_approximated_state_joint_pos[5::2].min() < np.deg2rad(joint_angle_limits_xy_deg[0]) or
-        target_approximated_state_joint_pos[5::2].max() > np.deg2rad(joint_angle_limits_xy_deg[1]) or
-        target_approximated_state_joint_pos[6::2].min() < np.deg2rad(joint_angle_limits_xy_deg[2]) or
-        target_approximated_state_joint_pos[6::2].max() > np.deg2rad(joint_angle_limits_xy_deg[3])):
-        print("\nSkipping the current simplified_dlo_num_segments: ", simplified_dlo_num_segments)
-        print("Reason: Target state is out of the joint angle limits")
-        continue
+    if len(target_approximated_state_joint_pos) > 6:
+        if (target_approximated_state_joint_pos[6::3].min() < np.deg2rad(joint_angle_limits_xyz_deg[0]) or
+            target_approximated_state_joint_pos[6::3].max() > np.deg2rad(joint_angle_limits_xyz_deg[1]) or
+            target_approximated_state_joint_pos[7::3].min() < np.deg2rad(joint_angle_limits_xyz_deg[2]) or
+            target_approximated_state_joint_pos[7::3].max() > np.deg2rad(joint_angle_limits_xyz_deg[3]) or
+            target_approximated_state_joint_pos[8::3].min() < np.deg2rad(joint_angle_limits_xyz_deg[4]) or
+            target_approximated_state_joint_pos[8::3].max() > np.deg2rad(joint_angle_limits_xyz_deg[5])):
+            print("\nSkipping the current simplified_dlo_num_segments: ", simplified_dlo_num_segments)
+            print("Reason: Target state is out of the joint angle limits")
+            continue
     # -----------------------------------------------------------------------
     
     # Now we need to find a way to add the robot and its SRDF to the environment
@@ -1121,7 +1135,7 @@ for simplified_dlo_num_segments in range(10, max_simplified_dlo_num_segments+1):
                                                             full_dlo_num_segments = full_dlo_num_segments,
                                                             full_dlo_holding_segment_ids = full_dlo_holding_segment_ids,
                                                             environment_limits_xyz = environment_limits_xyz,
-                                                            joint_angle_limits_xy_deg = joint_angle_limits_xy_deg,
+                                                            joint_angle_limits_xyz_deg = joint_angle_limits_xyz_deg,
                                                             model_name = model_name,
                                                             base_link_name = base_link_name,
                                                             tcp_link_name = tcp_link_name,

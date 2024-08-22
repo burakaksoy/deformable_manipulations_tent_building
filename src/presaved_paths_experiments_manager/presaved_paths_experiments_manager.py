@@ -73,7 +73,7 @@ class PresavedPathsExperimentsManager(object):
             self.save_experiment_results(execution_results, self.experiment_number)
             
             # Reverse the executed path
-            self.reverse_executed_path(speed_multiplier=3.0)
+            self.reverse_executed_path(speed_multiplier=2.0)
             
             # Re-apply the initial state
             self.apply_initial_state()
