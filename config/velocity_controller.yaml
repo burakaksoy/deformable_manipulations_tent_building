@@ -3,7 +3,8 @@ nominal_control_enabled: True # default:True
 obstacle_avoidance_enabled: True # default:True 
 stress_avoidance_enabled: True # default:True 
 
-# if the control output is invalid for this time, the controller stops:
+# if the control output is invalid for this time, the controller stops.
+# If set to less than or equal to zero, the controller does not stop.
 valid_control_output_wait_timeout: 5.0 # (seconds) 
 ## ----------------------------------------------------------------------------------------
 
@@ -83,10 +84,22 @@ target_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulation
 max_linear_velocity: 0.2 # 0.2 # 0.1 # [m/s]
 max_angular_velocity: 0.3 # 0.3 # 0.15 # [rad/s]
 
-# Acceptable error for the target pose to stop the controller
-# If the average error is less than this value, the controller stops
-acceptable_pos_err_avr_norm: 0.001 # 0.05 # 0.1 # 0.2 # [m] # note: d_obstacle_offset is added to this value ,NOPE it is not added
-acceptable_ori_err_avr_norm: 0.001 # 0.01 # 0.1 # [rad] 
+# Acceptable error for the target pose to consider the target is reached successfully
+# If the average error is less than this value, the target is not considered as reached
+acceptable_pos_err_avr_norm: 0.01 # 0.05 # 0.1 # 0.2 # [m] # note: d_obstacle_offset is added to this value ,NOPE it is not added
+acceptable_ori_err_avr_norm: 0.05 # 0.01 # 0.1 # [rad] 
+
+# Convergence time limit for the controller
+# If the error changes are less than the convergence thresholds in the last "convergence_wait_timeout" seconds,
+# the controller is considered to be converged or stuck.
+# If set to less than or equal to zero, the controller does not stop.
+convergence_wait_timeout: 5.0 # 10.0 # [s]
+
+# Convergence threshold of the controller
+# If the average error changes less than this value in the last "convergence_wait_timeout" seconds,
+# the controller is considered to be converged or stuck
+convergence_threshold_pos: 1e-5 # 1e-7 [m]
+convergence_threshold_ori: 1e-2 # [rad]
 ## ----------------------------------------------------------------------------------------
 
 ## ----------------------------------------------------------------------------------------
@@ -96,6 +109,10 @@ path_tracking_control_enabled: True # default: True
 path_planning_tesseract_enabled: True # default: False # For Tesseract Path planning
 path_planning_pre_saved_paths_enabled: True # default: False # For Pre-saved Paths
 
+# Is repanning_allowed. If True, replanning is allowed when the controller is converged withouth success (i.e. got stuck)
+replanning_allowed: False # default: True 
+# Maximum number of replanning attempts
+max_replanning_attempts: 3 # default: 3
 
 # Path tracking controller gains [x,y,z, Rx,Ry,Rz]
 # kp_path_tracking: [0.0,0.0,0.0, 0.0,0.0,0.0]
@@ -145,11 +162,6 @@ tesseract_resource_path: "~/catkin_ws_deformable/src/"
 tesseract_tent_pole_urdf: "" # If not specified, dlo_urdf_creator is used to create the URDF automatically
 
 # tesseract_tent_pole_urdf: "package://deformable_description/urdf/pole_1_links_6DOF/pole_1_links.urdf"
-# tesseract_tent_pole_urdf: "package://deformable_description/urdf/pole_2_links_7DOF/pole_2_links.urdf"
-# tesseract_tent_pole_urdf: "package://deformable_description/urdf/pole_2_links_9DOF/pole_2_links.urdf"
-# tesseract_tent_pole_urdf: "package://deformable_description/urdf/poles_mingrui_yu/pole_1_links_6DOF/pole_1_links.urdf"
-# tesseract_tent_pole_urdf: "package://deformable_description/urdf/poles_mingrui_yu/pole_2_links_7DOF/pole_2_links.urdf"
-# tesseract_tent_pole_urdf: "package://deformable_description/urdf/poles_mingrui_yu/pole_2_links_9DOF/pole_2_links.urdf"
 
 # Maximum number of links allowed for the automatic creation of the URDF
 # If not specified, or specified as a non positive number, the number of segments in the tent pole simulation is used.
@@ -169,12 +181,6 @@ automatic_tent_pole_max_links: 10
 tesseract_tent_pole_srdf: "package://deformable_description/urdf/pole_automatic/pole_automatic.srdf" # generic srdf file for the automatic creation of the URDF. The disable_collisions tags are dynamically handled within the planner.
 
 # tesseract_tent_pole_srdf: "package://deformable_description/urdf/pole_1_links_6DOF/pole_1_links.srdf"
-# tesseract_tent_pole_srdf: "package://deformable_description/urdf/pole_2_links_7DOF/pole_2_links.srdf"
-# tesseract_tent_pole_srdf: "package://deformable_description/urdf/pole_2_links_9DOF/pole_2_links.srdf"
-# tesseract_tent_pole_srdf: "package://deformable_description/urdf/poles_mingrui_yu/pole_1_links_6DOF/pole_1_links.srdf"
-# tesseract_tent_pole_srdf: "package://deformable_description/urdf/poles_mingrui_yu/pole_2_links_7DOF/pole_2_links.srdf"
-# tesseract_tent_pole_srdf: "package://deformable_description/urdf/poles_mingrui_yu/pole_2_links_9DOF/pole_2_links.srdf"
-
 
 ## SPECIFY THE TCP FRAME, MANIPULATOR GROUP AND MANIPULATOR WORKING FRAME 
 tesseract_tent_pole_tcp_frame: "tool0" # The name of the tool center point frame in the tent pole urdf file

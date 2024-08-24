@@ -138,6 +138,22 @@ class VelocityControllerNode:
 
         self.acceptable_pos_err_avr_norm = rospy.get_param("~acceptable_pos_err_avr_norm", 0.01) # m
         self.acceptable_ori_err_avr_norm = rospy.get_param("~acceptable_ori_err_avr_norm", 0.1) # rad
+        
+        self.pos_err_avr_norm = float('inf') # initialize average norm of the position errors
+        self.ori_err_avr_norm = float('inf') # initialize average norm of the orientation errors
+        self.pos_err_avr_norm_prev = float('inf') # initialize average norm of the previous position errors
+        self.ori_err_avr_norm_prev = float('inf') # initialize average norm of the previous orientation errors
+        
+        self.convergence_wait_timeout = rospy.get_param("~convergence_wait_timeout", 5.0) # seconds
+        if self.convergence_wait_timeout <= 0.0:
+            # set to infinite
+            self.convergence_wait_timeout = float('inf')
+            
+        # Time when the last error change is more than the convergence thresholds
+        self.time_last_error_change_is_valid = rospy.Time.now()
+        
+        self.convergence_threshold_pos = float(rospy.get_param("~convergence_threshold_pos", 1e-6)) # m
+        self.convergence_threshold_ori = float(rospy.get_param("~convergence_threshold_ori", 1e-4)) # rad        
 
         # Particle/Segment ids of the tip points of the tent pole 
         # to be placed into the grommets
@@ -323,7 +339,12 @@ class VelocityControllerNode:
         self.path_tracking_control_enabled = rospy.get_param("~path_tracking_control_enabled", True)
         self.path_planning_tesseract_enabled = rospy.get_param("~path_planning_tesseract_enabled", False)
         self.path_planning_pre_saved_paths_enabled = rospy.get_param("~path_planning_pre_saved_paths_enabled", False)
-                    
+        
+        self.replanning_allowed = rospy.get_param("~replanning_allowed", False)
+        self.max_replanning_attempts = rospy.get_param("~max_replanning_attempts", 3)
+        self.num_replanning_attempts = 0
+        self.is_replanning_needed = False
+
         if self.path_planning_tesseract_enabled and not self.path_planning_pre_saved_paths_enabled:
             
             # Get deformable object simulator scene json file path from the ROS parameter server
@@ -458,21 +479,21 @@ class VelocityControllerNode:
     #         self.proceed_event.set()
 
     # Implement the set_n_save_initial_state and set_n_save_target_state services
-    def set_n_save_initial_state(self, request):
-        result = self.full_states_saver("initial")
+    def set_n_save_initial_state(self, request=None):
+        result = self.full_states_setter_n_saver("initial")
         if result:
             return SetBoolResponse(True, 'Successfully set the initial state of the particles.')
         else:
             return SetBoolResponse(False, 'Failed to set the initial state of the particles.')
 
-    def set_n_save_target_state(self, request):
-        result = self.full_states_saver("target")
+    def set_n_save_target_state(self, request=None):
+        result = self.full_states_setter_n_saver("target")
         if result:
             return SetBoolResponse(True, 'Successfully set the initial state of the particles.')
         else:
             return SetBoolResponse(False, 'Failed to set the initial state of the particles.')
     
-    def full_states_saver(self, state_type):
+    def full_states_setter_n_saver(self, state_type, save=True):
         """
         Saves the states of the particles to a file.
 
@@ -493,15 +514,15 @@ class VelocityControllerNode:
                     # Set the initial state of the particles to the current state
                     self.initial_full_state_dict = self.parse_state_as_dict(self.current_full_state)
                     rospy.loginfo("The initial states of the particles are set.")            
-                    
-                    self.save_state_dict_to_csv(self.initial_full_state_dict, file_path)
+                    if save:
+                        self.save_state_dict_to_csv(self.initial_full_state_dict, file_path)
                     
                 elif state_type == "target":
                     # Set the target state of the particles to the current state
                     self.target_full_state_dict = self.parse_state_as_dict(self.current_full_state)
                     rospy.loginfo("The target states of the particles are set.")
-                    
-                    self.save_state_dict_to_csv(self.target_full_state_dict, file_path)
+                    if save:
+                        self.save_state_dict_to_csv(self.target_full_state_dict, file_path)
                     
                 else:
                     rospy.logerr("Unknown state type: {}".format(state_type))
@@ -647,12 +668,23 @@ class VelocityControllerNode:
 
             status_msg.stress_avoidance_performance_avr = 0.0
             status_msg.min_distance = float('inf')
+            
+            # Reset the number of replanning attempts and the replanning needed flag
+            self.is_replanning_needed = False
+            self.num_replanning_attempts = 0
+            
+            self.pos_err_avr_norm = float('inf') # initialize average norm of the position errors
+            self.ori_err_avr_norm = float('inf') # initialize average norm of the orientation errors
+            self.pos_err_avr_norm_prev = float('inf') # initialize average norm of the previous position errors
+            self.ori_err_avr_norm_prev = float('inf') # initialize average norm of the previous orientation errors
             rospy.loginfo("-------------- Controller is enabled --------------")
         else:
             self.controller_disabled_time = rospy.Time.now()
             # Calculate the duration when the controller is disabled
-            status_msg.total_duration = (self.controller_disabled_time - self.controller_enabled_time).to_sec()
-            status_msg.rate = self.controller_itr / status_msg.total_duration # rate of the controller iterations
+            dur = (self.controller_disabled_time - self.controller_enabled_time).to_sec() # seconds
+            status_msg.total_duration = dur  # seconds
+            # status_msg.total_duration = dur - self.convergence_wait_timeout # seconds
+            status_msg.rate = self.controller_itr / dur # rate of the controller iterations
             
             status_msg.stress_avoidance_performance_avr = self.stress_avoidance_performance_avr
             status_msg.min_distance = self.overall_min_distance_collision
@@ -661,7 +693,7 @@ class VelocityControllerNode:
             ## Print the performance metrics suitable for a csv file
             rospy.loginfo("-------------- Controller is Disabled --------------")
             rospy.loginfo("Performance metrics (CSV suitable):")
-            rospy.loginfo("Titles: ft_on, collision_on, success, min_distance, rate, duration, stress_avoidance_performance_avr, stress_avoidance_performance_ever_zero, start_time, final_task_error")
+            rospy.loginfo("Titles: ft_on, collision_on, success, min_distance, rate, duration, stress_avoidance_performance_avr, stress_avoidance_performance_ever_zero, start_time, final_task_error, is_replanning_needed, num_replanning_attempts")
 
             ft_on_str = "1" if self.stress_avoidance_enabled else "0"
             collision_on_str = "1" if self.obstacle_avoidance_enabled else "0"
@@ -675,8 +707,15 @@ class VelocityControllerNode:
             start_time_str = self.controller_enabled_time_str
             # Calculate the final task error as RMSE between the current and target states
             final_task_error_str = str(self.calculate_final_task_error())
+            is_replanning_needed_str = "1" if self.is_replanning_needed else "0"
+            num_replanning_attempts_str = str(int(self.num_replanning_attempts))
 
-            execution_results = [ft_on_str, collision_on_str, success_str, min_distance_str, rate_str, duration_str, stress_avoidance_performance_avr_str, stress_avoidance_performance_ever_zero_str, start_time_str,final_task_error_str]
+            execution_results = [ft_on_str, collision_on_str, success_str, 
+                                 min_distance_str, rate_str, duration_str, 
+                                 stress_avoidance_performance_avr_str, 
+                                 stress_avoidance_performance_ever_zero_str, 
+                                 start_time_str,final_task_error_str,
+                                 is_replanning_needed_str, num_replanning_attempts_str]
             csv_line = "Result: " + ",".join(execution_results)
             # Print the csv line green color if the controller is successful else red color
             if (cause == "automatic"):
@@ -953,7 +992,7 @@ class VelocityControllerNode:
         for key in list(self.min_distances.keys()):
             if key not in current_ids:
                 self.min_distances[key] = float('inf')
-   
+
     def min_distance_array_dx_callback(self, min_distances_msg, perturbed_particle):
         self.update_min_distances(self.min_distances_dx, min_distances_msg, perturbed_particle)
 
@@ -1314,6 +1353,10 @@ class VelocityControllerNode:
     def update_last_control_output_is_valid_time(self):
         # Take a note of the time when the control output is calculated
         self.time_last_control_output_is_valid = rospy.Time.now()
+        
+    def update_last_error_change_is_valid_time(self):
+        # Take a note of the time when the error changes are above the threshold (valid) 
+        self.time_last_error_change_is_valid = rospy.Time.now()
                         
     def assign_control_outputs(self, control_output):
         for idx_particle, particle in enumerate(self.custom_static_particles):    
@@ -1346,13 +1389,16 @@ class VelocityControllerNode:
         # Calculate the path tracking control outputs
         if self.path_tracking_control_enabled and self.planned_path_current_target_velocities_of_particles:
             # Calculate the error between the current pose and the target pose of the particles
-            err_path_tracking, pos_err_avr_norm, ori_err_avr_norm = self.calculate_path_tracking_error() # 12x1, scalar, scalar
+            (err_path_tracking, 
+            pos_err_avr_norm_path_tracking, 
+            ori_err_avr_norm_path_tracking) = self.calculate_path_tracking_error() # 12x1, scalar, scalar
+            
             # pretty_print_array(err_path_tracking)
             # print("---------------------------")
 
             # # publish error norms for information TODO
-            # self.info_pub_path_tracking_pos_error_avr_norm.publish(Float32(data=pos_err_avr_norm))
-            # self.info_pub_path_tracking_ori_error_avr_norm.publish(Float32(data=ori_err_avr_norm))
+            # self.info_pub_path_tracking_pos_error_avr_norm.publish(Float32(data=pos_err_avr_norm_path_tracking))
+            # self.info_pub_path_tracking_ori_error_avr_norm.publish(Float32(data=ori_err_avr_norm_path_tracking))
 
             control_output = np.squeeze(err_path_tracking) # (12,)
 
@@ -1445,15 +1491,34 @@ class VelocityControllerNode:
             # Increment the controller iteration
             self.controller_itr += 1
             
-            # Calculate the tip errors
-            err_tip, pos_err_avr_norm, ori_err_avr_norm = self.calculate_error_tip() # 12x1, scalar, scalar
+            # ----------------------------------------------------------------------------------------------------
+            ## Calculate the tip errors and update the error norms
+            
+            # Update the previous error norms
+            self.pos_err_avr_norm_prev = self.pos_err_avr_norm
+            self.ori_err_avr_norm_prev = self.ori_err_avr_norm
+            
+            # Calculate the current tip errors
+            (err_tip, 
+            self.pos_err_avr_norm, 
+            self.ori_err_avr_norm) = self.calculate_error_tip() # 12x1, scalar, scalar
+            
             # pretty_print_array(err_tip)
             # print("---------------------------")
-
-            # publish error norms for information
-            self.info_pub_target_pos_error_avr_norm.publish(Float32(data=pos_err_avr_norm))
-            self.info_pub_target_ori_error_avr_norm.publish(Float32(data=ori_err_avr_norm))
             
+            # Update the last error change is valid time if the change in the error norms is above the thresholds
+            if ((np.abs(self.pos_err_avr_norm - self.pos_err_avr_norm_prev) > self.convergence_threshold_pos) or
+                (np.abs(self.ori_err_avr_norm - self.ori_err_avr_norm_prev) > self.convergence_threshold_ori)):
+                self.update_last_error_change_is_valid_time()
+            else:
+                rospy.logwarn("Error norms are not changing. Current changes in error norms:\npos_err_avr_norm: " + str(np.abs(self.pos_err_avr_norm - self.pos_err_avr_norm_prev)) + ", ori_err_avr_norm: " + str(np.abs(self.ori_err_avr_norm - self.ori_err_avr_norm_prev)))
+            
+            # publish error norms for information
+            self.info_pub_target_pos_error_avr_norm.publish(Float32(data=self.pos_err_avr_norm))
+            self.info_pub_target_ori_error_avr_norm.publish(Float32(data=self.ori_err_avr_norm))
+            # ----------------------------------------------------------------------------------------------------
+            
+            # ----------------------------------------------------------------------------------------------------
             if self.path_tracking_control_enabled:
                 if self.planned_path and self.planned_path_current_target_velocities_of_particles:
                     # Calculate path tracking control output
@@ -1475,35 +1540,104 @@ class VelocityControllerNode:
                     control_output = np.zeros(6*len(self.custom_static_particles))    
                     self.assign_control_outputs(control_output)
                     self.update_last_control_output_is_valid_time()
+                    self.update_last_error_change_is_valid_time()
                     return
                 
             else: # if path tracking control is not enabled
                 # Calculate nominal control output
                 control_output = self.calculate_nominal_control_output(err_tip) # (12,)
+            # ----------------------------------------------------------------------------------------------------
                     
+            # ----------------------------------------------------------------------------------------------------  
+            ## Check for the convergence of the controller
 
-            # Check for the arrival to the target pose of the particles 
-            # i.e. Check for the error norms (position and orientation) of the particles
-            # Disable the controller if the error is below the threshold
-            
-            # if (pos_err_avr_norm < (self.acceptable_pos_err_avr_norm+self.d_obstacle_offset)) \
-            if (pos_err_avr_norm < (self.acceptable_pos_err_avr_norm)) \
-                and (ori_err_avr_norm < self.acceptable_ori_err_avr_norm):
+            # Check if the change in error norms are below the thresholds for a long time
+            if (rospy.Time.now() - self.time_last_error_change_is_valid).to_sec() > self.convergence_wait_timeout:
+                # We will either Disable the controller or replan the path depending on some conditions:
                 
-                self.update_last_control_output_is_valid_time()
-                                
-                control_output = np.zeros(6*len(self.custom_static_particles))                
-                self.assign_control_outputs(control_output)
+                ## 1. Check for the arrival to the target pose of the particles 
+                # i.e. Check for the error norms (position and orientation) of the particles, and
+                # disable the controller with success if the errors are below the threshold
                 
-                # call set_enable service to disable the controller
-                self.controller_enabler(enable=False, cause="automatic")
-                # Create green colored log info message
-                # rospy.loginfo("\033[92m" + "Error norms are below the thresholds. The controller is disabled." + "\033[0m")
-                rospy.loginfo("Error norms are below the thresholds.")
+                # if ((self.pos_err_avr_norm < (self.acceptable_pos_err_avr_norm+self.d_obstacle_offset)) and
+                if ((self.pos_err_avr_norm < (self.acceptable_pos_err_avr_norm)) and
+                    (self.ori_err_avr_norm < self.acceptable_ori_err_avr_norm)):
+                    
+                    # Log the current error norms and the acceptable error norms
+                    rospy.loginfo("Current error norms: pos_err_avr_norm: " + str(self.pos_err_avr_norm) + ", ori_err_avr_norm: " + str(self.ori_err_avr_norm))
+                    rospy.loginfo("Acceptable error norms: pos_err_avr_norm: " + str(self.acceptable_pos_err_avr_norm) + ", ori_err_avr_norm: " + str(self.acceptable_ori_err_avr_norm))
+                    
+                    # assign the zero control output to pause the controller
+                    self.update_last_control_output_is_valid_time()
+                    control_output = np.zeros(6*len(self.custom_static_particles))                
+                    self.assign_control_outputs(control_output)
+                    
+                    # call set_enable service to disable the controller
+                    self.controller_enabler(enable=False, cause="automatic")
+                    # Create green colored log info message
+                    # rospy.loginfo("\033[92m" + "Error norms are below the thresholds. The controller is disabled." + "\033[0m")
+                    rospy.loginfo("Success! Error norms are below the acceptible error thresholds.")
+                    return
+
+                ## 2. Else if the replanning is allowed, replan the path
+                elif self.replanning_allowed and self.num_replanning_attempts < self.max_replanning_attempts:                    
+                    rospy.logwarn("Replanning is triggered due to the error norms are not changing.")
+                    
+                    # Log the current error norms and the acceptable error norms
+                    rospy.logwarn("Current error norms: pos_err_avr_norm: " + str(self.pos_err_avr_norm) + ", ori_err_avr_norm: " + str(self.ori_err_avr_norm))
+                    rospy.logwarn("Acceptable error norms: pos_err_avr_norm: " + str(self.acceptable_pos_err_avr_norm) + ", ori_err_avr_norm: " + str(self.acceptable_ori_err_avr_norm))
+                    
+                    # assign the zero control output to pause the controller
+                    self.update_last_control_output_is_valid_time()
+                    control_output = np.zeros(6*len(self.custom_static_particles))
+                    self.assign_control_outputs(control_output)
+                    
+                    # Disable the path planning with pre-saved paths to allow automatic replanning
+                    self.path_planning_pre_saved_paths_enabled = False
+                    
+                    # Update the initial state as the current state w/out saving it
+                    self.full_states_setter_n_saver(state_type="initial", save=False)
+                    
+                    # Resetting the planned path variables will force replanning
+                    # w/out stopping the controller
+                    self.reset_planned_path_variables() 
+                    
+                    # Set the replanning flag and increment the replanning attempts
+                    self.is_replanning_needed = True
+                    self.num_replanning_attempts += 1
+                    return
+                    
+                ## 3. Else (i.e. if the replanning is not allowed or the replanning attempts are exhausted)
+                # disable the controller with a failure 
+                else:
+                    if not self.replanning_allowed:
+                        rospy.logwarn("Replanning is needed however replanning is not allowed.")
+                    elif self.num_replanning_attempts >= self.max_replanning_attempts:
+                        rospy.logwarn("Replanning is needed however maximum replanning attempts are reached.")
+                        
+                    # Log the current error norms and the acceptable error norms
+                    rospy.logwarn("Current error norms: pos_err_avr_norm: " + str(self.pos_err_avr_norm) + ", ori_err_avr_norm: " + str(self.ori_err_avr_norm))
+                    rospy.logwarn("Acceptable error norms: pos_err_avr_norm: " + str(self.acceptable_pos_err_avr_norm) + ", ori_err_avr_norm: " + str(self.acceptable_ori_err_avr_norm))
+                    
+                    rospy.logwarn("The controller is going to be disabled.")
+                    
+                    self.is_replanning_needed = True
+                    
+                    # call set_enable service to disable the controller
+                    self.controller_enabler(enable=False, cause="error norms are not changing")
+                    # Create red colored log info message
+                    # rospy.logerr("\033[91m" + "The controller is disabled due to the error norms are not changing." + "\033[0m")
+                    rospy.logerr("The controller is disabled due to the error norms are not changing.")
+
+                    # assign the zero control output
+                    self.update_last_control_output_is_valid_time()
+                    control_output = np.zeros(6*len(self.custom_static_particles))
+                    self.assign_control_outputs(control_output)
+                    return
+                    
+            else: # The change in error norms are above the thresholds, i.e. not converged yet
+                # Proceed with the safe control output calculations
                 
-                return
-                
-            else: # Not arrived to the target pose of the particles                
                 # init_t = time.time()                
                 
                 # Calculate safe control output with obstacle avoidance        
@@ -1528,6 +1662,8 @@ class VelocityControllerNode:
                     control_output = np.zeros(6*len(self.custom_static_particles))
                     self.assign_control_outputs(control_output)
                     return
+            # ----------------------------------------------------------------------------------------------------  
+            
 
         # # Reset the event to wait for the next input
         # self.proceed_event.clear()  
@@ -2002,10 +2138,9 @@ class VelocityControllerNode:
                         self.planned_path_cumulative_lengths_of_particles,
                         self.planned_path_cumulative_rotations_of_particles,
                         self.planned_path_direction_vectors_of_particles,
-                        self.planned_path_rotation_vectors_of_particles) = self.tesseract_planner.plan(self.initial_full_state_dict ,\
-                                                                                                       self.target_full_state_dict + [self.calculate_centroid_pose_of_target_poses()], \
+                        self.planned_path_rotation_vectors_of_particles) = self.tesseract_planner.plan(self.initial_full_state_dict,
+                                                                                                       self.target_full_state_dict + [self.calculate_centroid_pose_of_target_poses()],
                                                                                                        self.custom_static_particles)
-
                     ## ----------------------------------------------------------------------------------------------
                     if (self.planned_path) and (not self.planned_path_velocity_profile_of_particles):
                         """
@@ -2015,6 +2150,8 @@ class VelocityControllerNode:
                         rospy.loginfo("Calculating the velocity profile for the particles.")
                         # Calculate the velocity profile for the particles
                         self.planned_path_velocity_profile_of_particles = self.calculate_path_tracking_velocity_profile_of_particles()
+                        
+                        # print("Planned path velocity profile of the particles: \n", self.planned_path_velocity_profile_of_particles)
                         
                         # Set the current target index and pose for the new planned path
                         self.planned_path_current_target_index = 1
@@ -2231,10 +2368,15 @@ class VelocityControllerNode:
                                                                           self.planned_path_cumulative_rotations_of_particles[particle], 
                                                                           self.max_linear_velocity*self.path_tracking_feedforward_linear_velocity_scale_factor, 
                                                                           self.max_angular_velocity*self.path_tracking_feedforward_angular_velocity_scale_factor)
+            
+            # print("Segment durations for particle: ", particle, " are: ", segment_durations_particle)
+            
             if max_segment_durations is None:
                 max_segment_durations = segment_durations_particle
             else:
                 max_segment_durations = np.maximum(max_segment_durations, segment_durations_particle)
+                
+        # print("Max segment durations: ", max_segment_durations)
 
         # Calculate the velocity profile of the particles
         for idx_particle, particle in enumerate(self.custom_static_particles):
@@ -2242,7 +2384,9 @@ class VelocityControllerNode:
                 continue
 
             segment_lengths = np.diff(self.planned_path_cumulative_lengths_of_particles[particle]) # np.array n elements
-            segment_rotations = np.diff(self.planned_path_cumulative_rotations_of_particles[particle]) # np.array of n elements
+            # segment_rotations = np.diff(self.planned_path_cumulative_rotations_of_particles[particle]) # np.array of n elements
+            segment_rotations = np.mod(np.diff(self.planned_path_cumulative_rotations_of_particles[particle]) + np.pi, 2 * np.pi) - np.pi
+            
             segment_directions = self.planned_path_direction_vectors_of_particles[particle]  # list of n elements with each element a unit 3D vector
             segment_rotation_vectors = self.planned_path_rotation_vectors_of_particles[particle]  # list of n elements with each element a unit 3D vector
 
@@ -2277,10 +2421,17 @@ class VelocityControllerNode:
             np.array required durations of the segments in the path.
         """
         segment_lengths = np.diff(cumulative_lenghts)
-        segment_rotations = np.diff(cumulative_rotations)
-
+        # segment_rotations = np.diff(cumulative_rotations)
+        segment_rotations = np.mod(np.diff(cumulative_rotations) + np.pi, 2 * np.pi) - np.pi
+        
         linear_times = segment_lengths / max_linear_velocity
         angular_times = segment_rotations / max_angular_velocity
+        
+        # print("cumulative_lenghts: ", cumulative_lenghts)   
+        # print("cumulative_rotations: ", cumulative_rotations)
+        
+        # print("Linear times: ", linear_times)
+        # print("Angular times: ", angular_times)
 
         return np.maximum(linear_times, angular_times)
 
@@ -2353,9 +2504,11 @@ class VelocityControllerNode:
     
     def experiments_enabler(self, enable, cause="manual"):
         if enable:
-            self.experiments_manager.start_next_experiment()
-            rospy.loginfo("Experiments enabled by " + cause + ".")
-            
+            if self.path_planning_pre_saved_paths_enabled:
+                self.experiments_manager.start_next_experiment()
+                rospy.loginfo("Experiments enabled by " + cause + ".")
+            else:
+                rospy.logwarn("Experiments are not enabled. Enable the path_planning_pre_saved_paths_enabled parameter")
         else:
             self.controller_enabler(False, cause="manual")
             rospy.loginfo("Experiments disabled by " + cause + ".")

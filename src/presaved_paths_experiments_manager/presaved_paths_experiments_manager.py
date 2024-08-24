@@ -35,6 +35,8 @@ class PresavedPathsExperimentsManager(object):
         self.rosbag_recorder = None # RosbagControlledRecorder object, None if not recording
         
     def start_next_experiment(self):
+        self.velocity_controller_node.path_planning_pre_saved_paths_enabled = True
+        
         if self.experiment_number >= self.experiments_range[1]:            
             self.is_experiments_completed = True
             rospy.loginfo("No more experiments to run.")
@@ -301,6 +303,7 @@ class PresavedPathsExperimentsManager(object):
         row_title = ["experiment_id", "ft_on", "collision_on", "success", 
                      "min_distance", "rate", "duration", "stress_avoidance_performance_avr", 
                      "stress_avoidance_performance_ever_zero", "start_time", "final_task_error", 
+                     "is_replanning_needed", "num_replanning_attempts",
                      "executed_path_length"]
         
         # If the file does not exist, create it and write the header
