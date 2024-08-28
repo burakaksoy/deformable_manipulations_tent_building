@@ -13,10 +13,12 @@ valid_control_output_wait_timeout: 5.0 # (seconds)
 
 # Nominal Controller Gains [x,y,z, Rx,Ry,Rz]
 # kp: [0.05,0.05,0.025, 0.15,0.15,0.15]
-kp: [1.0,1.0,1.0, 1.5,1.5,1.5]
+# kp: [1.0,1.0,1.0, 1.5,1.5,1.5]
+kp: [0.5,0.5,0.5, 0.75,0.75,0.75]
 # kp: [0.03,0.03,0.03, 0.05,0.05,0.05]
 # kp: [0.02,0.02,0.02, 0.1,0.1,0.1]
 # kp: [0.06,0.06,0.03, 0.03,0.03,0.03]
+
 kd: [0.0,0.0,0.0, 0.0,0.0,0.0]
 
 # Particle/Segment ids of the tip points of the tent pole 
@@ -37,9 +39,9 @@ tip_particles: [0,39]
 # target_poses: [[[2.5,  1.67601, 0.5], [90, 0, 0]],
 #                [[2.5, -1.67601, 0.5], [90, 0, 0]]]
 
-# # For Mingrui Yu Scene 1
-target_poses: [[[-0.20,  0.10, 0.25], [90, 0, 0]],
-               [[+0.00, -0.20, 0.10], [90, 0, 90]]] 
+# # # For Mingrui Yu Scene 1
+# target_poses: [[[-0.20,  0.10, 0.25], [90, 0, 0]],
+#                [[+0.00, -0.20, 0.10], [90, 0, 90]]] 
 
 # # # For Mingrui Yu Scene 2
 # target_poses: [[[-0.24,  0.08, 0.3], [90, 0, 70]],
@@ -49,9 +51,9 @@ target_poses: [[[-0.20,  0.10, 0.25], [90, 0, 0]],
 # target_poses: [[[+0.00,  0.2, 0.1], [90, 0, -20]],
 #                [[+0.00, -0.2, 0.1], [90, 0,  20]]] 
 
-# # # For Mingrui Yu Scene 4
-# target_poses: [[[0.2,  0.03, 0.12], [90, 0, -85]],
-#                [[0.2, -0.27, 0.12], [90, 0,  85]]] 
+# # For Mingrui Yu Scene 4
+target_poses: [[[0.2,  0.03, 0.12], [90, 0, -85]],
+               [[0.2, -0.27, 0.12], [90, 0,  85]]] 
 
 
 # Saving directory of Initial and Target states of the tent pole for the path planning
@@ -63,20 +65,20 @@ state_saving_directory: "~/catkin_ws_deformable/src/deformable_manipulations_ten
 # The initial state file is used to load the initial poses of the tent pole
 # If not specified, the initial poses are expected to manually set using the set_n_save_initial_state service
 # initial_state_file: "" 
-initial_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_1_initial_states.csv"
+# initial_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_1_initial_states.csv"
 # initial_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_2_initial_states.csv"
-# initial_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_3_initial_states.csv"
-# initial_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_4_initial_states.csv"
+# initial_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_3_initial_states.csv" 
+initial_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_4_initial_states.csv"
 
 
 ## Target State File for the Tent Pole
 # The target state file is used to load the target poses of the tent pole
 # If not specified, the target poses are expected to manually set using the set_n_save_target_state service
 # target_state_file: "" 
-target_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_1_target_states.csv"
+# target_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_1_target_states.csv"
 # target_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_2_target_states.csv"
 # target_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_3_target_states.csv"
-# target_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_4_target_states.csv"
+target_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_4_target_states.csv"
 
 
 # Maximum velocity limits for each robot
@@ -116,10 +118,19 @@ max_replanning_attempts: 3 # default: 3
 
 # Path tracking controller gains [x,y,z, Rx,Ry,Rz]
 # kp_path_tracking: [0.0,0.0,0.0, 0.0,0.0,0.0]
-kp_path_tracking: [1.0,1.0,1.0, 1.5,1.5,1.5]
+# kp_path_tracking: [1.0,1.0,1.0, 1.5,1.5,1.5]
+kp_path_tracking: [0.5,0.5,0.5, 0.75,0.75,0.75]
 # kp_path_tracking: [0.05,0.05,0.05, 0.075,0.075,0.075]
+# kp_path_tracking: [0.3,0.3,0.3, 0.45,0.45,0.45]
+# kp_path_tracking: [0.2,0.2,0.2, 0.3,0.3,0.3]
+# kp_path_tracking: [0.2,0.2,0.2, 0.2,0.2,0.2]
+# kp_path_tracking: [0.1,0.1,0.1, 0.15,0.15,0.15] # works
 
 kd_path_tracking: [0.0,0.0,0.0, 0.0,0.0,0.0]
+# kd_path_tracking: [1.0,1.0,1.0, 1.0,1.0,1.0]
+# kd_path_tracking: [1.0,1.0,1.0, 1.5,1.5,1.5]
+# kd_path_tracking: [0.5,0.5,0.5, 0.5,0.5,0.5]
+# kd_path_tracking: [0.25,0.25,0.25, 0.25,0.25,0.25]
 
 # Path tracking switch off parameters used in the transition function
 # A piecewise smooth transition function is used to switch off 
@@ -196,11 +207,18 @@ tesseract_use_default_viewer: True # default: False
 ## Parameters for the Experiments with pre-saved paths
 
 # Scene of the experiment, we use Mingrui Yu's scenes (1,2,3,4)
-experiments_scene_id: "1" 
-# The pre-saved experiments has a range, e.g 1-100, in the directory make sure the paths exist given this range
-experiments_range: [1,3]
+experiments_scene_id: "4" 
+
+# experiments_range: The pre-saved experiments has a range, e.g 1-100, in the directory make sure the paths exist given this range
+# This can be specigied as list of experiment numbers as well, e.g. [1,2,3,4,5,6,7,8,9,10]
+# Note that:
+# - If only one value is given or more than two values are given, the range is assumed to be a list of experiments
+# - If two values are given, the range is assumed to be a range of experiments, inclusive of both the start and end values
+experiments_range: [6,9,13,18,22,26,27,32,33,39]
+
 # Given the directory below we assume there exists sub folders with names "scene_<experiments_scene_id>"
 experiments_saved_paths_directory: "~/catkin_ws_deformable/src/deformable_manipulations_tent_building/src/tesseract_planner/generated_plans_i9_10885h"
+# experiments_saved_paths_directory: "~/catkin_ws_deformable/src/deformable_manipulations_tent_building/src/tesseract_planner/generated_plans_i9_10885h_10_segments"
 ## ------------------------------------------------------------------------------------------------------
 
 ## -------------------------------------------------------
@@ -209,9 +227,9 @@ experiments_saved_paths_directory: "~/catkin_ws_deformable/src/deformable_manipu
 k_low_pass_min_d: 0.1 # low pass filter coefficient for the ratio of minimum distance values of the previous values (Must be between [0,1])
 
 # offset distance from the obstacles
-d_obstacle_offset: 0.01 # 0.05 # (meter) 
+d_obstacle_offset: 0.002 # 0.004 # 0.05 # (meter) 
 
-d_obstacle_freezone: 2.0 # (meter) # further than this distance, no obstacles considered by the controller 
+d_obstacle_freezone: 0.1 # GOOD 0.3 # (meter) # further than this distance, no obstacles considered by the controller 
 
 # # alpha(h) function obstacle avoidance coefficients 
 # # Piecewise linear function slope coefficients 
@@ -222,9 +240,10 @@ d_obstacle_freezone: 2.0 # (meter) # further than this distance, no obstacles co
 
 # alpha(h) function obstacle avoidance coefficients NEW
 # see: https://www.desmos.com/calculator/hc6lc7nzkk for the function visualizations
-c1_alpha_obstacle: 2.0 # 1.0 # 0.25 # 0.08 # Decrease this to start reacting early 
-c2_alpha_obstacle: 4.0 # 2.7 # 4.0 # 1.16 # 
-c3_alpha_obstacle: 2.0 # linear slope if h < 0 # Increase this to remove the offset violation more agressively
+c1_alpha_obstacle: 0.26 # GOOD 0.26 # GOOD 0.02 # 0.1 # 1.0 # 0.25 # 0.08 # Decrease this to start reacting early 
+c2_alpha_obstacle: 1.0   # GOOD 1.0  # GOOD 4.0  # 2.7 # 4.0 # 1.16 # 
+c3_alpha_obstacle: 1.5   # GOOD 1.5  # GOOD 0.05 # linear slope if h < 0 # Increase this to remove the offset violation more agressively
+## -------------------------------------------------------
 
 ## -------------------------------------------------------
 ## Stress avoidance parameters

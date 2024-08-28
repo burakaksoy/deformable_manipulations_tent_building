@@ -430,7 +430,20 @@ class VelocityControllerNode:
         ## ----------------------------------------------------------------------------------------
         ## Experiments with pre-saved paths paramaters and variables
         self.experiments_scene_id = rospy.get_param("~experiments_scene_id", "1")
+        
         self.experiments_range = rospy.get_param("~experiments_range", [1,100])
+        # Ensure the parameter is always treated as a list
+        if not isinstance(self.experiments_range, list):
+            self.experiments_range = [self.experiments_range]
+        # Handle the cases according to the explanation in the parameter file
+        if len(self.experiments_range) == 2:
+            # If exactly two values are provided, assume it is a range
+            start, end = self.experiments_range
+            self.experiments_range = list(range(start, end + 1))
+        else:
+            # If only one value or more than two values are given, treat it as a list of experiments
+            self.experiments_range = self.experiments_range
+        
         self.experiments_saved_paths_directory = rospy.get_param("~experiments_saved_paths_directory")
         
         # self.experiments_enabled = False # Flag to enable/disable the experiments
@@ -2058,7 +2071,7 @@ class VelocityControllerNode:
 
         # Compute the geometric mean of the stress avoidance performance and the overall minimum distance to collision
         # Below, both values are in the range [0, 1].
-        w = np.sqrt(stress_avoidance_performance * min(1.0, max(0.0, overall_min_distance / (self.d_obstacle_freezone/3.0) )))
+        w = np.sqrt(stress_avoidance_performance * min(1.0, max(0.0, overall_min_distance / (self.d_obstacle_freezone) )))
 
         ## Compute the weight in the range [w_min, w_max] 
         # OPTION 1:

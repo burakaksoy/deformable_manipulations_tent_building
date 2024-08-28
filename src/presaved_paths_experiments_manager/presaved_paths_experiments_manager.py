@@ -25,7 +25,7 @@ class PresavedPathsExperimentsManager(object):
         self.velocity_controller_node = velocity_controller_node
         self.scene_id = scene_id
         self.experiments_range = experiments_range
-        self.experiment_number = self.experiments_range[0] - 1 # Start from the first experiment number
+        self.experiment_number = None
         self.saved_paths_dir = saved_paths_dir
         
         self.is_experiments_completed = False
@@ -37,12 +37,12 @@ class PresavedPathsExperimentsManager(object):
     def start_next_experiment(self):
         self.velocity_controller_node.path_planning_pre_saved_paths_enabled = True
         
-        if self.experiment_number >= self.experiments_range[1]:            
+        if not self.experiments_range:            
             self.is_experiments_completed = True
             rospy.loginfo("No more experiments to run.")
             
         if not self.is_experiments_completed:
-            self.experiment_number += 1
+            self.experiment_number = self.experiments_range.pop(0)
             self.run_experiment(self.experiment_number)
         else:
             rospy.logwarn("Experiments are completed. Plese restart the node to run again.")
@@ -96,7 +96,7 @@ class PresavedPathsExperimentsManager(object):
                 self.save_experiment_results(execution_results, self.experiment_number)
             
             # Reverse the executed path
-            self.reverse_executed_path(speed_multiplier=2.0)
+            self.reverse_executed_path(speed_multiplier=50.0)
             
             # Re-apply the initial state
             self.apply_initial_state()
