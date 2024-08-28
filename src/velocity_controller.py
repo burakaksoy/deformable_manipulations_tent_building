@@ -971,6 +971,34 @@ class VelocityControllerNode:
             avr_norm_ori_err += np.linalg.norm(err[(6*idx_particle) : (6*(idx_particle+1)), 0][3:6])/len(self.custom_static_particles)
 
         return err, avr_norm_pos_err, avr_norm_ori_err
+    
+    def calculate_path_tracking_velocity_error(self):
+        err = np.zeros((6*len(self.custom_static_particles),1)) # Velocity error as 6n x 1 vector
+
+        avr_norm_lin_vel_err = 0.0
+        avr_norm_ang_vel_err = 0.0
+
+        for idx_particle, particle in enumerate(self.custom_static_particles):
+            # Do not proceed until the initial values have been set
+            if not self.is_perturbed_states_set_for_particle(particle):
+                rospy.logwarn("Particle: " + str(particle) + " twist state is not obtained yet.")
+                continue
+
+            if particle not in self.planned_path_velocity_profile_of_particles:
+                rospy.logwarn("Particle: " + str(particle) + " planned path velocities are not obtained yet.")
+                continue
+
+            current_twist = self.twist_to_numpy(self.particle_twists[particle]) # (6,)
+
+            target_twist = self.planned_path_current_target_velocities_of_particles[particle] # (6,)
+
+            # calculate_twist_target_error
+            err[(6*idx_particle) : (6*(idx_particle+1)), 0] = target_twist - current_twist # (6,)
+
+            avr_norm_lin_vel_err += np.linalg.norm(err[(6*idx_particle) : (6*(idx_particle+1)), 0][0:3])/len(self.custom_static_particles)
+            avr_norm_ang_vel_err += np.linalg.norm(err[(6*idx_particle) : (6*(idx_particle+1)), 0][3:6])/len(self.custom_static_particles)
+
+        return err, avr_norm_lin_vel_err, avr_norm_ang_vel_err
 
     def min_distances_array_callback(self, min_distances_msg):
         # Create a set to track the IDs in the current message
@@ -1388,6 +1416,7 @@ class VelocityControllerNode:
 
         # Calculate the path tracking control outputs
         if self.path_tracking_control_enabled and self.planned_path_current_target_velocities_of_particles:
+            # ----------------------
             # Calculate the error between the current pose and the target pose of the particles
             (err_path_tracking, 
             pos_err_avr_norm_path_tracking, 
@@ -1400,18 +1429,39 @@ class VelocityControllerNode:
             # self.info_pub_path_tracking_pos_error_avr_norm.publish(Float32(data=pos_err_avr_norm_path_tracking))
             # self.info_pub_path_tracking_ori_error_avr_norm.publish(Float32(data=ori_err_avr_norm_path_tracking))
 
-            control_output = np.squeeze(err_path_tracking) # (12,)
+            err_path_tracking = np.squeeze(err_path_tracking) # (12,)
 
             # Print orientation error tracking only elements 4th 5th 6th every 6 elements
-            # print(np.rad2deg(control_output[np.r_[3:6, 9:12]]))
-
+            # print(np.rad2deg(err_path_tracking[np.r_[3:6, 9:12]]))
+            # ----------------------
+            
+            # ----------------------
+            # # Calculate twist error tracking between the current twist and the target twist of the particles
+            # (err_path_tracking_twist,
+            # lin_vel_err_avr_norm_path_tracking,
+            # ang_vel_err_avr_norm_path_tracking) = self.calculate_path_tracking_velocity_error() # 12x1, scalar, scalar
+            
+            # # pretty_print_array(err_path_tracking_twist)
+            # # print("---------------------------")
+            
+            # # # publish error norms for information TODO
+            # # self.info_pub_path_tracking_lin_vel_error_avr_norm.publish(Float32(data=lin_vel_err_avr_norm_path_tracking))
+            # # self.info_pub_path_tracking_ang_vel_error_avr_norm.publish(Float32(data=ang_vel_err_avr_norm_path_tracking))
+            
+            # err_path_tracking_twist = np.squeeze(err_path_tracking_twist) # (12,)
+            # ----------------------
+            
             for idx_particle, particle in enumerate(self.custom_static_particles):
                 # Get nominal control output of that particle and Apply the proportinal gains
-                control_output[6*idx_particle:6*(idx_particle+1)] = self.kp_path_tracking * control_output[6*idx_particle:6*(idx_particle+1)] 
+
+                p_term = self.kp_path_tracking * err_path_tracking[6*idx_particle:6*(idx_particle+1)]
+                control_output[6*idx_particle:6*(idx_particle+1)] = p_term
+                
+                # d_term = self.kd_path_tracking * err_path_tracking_twist[6*idx_particle:6*(idx_particle+1)]            
+                # control_output[6*idx_particle:6*(idx_particle+1)] = p_term + d_term # path tracking
 
                 # Feed forward control with the velocity profile of the path
                 control_output_feedforward = self.planned_path_current_target_velocities_of_particles[particle]
-
                 # Apply the feedforward control
                 control_output[6*idx_particle:6*(idx_particle+1)] += control_output_feedforward
 
@@ -1510,8 +1560,8 @@ class VelocityControllerNode:
             if ((np.abs(self.pos_err_avr_norm - self.pos_err_avr_norm_prev) > self.convergence_threshold_pos) or
                 (np.abs(self.ori_err_avr_norm - self.ori_err_avr_norm_prev) > self.convergence_threshold_ori)):
                 self.update_last_error_change_is_valid_time()
-            else:
-                rospy.logwarn("Error norms are not changing. Current changes in error norms:\npos_err_avr_norm: " + str(np.abs(self.pos_err_avr_norm - self.pos_err_avr_norm_prev)) + ", ori_err_avr_norm: " + str(np.abs(self.ori_err_avr_norm - self.ori_err_avr_norm_prev)))
+            # else:
+            #     rospy.logwarn("Error norms are not changing. Current changes in error norms:\npos_err_avr_norm: " + str(np.abs(self.pos_err_avr_norm - self.pos_err_avr_norm_prev)) + ", ori_err_avr_norm: " + str(np.abs(self.ori_err_avr_norm - self.ori_err_avr_norm_prev)))
             
             # publish error norms for information
             self.info_pub_target_pos_error_avr_norm.publish(Float32(data=self.pos_err_avr_norm))
@@ -1788,6 +1838,16 @@ class VelocityControllerNode:
         """
         # Combine force and torque arrays
         return np.array([wrench.force.x, wrench.force.y, wrench.force.z, wrench.torque.x, wrench.torque.y, wrench.torque.z])
+    
+    def twist_to_numpy(self, twist):
+        """
+        Converts a ROS twist message to a numpy array.
+
+        :param twist: The twist (linear and angular velocities) in ROS message format.
+        :return: A numpy array representing the twist.
+        """
+        # Combine linear and angular velocity arrays
+        return np.array([twist.linear.x, twist.linear.y, twist.linear.z, twist.angular.x, twist.angular.y, twist.angular.z])
     
     def calculate_pose_difference(self, current_pose, perturbed_pose):
         """ 
