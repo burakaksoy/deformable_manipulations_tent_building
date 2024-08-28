@@ -360,7 +360,7 @@ class VelocityControllerNode:
             self.tesseract_resource_path = rospy.get_param("~tesseract_resource_path") 
                     
             # Get the urdf and srdf file paths from the ROS parameter server for the simplified pole model
-            self.tesseract_tent_pole_urdf = rospy.get_param("~tesseract_tent_pole_urdf") # string
+            self.tesseract_tent_pole_urdf = rospy.get_param("~tesseract_tent_pole_urdf", "") # string
             self.tesseract_tent_pole_srdf = rospy.get_param("~tesseract_tent_pole_srdf") # string
             
             self.tesseract_tent_pole_tcp_frame = rospy.get_param("~tesseract_tent_pole_tcp_frame")
@@ -1319,6 +1319,9 @@ class VelocityControllerNode:
         # weights[4::6] = 0.8
         ## Note that z axis rotation is every 6th element of each 6 element sets in the weight vector
         # weights[5::6] = 0.8
+        
+        # Slow down the nominal control output when close to the obstacles and stress limits
+        nominal_u = self.calculate_weight_nominal_input(stress_avoidance_performance, overall_min_distance-self.d_obstacle_offset) * nominal_u
 
         # Define cost function with weights
         cost = cp.sum_squares(cp.multiply(weights, u - nominal_u)) / 2.0
@@ -2044,6 +2047,36 @@ class VelocityControllerNode:
         # rospy.loginfo("Weight for z position control: " + str(weight))
 
         return weight
+    
+    def calculate_weight_nominal_input(self, stress_avoidance_performance, overall_min_distance):
+        """
+        Calculates the weight for the z position control based on the stress avoidance performance and the overall minimum distance to collision.
+        """
+        # Weight limits
+        w_max = 1.0
+        w_min = 0.3 # 0.4 (for z weight) # 0.05 # 0.1 (for nominal control scaling)
+
+        # Compute the geometric mean of the stress avoidance performance and the overall minimum distance to collision
+        # Below, both values are in the range [0, 1].
+        w = np.sqrt(stress_avoidance_performance * min(1.0, max(0.0, overall_min_distance / (self.d_obstacle_freezone/3.0) )))
+
+        ## Compute the weight in the range [w_min, w_max] 
+        # OPTION 1:
+        # w_boost = 0.95 # must be in the range [0, 1]
+        # weight = (w_max - w_min)*(w**w_boost) + w_min 
+
+        # OPTION 2: 
+        # See: https://www.desmos.com/calculator/obvcltohjs for the function visualizations
+        # Sigmoid adjustment
+        k = 20  # Steepness of the sigmoid function transition
+        d = 0.4  # Midpoint of the sigmoid function
+        # Compute the sigmoid function to smooth transition
+        s = 1 / (1 + np.exp(-k * (w - d)))
+        weight = (w_max - w_min) * (w + (1 - w) * s) + w_min
+
+        # rospy.loginfo("Weight for z position control: " + str(weight))
+
+        return weight
 
     def calculate_and_publish_stress_avoidance_performance(self, h_ft_normalized):
         """
@@ -2380,7 +2413,9 @@ class VelocityControllerNode:
                 projection_length = np.dot(point_vector, line_unit_vector)
                 
                 # If projection length is greater than zero, vote to update the target index
-                if not projection_length >= 0.0:
+                projection_distance_buffer = 0.0
+                # projection_distance_buffer = self.acceptable_pos_err_avr_norm
+                if not projection_length >= -projection_distance_buffer:
                     votes_for_next_index.append(False) # Vote not to move to the next index
                 else:
                     votes_for_next_index.append(True) # Vote to move to the next index
