@@ -97,6 +97,8 @@ acceptable_ori_err_avr_norm: 0.05 # 0.01 # 0.1 # [rad]
 # If set to less than or equal to zero, the controller does not stop.
 convergence_wait_timeout: 5.0 # 10.0 # [s]
 
+k_low_pass_convergence: 0.9 # low pass filter coefficient for the ratio of minimum distance values of the previous values (Must be between [0,1])
+
 # Convergence threshold of the controller
 # If the average error changes less than this value in the last "convergence_wait_timeout" seconds,
 # the controller is considered to be converged or stuck
@@ -119,12 +121,12 @@ max_replanning_attempts: 3 # default: 3
 # Path tracking controller gains [x,y,z, Rx,Ry,Rz]
 # kp_path_tracking: [0.0,0.0,0.0, 0.0,0.0,0.0]
 # kp_path_tracking: [1.0,1.0,1.0, 1.5,1.5,1.5]
-kp_path_tracking: [0.5,0.5,0.5, 0.75,0.75,0.75]
-# kp_path_tracking: [0.05,0.05,0.05, 0.075,0.075,0.075]
+# kp_path_tracking: [0.5,0.5,0.5, 0.75,0.75,0.75]
 # kp_path_tracking: [0.3,0.3,0.3, 0.45,0.45,0.45]
 # kp_path_tracking: [0.2,0.2,0.2, 0.3,0.3,0.3]
-# kp_path_tracking: [0.2,0.2,0.2, 0.2,0.2,0.2]
-# kp_path_tracking: [0.1,0.1,0.1, 0.15,0.15,0.15] # works
+# kp_path_tracking: [0.2,0.2,0.2, 0.3,0.3,0.3]
+kp_path_tracking: [0.1,0.1,0.1, 0.15,0.15,0.15] 
+# kp_path_tracking: [0.05,0.05,0.05, 0.075,0.075,0.075]
 
 kd_path_tracking: [0.0,0.0,0.0, 0.0,0.0,0.0]
 # kd_path_tracking: [1.0,1.0,1.0, 1.0,1.0,1.0]
@@ -214,7 +216,10 @@ experiments_scene_id: "4"
 # Note that:
 # - If only one value is given or more than two values are given, the range is assumed to be a list of experiments
 # - If two values are given, the range is assumed to be a range of experiments, inclusive of both the start and end values
-experiments_range: [6,9,13,18,22,26,27,32,33,39]
+# experiments_range: [32,6,9,13,18,22,26,27,33,39] # Most potentially difficult experiments for 4th scene, Auto segments
+# experiments_range: [18,25,26] # Most potentially difficult experiments for 4th scene, 10 segments
+experiments_range: [36,100]
+# experiments_range: [32]
 
 # Given the directory below we assume there exists sub folders with names "scene_<experiments_scene_id>"
 experiments_saved_paths_directory: "~/catkin_ws_deformable/src/deformable_manipulations_tent_building/src/tesseract_planner/generated_plans_i9_10885h"
@@ -242,7 +247,7 @@ d_obstacle_freezone: 0.1 # GOOD 0.3 # (meter) # further than this distance, no o
 # see: https://www.desmos.com/calculator/hc6lc7nzkk for the function visualizations
 c1_alpha_obstacle: 0.26 # GOOD 0.26 # GOOD 0.02 # 0.1 # 1.0 # 0.25 # 0.08 # Decrease this to start reacting early 
 c2_alpha_obstacle: 1.0   # GOOD 1.0  # GOOD 4.0  # 2.7 # 4.0 # 1.16 # 
-c3_alpha_obstacle: 1.5   # GOOD 1.5  # GOOD 0.05 # linear slope if h < 0 # Increase this to remove the offset violation more agressively
+c3_alpha_obstacle: 1.0   # GOOD 1.0  # GOOD 0.05 # linear slope if h < 0 # Increase this to remove the offset violation more agressively
 ## -------------------------------------------------------
 
 ## -------------------------------------------------------

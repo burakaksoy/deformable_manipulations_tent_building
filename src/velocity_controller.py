@@ -132,6 +132,7 @@ class VelocityControllerNode:
 
         self.k_low_pass_ft = rospy.get_param("~k_low_pass_ft", 0.9) # low pass filter coefficient for the ft values of the previous values
         self.k_low_pass_min_d = rospy.get_param("~k_low_pass_min_d", 0.5) # low pass filter coefficient for the minimum distance values of the previous values
+        self.k_low_pass_convergence = rospy.get_param("~k_low_pass_convergence", 0.99) # low pass filter coefficient for the minimum distance values of the previous values
 
         self.max_linear_velocity = rospy.get_param("~max_linear_velocity", 0.1) # m/s
         self.max_angular_velocity = rospy.get_param("~max_angular_velocity", 0.15) # rad/s
@@ -139,10 +140,10 @@ class VelocityControllerNode:
         self.acceptable_pos_err_avr_norm = rospy.get_param("~acceptable_pos_err_avr_norm", 0.01) # m
         self.acceptable_ori_err_avr_norm = rospy.get_param("~acceptable_ori_err_avr_norm", 0.1) # rad
         
-        self.pos_err_avr_norm = float('inf') # initialize average norm of the position errors
-        self.ori_err_avr_norm = float('inf') # initialize average norm of the orientation errors
-        self.pos_err_avr_norm_prev = float('inf') # initialize average norm of the previous position errors
-        self.ori_err_avr_norm_prev = float('inf') # initialize average norm of the previous orientation errors
+        self.pos_err_avr_norm = 0.0 # float('inf') # initialize average norm of the position errors
+        self.ori_err_avr_norm = 0.0 # float('inf') # initialize average norm of the orientation errors
+        self.pos_err_avr_norm_prev = 0.0 # float('inf') # initialize average norm of the previous position errors
+        self.ori_err_avr_norm_prev = 0.0 # float('inf') # initialize average norm of the previous orientation errors
         
         self.convergence_wait_timeout = rospy.get_param("~convergence_wait_timeout", 5.0) # seconds
         if self.convergence_wait_timeout <= 0.0:
@@ -686,10 +687,10 @@ class VelocityControllerNode:
             self.is_replanning_needed = False
             self.num_replanning_attempts = 0
             
-            self.pos_err_avr_norm = float('inf') # initialize average norm of the position errors
-            self.ori_err_avr_norm = float('inf') # initialize average norm of the orientation errors
-            self.pos_err_avr_norm_prev = float('inf') # initialize average norm of the previous position errors
-            self.ori_err_avr_norm_prev = float('inf') # initialize average norm of the previous orientation errors
+            self.pos_err_avr_norm = 0.0 # float('inf') # initialize average norm of the position errors
+            self.ori_err_avr_norm = 0.0 # float('inf') # initialize average norm of the orientation errors
+            self.pos_err_avr_norm_prev = 0.0 # float('inf') # initialize average norm of the previous position errors
+            self.ori_err_avr_norm_prev = 0.0 # float('inf') # initialize average norm of the previous orientation errors
             rospy.loginfo("-------------- Controller is enabled --------------")
         else:
             self.controller_disabled_time = rospy.Time.now()
@@ -932,7 +933,7 @@ class VelocityControllerNode:
         return J
     
     def calculate_error_tip(self):
-        err = np.zeros((6*len(self.tip_particles),1))
+        err = np.zeros(6*len(self.tip_particles))
 
         avr_norm_pos_err = 0.0
         avr_norm_ori_err = 0.0
@@ -949,15 +950,15 @@ class VelocityControllerNode:
 
             target_pose = self.target_poses[tip]
 
-            err[(6*idx_tip) : (6*(idx_tip+1)), 0] = self.calculate_pose_target_error(current_pose,target_pose)
+            err[(6*idx_tip) : (6*(idx_tip+1))] = self.calculate_pose_target_error(current_pose,target_pose)
 
-            avr_norm_pos_err += np.linalg.norm(err[(6*idx_tip) : (6*(idx_tip+1)), 0][0:3])/len(self.tip_particles)
-            avr_norm_ori_err += np.linalg.norm(err[(6*idx_tip) : (6*(idx_tip+1)), 0][3:6])/len(self.tip_particles)
+            avr_norm_pos_err += np.linalg.norm(err[(6*idx_tip) : (6*(idx_tip+1))][0:3])/len(self.tip_particles)
+            avr_norm_ori_err += np.linalg.norm(err[(6*idx_tip) : (6*(idx_tip+1))][3:6])/len(self.tip_particles)
 
         return err, avr_norm_pos_err, avr_norm_ori_err
     
     def calculate_path_tracking_error(self):
-        err = np.zeros((6*len(self.custom_static_particles),1))
+        err = np.zeros(6*len(self.custom_static_particles))
 
         avr_norm_pos_err = 0.0
         avr_norm_ori_err = 0.0
@@ -978,15 +979,15 @@ class VelocityControllerNode:
 
             target_pose = self.planned_path_current_target_poses_of_particles[particle]
 
-            err[(6*idx_particle) : (6*(idx_particle+1)), 0] = self.calculate_pose_target_error(current_pose,target_pose)
+            err[(6*idx_particle) : (6*(idx_particle+1))] = self.calculate_pose_target_error(current_pose,target_pose)
 
-            avr_norm_pos_err += np.linalg.norm(err[(6*idx_particle) : (6*(idx_particle+1)), 0][0:3])/len(self.custom_static_particles)
-            avr_norm_ori_err += np.linalg.norm(err[(6*idx_particle) : (6*(idx_particle+1)), 0][3:6])/len(self.custom_static_particles)
+            avr_norm_pos_err += np.linalg.norm(err[(6*idx_particle) : (6*(idx_particle+1))][0:3])/len(self.custom_static_particles)
+            avr_norm_ori_err += np.linalg.norm(err[(6*idx_particle) : (6*(idx_particle+1))][3:6])/len(self.custom_static_particles)
 
         return err, avr_norm_pos_err, avr_norm_ori_err
     
     def calculate_path_tracking_velocity_error(self):
-        err = np.zeros((6*len(self.custom_static_particles),1)) # Velocity error as 6n x 1 vector
+        err = np.zeros(6*len(self.custom_static_particles)) # Velocity error as 6n x 1 vector
 
         avr_norm_lin_vel_err = 0.0
         avr_norm_ang_vel_err = 0.0
@@ -1006,10 +1007,10 @@ class VelocityControllerNode:
             target_twist = self.planned_path_current_target_velocities_of_particles[particle] # (6,)
 
             # calculate_twist_target_error
-            err[(6*idx_particle) : (6*(idx_particle+1)), 0] = target_twist - current_twist # (6,)
+            err[(6*idx_particle) : (6*(idx_particle+1))] = target_twist - current_twist # (6,)
 
-            avr_norm_lin_vel_err += np.linalg.norm(err[(6*idx_particle) : (6*(idx_particle+1)), 0][0:3])/len(self.custom_static_particles)
-            avr_norm_ang_vel_err += np.linalg.norm(err[(6*idx_particle) : (6*(idx_particle+1)), 0][3:6])/len(self.custom_static_particles)
+            avr_norm_lin_vel_err += np.linalg.norm(err[(6*idx_particle) : (6*(idx_particle+1))][0:3])/len(self.custom_static_particles)
+            avr_norm_ang_vel_err += np.linalg.norm(err[(6*idx_particle) : (6*(idx_particle+1))][3:6])/len(self.custom_static_particles)
 
         return err, avr_norm_lin_vel_err, avr_norm_ang_vel_err
 
@@ -1334,7 +1335,7 @@ class VelocityControllerNode:
         # weights[5::6] = 0.8
         
         # Slow down the nominal control output when close to the obstacles and stress limits
-        nominal_u = self.calculate_weight_nominal_input(stress_avoidance_performance, overall_min_distance-self.d_obstacle_offset) * nominal_u
+        # nominal_u = self.calculate_weight_nominal_input(stress_avoidance_performance, overall_min_distance-self.d_obstacle_offset) * nominal_u
 
         # Define cost function with weights
         cost = cp.sum_squares(cp.multiply(weights, u - nominal_u)) / 2.0
@@ -1418,7 +1419,7 @@ class VelocityControllerNode:
             # print("---------------------------")
 
             # Calculate the nominal control output
-            control_output = np.squeeze(np.dot(np.linalg.pinv(J_tip), err_tip)) # (12,)
+            control_output = np.dot(np.linalg.pinv(J_tip), err_tip) # (12,)
             # Apply the proportinal gains
             for idx_particle, particle in enumerate(self.custom_static_particles):
                 # Get nominal control output of that particle
@@ -1436,7 +1437,7 @@ class VelocityControllerNode:
             # Calculate the error between the current pose and the target pose of the particles
             (err_path_tracking, 
             pos_err_avr_norm_path_tracking, 
-            ori_err_avr_norm_path_tracking) = self.calculate_path_tracking_error() # 12x1, scalar, scalar
+            ori_err_avr_norm_path_tracking) = self.calculate_path_tracking_error() # (12,), scalar, scalar
             
             # pretty_print_array(err_path_tracking)
             # print("---------------------------")
@@ -1444,8 +1445,6 @@ class VelocityControllerNode:
             # # publish error norms for information TODO
             # self.info_pub_path_tracking_pos_error_avr_norm.publish(Float32(data=pos_err_avr_norm_path_tracking))
             # self.info_pub_path_tracking_ori_error_avr_norm.publish(Float32(data=ori_err_avr_norm_path_tracking))
-
-            err_path_tracking = np.squeeze(err_path_tracking) # (12,)
 
             # Print orientation error tracking only elements 4th 5th 6th every 6 elements
             # print(np.rad2deg(err_path_tracking[np.r_[3:6, 9:12]]))
@@ -1463,6 +1462,10 @@ class VelocityControllerNode:
             # # # publish error norms for information TODO
             # # self.info_pub_path_tracking_lin_vel_error_avr_norm.publish(Float32(data=lin_vel_err_avr_norm_path_tracking))
             # # self.info_pub_path_tracking_ang_vel_error_avr_norm.publish(Float32(data=ang_vel_err_avr_norm_path_tracking))
+            # # self.info_pub_path_tracking_ang_vel_error_avr_norm.publish(Float32(data=ang_vel_err_avr_norm_path_tracking))
+            
+            # err_path_tracking_twist = np.squeeze(err_path_tracking_twist) # (12,)
+            # # self.info_pub_path_tracking_ang_vel_error_avr_norm.publish(Float32(data=ang_vel_err_avr_norm_path_tracking))            
             
             # err_path_tracking_twist = np.squeeze(err_path_tracking_twist) # (12,)
             # ----------------------
@@ -1471,16 +1474,48 @@ class VelocityControllerNode:
                 # Get nominal control output of that particle and Apply the proportinal gains
 
                 p_term = self.kp_path_tracking * err_path_tracking[6*idx_particle:6*(idx_particle+1)]
-                control_output[6*idx_particle:6*(idx_particle+1)] = p_term
                 
                 # d_term = self.kd_path_tracking * err_path_tracking_twist[6*idx_particle:6*(idx_particle+1)]            
                 # control_output[6*idx_particle:6*(idx_particle+1)] = p_term + d_term # path tracking
 
                 # Feed forward control with the velocity profile of the path
-                control_output_feedforward = self.planned_path_current_target_velocities_of_particles[particle]
-                # Apply the feedforward control
-                control_output[6*idx_particle:6*(idx_particle+1)] += control_output_feedforward
+                ffwd_term = self.planned_path_current_target_velocities_of_particles[particle] # (6,)
+                
+                # If p_term in the same direction with the ffwd_term, 
+                # then use the sum of ffwd term and only the perpendicular part of the p_term to remove the lateral errors
+                # otherwise, use only the p_term (i.e. the ffwd term is not used) ) because it means the ffwd_term is conflicting with the error direction
+                
+                # Separate linear (first 3) and angular (last 3) terms
+                p_term_lin = p_term[:3]
+                p_term_ang = p_term[3:]
 
+                ffwd_term_lin = ffwd_term[:3]
+                ffwd_term_ang = ffwd_term[3:]
+                
+                # Linear part
+                if np.dot(p_term_lin, ffwd_term_lin) > 0:
+                    # Calculate the perpendicular part of the p_term_lin
+                    p_term_lin_perp = p_term_lin - np.dot(p_term_lin, ffwd_term_lin)/np.sqrt(np.dot(ffwd_term_lin, ffwd_term_lin)) * ffwd_term_lin
+                    control_output[6*idx_particle:6*idx_particle+3] = p_term_lin_perp + ffwd_term_lin
+                else:
+                    control_output[6*idx_particle:6*idx_particle+3] = p_term_lin
+
+                # Angular part
+                if np.dot(p_term_ang, ffwd_term_ang) > 0:
+                    # Calculate the perpendicular part of the p_term_ang
+                    p_term_ang_perp = p_term_ang - np.dot(p_term_ang, ffwd_term_ang)/np.sqrt(np.dot(ffwd_term_ang, ffwd_term_ang)) * ffwd_term_ang
+                    control_output[6*idx_particle+3:6*(idx_particle+1)] = p_term_ang_perp + ffwd_term_ang                    
+                else:
+                    control_output[6*idx_particle+3:6*(idx_particle+1)] = p_term_ang
+                
+                # if np.dot(p_term, ffwd_term) > 0:
+                #     # Calculate the perpendicular part of the p_term
+                #     p_term_perpendicular = p_term - np.dot(p_term, ffwd_term)/np.sqrt(np.dot(ffwd_term, ffwd_term)) * ffwd_term
+                    
+                #     control_output[6*idx_particle:6*(idx_particle+1)] = p_term_perpendicular + ffwd_term
+                # else:
+                #     control_output[6*idx_particle:6*(idx_particle+1)] = p_term
+                
         return control_output
     
     def transition_function(self, c, c_l, c_u):
@@ -1566,22 +1601,27 @@ class VelocityControllerNode:
             
             # Calculate the current tip errors
             (err_tip, 
-            self.pos_err_avr_norm, 
-            self.ori_err_avr_norm) = self.calculate_error_tip() # 12x1, scalar, scalar
+            pos_err_avr_norm, 
+            ori_err_avr_norm) = self.calculate_error_tip() # (12,), scalar, scalar
             
             # pretty_print_array(err_tip)
             # print("---------------------------")
             
+            # Apply low-pass filter to the error norms
+            self.pos_err_avr_norm = self.k_low_pass_convergence*self.pos_err_avr_norm_prev + (1-self.k_low_pass_convergence)*pos_err_avr_norm
+            self.ori_err_avr_norm = self.k_low_pass_convergence*self.ori_err_avr_norm_prev + (1-self.k_low_pass_convergence)*ori_err_avr_norm
+            
+            
             # Update the last error change is valid time if the change in the error norms is above the thresholds
-            if ((np.abs(self.pos_err_avr_norm - self.pos_err_avr_norm_prev) > self.convergence_threshold_pos) or
-                (np.abs(self.ori_err_avr_norm - self.ori_err_avr_norm_prev) > self.convergence_threshold_ori)):
+            if ((np.abs(self.pos_err_avr_norm - self.pos_err_avr_norm_prev) >= self.convergence_threshold_pos) or
+                (np.abs(self.ori_err_avr_norm - self.ori_err_avr_norm_prev) >= self.convergence_threshold_ori)):
                 self.update_last_error_change_is_valid_time()
             # else:
             #     rospy.logwarn("Error norms are not changing. Current changes in error norms:\npos_err_avr_norm: " + str(np.abs(self.pos_err_avr_norm - self.pos_err_avr_norm_prev)) + ", ori_err_avr_norm: " + str(np.abs(self.ori_err_avr_norm - self.ori_err_avr_norm_prev)))
             
             # publish error norms for information
-            self.info_pub_target_pos_error_avr_norm.publish(Float32(data=self.pos_err_avr_norm))
-            self.info_pub_target_ori_error_avr_norm.publish(Float32(data=self.ori_err_avr_norm))
+            self.info_pub_target_pos_error_avr_norm.publish(Float32(data=pos_err_avr_norm))
+            self.info_pub_target_ori_error_avr_norm.publish(Float32(data=ori_err_avr_norm))
             # ----------------------------------------------------------------------------------------------------
             
             # ----------------------------------------------------------------------------------------------------
@@ -1992,6 +2032,29 @@ class VelocityControllerNode:
             (    q[0, 2]-q[1, 3],     q[1, 2]+q[0, 3], 1.0-q[0, 0]-q[1, 1])
             ), dtype=np.float64)
     
+    def hat(self,k):
+        """
+        Returns a 3 x 3 cross product matrix for a 3 x 1 vector
+        
+                [  0 -k3  k2]
+        khat =  [ k3   0 -k1]
+                [-k2  k1   0]
+        
+        :type    k: numpy.array
+        :param   k: 3 x 1 vector
+        :rtype:  numpy.array
+        :return: the 3 x 3 cross product matrix    
+        """
+        
+        khat=np.zeros((3,3))
+        khat[0,1]=-k[2]
+        khat[0,2]=k[1]
+        khat[1,0]=k[2]
+        khat[1,2]=-k[0]
+        khat[2,0]=-k[1]
+        khat[2,1]=k[0]    
+        return khat
+    
     def quaternion_to_rotation_vec(self, quaternion):
         """
         Converts a quaternion to axis-angle representation.
@@ -2009,13 +2072,23 @@ class VelocityControllerNode:
         if np.abs(angle) < small_angle_threshold:
             # Use small angle approximation
             rotation_vector = np.array([0.,0.,0.])
+            
+            # # Also calculate the representation Jacobian inverse
+            # J_inv = np.eye((3,3))
         else:
             # Regular calculation for larger angles
             axis = quaternion[:3] / np.sin(angle/2.0)
             # Normalize the axis
             axis = axis / np.linalg.norm(axis)
             rotation_vector = angle * axis 
-        return rotation_vector
+            
+            # # Also calculate the representation Jacobian inverse
+            # k_hat = self.hat(axis)
+            # cot = 1.0 / np.tan(angle/2.0)
+            # J = -angle/2.0 * (k_hat + cot*(k_hat @ k_hat)) + np.outer(axis, axis)
+            # J_inv = np.linalg.inv(J)
+            
+        return rotation_vector # , J_inv
 
     def normalize_quaternion(self, quaternion):
         norm = np.linalg.norm(quaternion)
@@ -2067,7 +2140,7 @@ class VelocityControllerNode:
         """
         # Weight limits
         w_max = 1.0
-        w_min = 0.3 # 0.4 (for z weight) # 0.05 # 0.1 (for nominal control scaling)
+        w_min = 0.1 # 0.4 (for z weight) # 0.05 # 0.1 (for nominal control scaling)
 
         # Compute the geometric mean of the stress avoidance performance and the overall minimum distance to collision
         # Below, both values are in the range [0, 1].
@@ -2133,16 +2206,19 @@ class VelocityControllerNode:
         Calculates the value of extended_class_K function \alpha(h) for COLLISION AVOIDANCE
         Piecewise Linear function is used when h is less than 0,
         when h is greater or equal to 0 a nonlinear function is used.
-        See: https://www.desmos.com/calculator/hc6lc7nzkk for the function visualizations
+        See: https://www.desmos.com/calculator/dtsdrcczge for the function visualizations
         """        
-        if (h < 0):
+        if (h < -self.d_obstacle_offset):
+            # alpha_h = -self.c3_alpha_obstacle*self.d_obstacle_offset # Use this if you want to have a fixed value for alpha when h < -d_obstacle_offset
+            alpha_h = self.c3_alpha_obstacle*h # Use this if you want to have a linear function for alpha when h < -d_obstacle_offset
+        elif (-self.d_obstacle_offset <= h < 0 ):
             alpha_h = self.c3_alpha_obstacle*h
-        elif (h > self.d_obstacle_freezone) or abs(self.d_obstacle_freezone-h) < 1e-6:
-            alpha_h = float('inf')
+        elif (0 <= h < (self.d_obstacle_freezone - self.d_obstacle_offset)):
+            alpha_h = (self.c1_alpha_obstacle*h)/((self.d_obstacle_freezone - self.d_obstacle_offset)-h)**self.c2_alpha_obstacle
         else:
-            alpha_h = (self.c1_alpha_obstacle*h)/(self.d_obstacle_freezone-h)**self.c2_alpha_obstacle
+            alpha_h = float('inf')
         
-        return alpha_h        
+        return alpha_h
     
     def alpha_robot_stress(self, h):
         """
@@ -2426,8 +2502,9 @@ class VelocityControllerNode:
                 projection_length = np.dot(point_vector, line_unit_vector)
                 
                 # If projection length is greater than zero, vote to update the target index
-                projection_distance_buffer = 0.0
+                # projection_distance_buffer = 0.0
                 # projection_distance_buffer = self.acceptable_pos_err_avr_norm
+                projection_distance_buffer = 10.0*self.convergence_threshold_pos
                 if not projection_length >= -projection_distance_buffer:
                     votes_for_next_index.append(False) # Vote not to move to the next index
                 else:

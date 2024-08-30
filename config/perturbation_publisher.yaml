@@ -1,12 +1,12 @@
 # Global parameters
 
 # Perturbation Amount Parameters
-delta_x: 0.1 # meters
-delta_y: 0.1 # meters
-delta_z: 0.1 # meters
-delta_th_x: 0.1745329 # rad
-delta_th_y: 0.1745329 # rad
-delta_th_z: 0.1745329 # rad
+delta_x: 0.01 # 0.1 # meters
+delta_y: 0.01 # 0.1 # meters
+delta_z: 0.01 # 0.1 # meters
+delta_th_x: 0.0349066 # 0.0174533 # 0.0349066 # 0.1745329 # rad
+delta_th_y: 0.0349066 # 0.0174533 # 0.0349066 # 0.1745329 # rad
+delta_th_z: 0.0349066 # 0.0174533 # 0.0349066 # 0.1745329 # rad
 
 
 

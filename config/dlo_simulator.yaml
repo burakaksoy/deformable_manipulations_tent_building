@@ -17,9 +17,9 @@ dlo_zero_stretch_stiffness: 1.0e+14
 dlo_young_modulus: 30.0e+9 # 30.0e+9 # 3.0e+7 # E, elasticity modulus (unit: Pa?)
 dlo_torsion_modulus: 10.0e+9 # 10.0e+9 # 1.0e+7 # G, Shear modulus in classical phsysics. (unit: Pa?)
 
-is_collision_handling_enabled: true # default: true
-contact_tolerance: 0.1 # m, It's like offset around the obstacle object for aabb checking. default: 0.1
-contact_sdf_domain_offset: 2.0 # m, defines the minimum distance to a rigid body that will start contact checking and reporting minimum distance readings
+is_collision_handling_enabled: false # default: true
+contact_tolerance: 0.01 # m, It's like offset around the obstacle object for aabb checking. default: 0.1
+contact_sdf_domain_offset: 0.1 # m, defines the minimum distance to a rigid body that will start contact checking and reporting minimum distance readings
 
 use_zero_stretch_stiffness: true
 # use_zero_stretch_stiffness: (default: true)
@@ -34,10 +34,10 @@ global_damp_coeff_w: 1.1e-0 # 0.9e-1 # 0.9e-2 # 0.9e-3 # 0.0 # 0.9e-3 # 2.1e-4;
 # DLO Initial Transformations (By Default, the dlo is laying in +y-axis to -y-axis direction centered at the origin)
 # initial_height: 0.0 # initial dlo height from ground (m) (Deprecated, use dlo_translation instead)
 
-# mingruiyu scene 1
-dlo_translation: [0.25, 0, 0.1] 
-dlo_rotationAxis: [0, 0, 1] # [1, 0, 0]
-dlo_rotationAngle: 0.0 # Radians
+# # mingruiyu scene 1
+# dlo_translation: [0.25, 0, 0.1] 
+# dlo_rotationAxis: [0, 0, 1] # [1, 0, 0]
+# dlo_rotationAngle: 0.0 # Radians
 
 # # mingruiyu scene 2
 # dlo_translation: [0.0, 0, 0.3] 
@@ -49,10 +49,10 @@ dlo_rotationAngle: 0.0 # Radians
 # dlo_rotationAxis: [0, 0, 1] # [1, 0, 0]
 # dlo_rotationAngle: 0.0 # Radians
 
-# # mingruiyu scene 4
-# dlo_translation: [-0.05, 0.05, 0.1] 
-# dlo_rotationAxis: [0, 0, 1] # [1, 0, 0]
-# dlo_rotationAngle: -1.5708 # Radians
+# mingruiyu scene 4
+dlo_translation: [-0.05, 0.05, 0.1] 
+dlo_rotationAxis: [0, 0, 1] # [1, 0, 0]
+dlo_rotationAngle: -1.5708 # Radians
 
 
 # dlo_scale: [1, 1, 1] # NOT USED, use dlo_l and dlo_r parameters instead
@@ -102,11 +102,10 @@ min_dist_to_rb_pub_rate: 50.0 # Hz, frequency to publish minimum distances to th
 
 # Scenes for Mingrui Yu comparisons
 # rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/scene_mingruiyu_0.json
-rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/scene_mingruiyu_1.json
+# rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/scene_mingruiyu_1.json
 # rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/scene_mingruiyu_2.json
 # rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/scene_mingruiyu_3.json
-# rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/scene_mingruiyu_4.json
-# rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/scene_mingruiyu_5.json
+rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/scene_mingruiyu_4.json
 
 # DLO VISUALIZATION RELATED PARAMETERS
 

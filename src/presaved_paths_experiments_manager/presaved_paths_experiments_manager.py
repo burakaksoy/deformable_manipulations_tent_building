@@ -67,7 +67,7 @@ class PresavedPathsExperimentsManager(object):
             rospy.logwarn("Planning was not successful. Skipping the execution of the experiment.")
             
             # Save the results with Nan values
-            self.save_experiment_results(execution_results=None, experiment_number=experiment_number)
+            self.save_experiment_results(execution_results=None, experiment_id=experiment_number)
             if not self.is_experiments_completed:
                 time_to_wait = 2
                 rospy.loginfo("Starting next experiment in %d seconds.." % time_to_wait)
@@ -96,7 +96,7 @@ class PresavedPathsExperimentsManager(object):
                 self.save_experiment_results(execution_results, self.experiment_number)
             
             # Reverse the executed path
-            self.reverse_executed_path(speed_multiplier=50.0)
+            self.reverse_executed_path(speed_multiplier=20.0)
             
             # Re-apply the initial state
             self.apply_initial_state()
@@ -342,11 +342,16 @@ class PresavedPathsExperimentsManager(object):
             particle = int(topic.split('_')[-1])
             
             if last_timestamps[particle] is not None:
-                time_deltas[particle].insert(0, (1.0/speed_multiplier)*(t - last_timestamps[particle]).to_sec())
+                time_deltas[particle].append((1.0/speed_multiplier)*(t - last_timestamps[particle]).to_sec())
             last_timestamps[particle] = t
-            commands[particle].insert(0, self.reverse_odom_msg(msg,speed_multiplier))  # Reverse the order of commands as we store them
+            commands[particle].append(self.reverse_odom_msg(msg, speed_multiplier))  # Append in the normal order
         
         bag.close()
+        
+        # Reverse the lists after the loop
+        for particle in self.velocity_controller_node.custom_static_particles:
+            commands[particle].reverse()
+            time_deltas[particle].reverse()
         
         # Determine the minimum length of command sequences to handle synchronized publishing
         min_len = min(len(commands[particle]) for particle in self.velocity_controller_node.custom_static_particles)

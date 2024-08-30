@@ -3,20 +3,44 @@
  <tabbed_widget name="Main Window" parent="main_window">
   <Tab containers="1" tab_name="tab1">
    <Container>
-    <DockSplitter count="1" orientation="-" sizes="1">
-     <DockSplitter count="2" orientation="|" sizes="0.500373;0.499627">
+    <DockSplitter orientation="-" sizes="1" count="1">
+     <DockSplitter orientation="|" sizes="0.500395;0.499605" count="2">
       <DockArea name="...">
        <plot mode="TimeSeries" flip_y="false" style="Lines" flip_x="false">
-        <range left="0.000000" right="121.224445" bottom="0.000000" top="0.046329"/>
+        <range left="2400.517426" right="2488.325566" top="0.046564" bottom="0.000000"/>
         <limitY min="0"/>
-        <curve color="#1f77b4" name="/tent_building_velocity_controller/info_overall_min_distance_collision/data"/>
+        <curve name="/tent_building_velocity_controller/info_overall_min_distance_collision/data" color="#1f77b4"/>
        </plot>
       </DockArea>
       <DockArea name="...">
        <plot mode="TimeSeries" flip_y="false" style="Lines" flip_x="false">
-        <range left="0.000000" right="121.224445" bottom="0.000000" top="1.004050"/>
-        <limitY min="0" max="1.00405"/>
-        <curve color="#d62728" name="/tent_building_velocity_controller/info_stress_avoidance_performance/data"/>
+        <range left="2400.517331" right="2488.325899" top="1.004050" bottom="0.000000"/>
+        <limitY max="1.00405" min="0"/>
+        <curve name="/tent_building_velocity_controller/info_stress_avoidance_performance/data" color="#d62728"/>
+       </plot>
+      </DockArea>
+     </DockSplitter>
+    </DockSplitter>
+   </Container>
+  </Tab>
+  <Tab containers="1" tab_name="tab2">
+   <Container>
+    <DockSplitter orientation="-" sizes="1" count="1">
+     <DockSplitter orientation="|" sizes="0.500395;0.499605" count="2">
+      <DockArea name="...">
+       <plot mode="TimeSeries" flip_y="false" style="Lines" flip_x="false">
+        <range left="2400.492037" right="2488.350749" top="0.418063" bottom="-0.010108"/>
+        <limitY/>
+        <curve name="/tent_building_velocity_controller/info_target_pos_error_avr_norm/data" color="#1f77b4"/>
+        <curve name="/tent_building_velocity_controller/info_target_pos_error_avr_norm_filtered05" color="#1ac938"/>
+       </plot>
+      </DockArea>
+      <DockArea name="...">
+       <plot mode="TimeSeries" flip_y="false" style="Lines" flip_x="false">
+        <range left="2400.492514" right="2488.349883" top="2.908363" bottom="-0.070936"/>
+        <limitY/>
+        <curve name="/tent_building_velocity_controller/info_target_ori_error_avr_norm/data" color="#d62728"/>
+        <curve name="/tent_building_velocity_controller/info_target_ori_error_avr_norm_filtered05" color="#ff7f0e"/>
        </plot>
       </DockArea>
      </DockSplitter>
@@ -30,7 +54,7 @@
  <!-- - - - - - - - - - - - - - - -->
  <Plugins>
   <plugin ID="DataLoad CSV">
-   <parameters delimiter="0" time_axis=""/>
+   <parameters time_axis="" delimiter="0"/>
   </plugin>
   <plugin ID="DataLoad MCAP"/>
   <plugin ID="DataLoad ROS bags">
@@ -67,7 +91,34 @@
  <previouslyLoaded_Datafiles/>
  <previouslyLoaded_Streamer name="ROS Topic Subscriber"/>
  <!-- - - - - - - - - - - - - - - -->
- <customMathEquations/>
+ <customMathEquations>
+  <snippet name="/tent_building_velocity_controller/info_target_ori_error_avr_norm_filtered05">
+   <global>prev = nil
+t = 0.9</global>
+   <function>if (prev == nil) then
+    prev = value
+    return value
+end
+
+filtered_value = t * prev + (1 - t) * value
+prev = filtered_value
+return filtered_value</function>
+   <linked_source>/tent_building_velocity_controller/info_target_ori_error_avr_norm/data</linked_source>
+  </snippet>
+  <snippet name="/tent_building_velocity_controller/info_target_pos_error_avr_norm_filtered05">
+   <global>prev = nil
+t = 0.9</global>
+   <function>if (prev == nil) then
+    prev = value
+    return value
+end
+
+filtered_value = t * prev + (1 - t) * value
+prev = filtered_value
+return filtered_value</function>
+   <linked_source>/tent_building_velocity_controller/info_target_pos_error_avr_norm/data</linked_source>
+  </snippet>
+ </customMathEquations>
  <snippets/>
  <!-- - - - - - - - - - - - - - - -->
 </root>
