@@ -1335,7 +1335,7 @@ class VelocityControllerNode:
         # weights[5::6] = 0.8
         
         # Slow down the nominal control output when close to the obstacles and stress limits
-        # nominal_u = self.calculate_weight_nominal_input(stress_avoidance_performance, overall_min_distance-self.d_obstacle_offset) * nominal_u
+        nominal_u = self.calculate_weight_nominal_input(stress_avoidance_performance, overall_min_distance-self.d_obstacle_offset) * nominal_u
 
         # Define cost function with weights
         cost = cp.sum_squares(cp.multiply(weights, u - nominal_u)) / 2.0
