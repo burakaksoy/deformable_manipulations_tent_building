@@ -2384,7 +2384,7 @@ class VelocityControllerNode:
         self.planned_path_cumulative_lengths_of_particles,
         self.planned_path_cumulative_rotations_of_particles,
         self.planned_path_direction_vectors_of_particles,
-        self.planned_path_rotation_vectors_of_particles) = path_variables
+        self.planned_path_rotation_vectors_of_particles, _) = path_variables
         return
             
     def calculate_centroid_pose_of_target_poses(self):

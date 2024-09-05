@@ -5,6 +5,9 @@ except ModuleNotFoundError:
     
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm # Colormaps
+
+from dlo_state_approximator import dlo_fwd_kin
 
 # Set the default DPI for all images
 plt.rcParams['figure.dpi'] = 100  # e.g. 300 dpi
@@ -45,10 +48,17 @@ def set_axes_equal(ax):
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++    
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++    
 
-filename = "./planning_experiments_results/scene_4_experiment_001_data.pkl" # Change this to the file you want to load
+# filename = "./generated_plans_i9_10885h/scene_1/scene_1_experiment_001_data.pkl" # Change this to the file you want to load
+filename = "./generated_plans_i9_10885h/scene_4/scene_4_experiment_003_data.pkl" # Change this to the file you want to load
+
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++    
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++    
+
+def calculate_dlo_length(approximated_state_pos):
+    # Link lengths
+    link_lengths = np.linalg.norm(approximated_state_pos[1:,:] - approximated_state_pos[:-1,:], axis=1)
+    return np.sum(link_lengths)
     
 with open(filename, 'rb') as inp:
     plan_data = pickle.load(inp)
@@ -62,13 +72,13 @@ with open(filename, 'rb') as inp:
     ompl_path_direction_vectors, ompl_path_rotation_vectors, ompl_path_of_particles,
     ompl_path_points_of_particles, ompl_path_cumulative_lengths_of_particles,
     ompl_path_cumulative_rotations_of_particles, ompl_path_direction_vectors_of_particles,
-    ompl_path_rotation_vectors_of_particles) = plan_data_ompl
+    ompl_path_rotation_vectors_of_particles, ompl_path_approximated_dlo_joint_values) = plan_data_ompl
     
     (trajopt_path, trajopt_path_points, trajopt_path_cumulative_lengths, trajopt_path_cumulative_rotations,
     trajopt_path_direction_vectors, trajopt_path_rotation_vectors, trajopt_path_of_particles,
     trajopt_path_points_of_particles, trajopt_path_cumulative_lengths_of_particles,
     trajopt_path_cumulative_rotations_of_particles, trajopt_path_direction_vectors_of_particles,
-    trajopt_path_rotation_vectors_of_particles) = plan_data_trajopt
+    trajopt_path_rotation_vectors_of_particles, trajopt_path_approximated_dlo_joint_values) = plan_data_trajopt
     
     (experiment_id, simplified_dlo_num_segments, avr_state_approx_error, planning_success,
     planning_time_ompl, planning_time_trajopt, total_planning_time, ompl_path_length, trajopt_path_length) = performance_data
@@ -87,6 +97,9 @@ with open(filename, 'rb') as inp:
     print("OMPL Path Length: ", ompl_path_length)
     print("Trajopt Path Length: ", trajopt_path_length)
 
+    # As an example calculate the DLO length from the approximated state positions
+    dlo_length = calculate_dlo_length(initial_approximated_state_pos)
+    print("DLO Length: ", dlo_length)
 
     # As an example plot the path of the particles
     # --------------------------------------------------------------------------------------------
@@ -121,28 +134,28 @@ with open(filename, 'rb') as inp:
                 '-r', label='Target State: Approximation Line', markersize=12, linewidth=8)
                 # '-r', label='Target State: Approximation', markersize=12, linewidth=6, alpha=.5)
         
-        # Plot the centroid path points before smoothing
-        ax.plot(ompl_path_points[:,0], # x
-                ompl_path_points[:,1], # y
-                ompl_path_points[:,2], # z
-                ':ok', label='Centroid Path (before smoothing)', markersize=2, linewidth=1)
+        # # Plot the centroid path points before smoothing
+        # ax.plot(ompl_path_points[:,0], # x
+        #         ompl_path_points[:,1], # y
+        #         ompl_path_points[:,2], # z
+        #         ':ok', label='Centroid Path (before smoothing)', markersize=2, linewidth=1)
         
         path_colors = ['b', 'm', 'c', 'y', 'k', 'g', 'r']
         
-        # Plot the holding points path points before smoothing
-        i = 0
-        for id in ompl_path_points_of_particles:
-            ax.plot(ompl_path_points_of_particles[id][:,0], # x
-                    ompl_path_points_of_particles[id][:,1], # y
-                    ompl_path_points_of_particles[id][:,2], # z
-                    ':o'+path_colors[i], label='Point ' + str(id) + ' Path (before smoothing)', markersize=2, linewidth=1)
-            i += 1
+        # # Plot the holding points path points before smoothing
+        # i = 0
+        # for id in ompl_path_points_of_particles:
+        #     ax.plot(ompl_path_points_of_particles[id][:,0], # x
+        #             ompl_path_points_of_particles[id][:,1], # y
+        #             ompl_path_points_of_particles[id][:,2], # z
+        #             ':o'+path_colors[i], label='Point ' + str(id) + ' Path (before smoothing)', markersize=2, linewidth=1)
+        #     i += 1
             
-        # Plot the centroid path points after smoothing
-        ax.plot(trajopt_path_points[:,0], # x
-                trajopt_path_points[:,1], # y
-                trajopt_path_points[:,2], # z
-                '--^k', label='Centroid Path (after smoothing)', markersize=4, linewidth=2)
+        # # Plot the centroid path points after smoothing
+        # ax.plot(trajopt_path_points[:,0], # x
+        #         trajopt_path_points[:,1], # y
+        #         trajopt_path_points[:,2], # z
+        #         '--^k', label='Centroid Path (after smoothing)', markersize=4, linewidth=2)
         
         # Plot the holding points path points after smoothing
         i = 0
@@ -150,8 +163,27 @@ with open(filename, 'rb') as inp:
             ax.plot(trajopt_path_points_of_particles[id][:,0], # x
                     trajopt_path_points_of_particles[id][:,1], # y
                     trajopt_path_points_of_particles[id][:,2], # z
-                    '--^'+path_colors[i], label='Point ' + str(id) + ' Path (after smoothing)', markersize=4, linewidth=2)
+                    '--^'+path_colors[i], label='Point ' + str(id) + ' Path (after smoothing)', markersize=4, linewidth=2, alpha=.5)
             i += 1
+            
+        # Plot holding points path (after smoothing) without duplicate labels
+        for i, id in enumerate(trajopt_path_points_of_particles):
+            ax.plot(trajopt_path_points_of_particles[id][:,0], # x
+                    trajopt_path_points_of_particles[id][:,1], # y
+                    trajopt_path_points_of_particles[id][:,2], # z
+                    '--^'+path_colors[i], markersize=4, linewidth=2)
+
+        # Gradient from green (initial approximation) to red (target approximation)
+        num_intermediate_lines = len(trajopt_path_approximated_dlo_joint_values)
+        color_gradient = cm.RdYlGn(np.linspace(1, 0, num_intermediate_lines))  # Colormap from green to red
+
+        # Plot the approximated DLO segments during the path using the joint values (after smoothing, ie. trajopt)
+        for i, joint_values in enumerate(trajopt_path_approximated_dlo_joint_values):
+            polyline = dlo_fwd_kin(joint_pos=joint_values, dlo_l=dlo_length, return_rot_matrices=False)  # intermediate approximated state
+            ax.plot(polyline[:,0], # x
+                    polyline[:,1], # y
+                    polyline[:,2], # z
+                    '-', color=color_gradient[i], markersize=6, linewidth=4, alpha=.8)
                 
         ax.legend(fontsize=20)
         ax.tick_params(axis='both', which='major', labelsize=20)

@@ -142,12 +142,12 @@ class PresavedPathsExperimentsManager(object):
             #                 ompl_path_direction_vectors, ompl_path_rotation_vectors, ompl_path_of_particles,
             #                 ompl_path_points_of_particles, ompl_path_cumulative_lengths_of_particles,
             #                 ompl_path_cumulative_rotations_of_particles, ompl_path_direction_vectors_of_particles,
-            #                 ompl_path_rotation_vectors_of_particles)
+            #                 ompl_path_rotation_vectors_of_particles, ompl_path_approximated_dlo_joint_values)
             # plan_data_trajopt = (trajopt_path, trajopt_path_points, trajopt_path_cumulative_lengths, trajopt_path_cumulative_rotations,
             #                     trajopt_path_direction_vectors, trajopt_path_rotation_vectors, trajopt_path_of_particles,
             #                     trajopt_path_points_of_particles, trajopt_path_cumulative_lengths_of_particles,
             #                     trajopt_path_cumulative_rotations_of_particles, trajopt_path_direction_vectors_of_particles,
-            #                     trajopt_path_rotation_vectors_of_particles)
+            #                     trajopt_path_rotation_vectors_of_particles, trajopt_path_approximated_dlo_joint_values)
             # performance_data = (experiment_id, simplified_dlo_num_segments, avr_state_approx_error, planning_success,
             #                     planning_time_ompl, planning_time_trajopt, total_planning_time, ompl_path_length, trajopt_path_length)
             # initial_n_target_states = (initial_full_state, initial_approximated_state_pos, initial_approximated_state_joint_pos, 

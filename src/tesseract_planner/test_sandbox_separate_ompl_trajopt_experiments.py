@@ -920,6 +920,8 @@ def process_planner_results(results,
     - path_rotation_vectors_of_particles ({})     : dict of rotation axes of the path segments of the particles as unit vectors 
                                                     (list of N elements with each element is a 3D unit vector for each particle)
                                                     
+    - path_approximated_dlo_joint_values ([])      : a list of joint values of the approximated dlo for each waypoint
+                                                    
     Args:
         - results (CompositeInstruction): The results of the planner
         - center_link_name (str): The name of the center link of the dlo
@@ -933,7 +935,7 @@ def process_planner_results(results,
     h_seg_ids = full_dlo_holding_segment_ids
     
     # Get the joint values of each waypoint from the results
-    joint_values = tesseract_trajectory_to_joint_values_list(results)
+    path_approximated_dlo_joint_values = tesseract_trajectory_to_joint_values_list(results)
     
     # Frame names that we are interested in as the path points
     frame_names = [c_link] + [h_pts_pre + str(i) for i in h_seg_ids]
@@ -946,7 +948,7 @@ def process_planner_results(results,
     path_cumulative_rotations_of_frames,
     path_direction_vectors_of_frames,
     path_rotation_vectors_of_frames
-    ) = joint_values_to_planned_path_data(joint_values, 
+    ) = joint_values_to_planned_path_data(path_approximated_dlo_joint_values, 
                                           frame_names,
                                           kin_group)
     
@@ -984,14 +986,15 @@ def process_planner_results(results,
     path_cumulative_lengths_of_particles,
     path_cumulative_rotations_of_particles,
     path_direction_vectors_of_particles,
-    path_rotation_vectors_of_particles)
+    path_rotation_vectors_of_particles,
+    path_approximated_dlo_joint_values)
 # -----------------------------------------------------------------------
 
 # -----------------------------------------------------------------------
 # Scene for the experiments
 mingruiyu_scene_id = 1
 
-for mingruiyu_scene_id in range(1, 5):
+for mingruiyu_scene_id in range(4,0, -1):
 
     # Set the folder name to save the results and created paths
     saving_folder_name = f"generated_plans_i9_10885h/scene_{mingruiyu_scene_id}"
@@ -1776,7 +1779,8 @@ for mingruiyu_scene_id in range(1, 5):
                 ompl_path_cumulative_lengths_of_particles,
                 ompl_path_cumulative_rotations_of_particles,
                 ompl_path_direction_vectors_of_particles,
-                ompl_path_rotation_vectors_of_particles
+                ompl_path_rotation_vectors_of_particles,
+                ompl_path_approximated_dlo_joint_values
                 ) = process_planner_results(results, 
                                             center_link_name, 
                                             holding_points_link_name_prefix, 
@@ -1992,7 +1996,8 @@ for mingruiyu_scene_id in range(1, 5):
                 trajopt_path_cumulative_lengths_of_particles,
                 trajopt_path_cumulative_rotations_of_particles,
                 trajopt_path_direction_vectors_of_particles,
-                trajopt_path_rotation_vectors_of_particles
+                trajopt_path_rotation_vectors_of_particles,
+                trajopt_path_approximated_dlo_joint_values
                 ) = process_planner_results(results, 
                                             center_link_name, 
                                             holding_points_link_name_prefix, 
@@ -2190,12 +2195,12 @@ for mingruiyu_scene_id in range(1, 5):
                             ompl_path_direction_vectors, ompl_path_rotation_vectors, ompl_path_of_particles,
                             ompl_path_points_of_particles, ompl_path_cumulative_lengths_of_particles,
                             ompl_path_cumulative_rotations_of_particles, ompl_path_direction_vectors_of_particles,
-                            ompl_path_rotation_vectors_of_particles)
+                            ompl_path_rotation_vectors_of_particles, ompl_path_approximated_dlo_joint_values)
             plan_data_trajopt = (trajopt_path, trajopt_path_points, trajopt_path_cumulative_lengths, trajopt_path_cumulative_rotations,
                                 trajopt_path_direction_vectors, trajopt_path_rotation_vectors, trajopt_path_of_particles,
                                 trajopt_path_points_of_particles, trajopt_path_cumulative_lengths_of_particles,
                                 trajopt_path_cumulative_rotations_of_particles, trajopt_path_direction_vectors_of_particles,
-                                trajopt_path_rotation_vectors_of_particles)
+                                trajopt_path_rotation_vectors_of_particles, trajopt_path_approximated_dlo_joint_values)
             performance_data = (experiment_id, simplified_dlo_num_segments, avr_state_approx_error, planning_success,
                                 planning_time_ompl, planning_time_trajopt, total_planning_time, ompl_path_length, trajopt_path_length)
             initial_n_target_states = (initial_full_state, initial_approximated_state_pos, initial_approximated_state_joint_pos, 
