@@ -54,3 +54,5 @@ src/CMakeLists.txt
 # .vscode/
 # src/dingo
 *.csdf
+*.bag
+*.bag.active
