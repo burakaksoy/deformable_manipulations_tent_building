@@ -55,6 +55,9 @@ def pretty_print_array(arr, precision=2, width=5):
         
 class VelocityControllerNode:
     def __init__(self):
+        # Set a flag for node initialization status
+        self.initialized = False
+        
         self.enabled = False  # Flag to enable/disable controller
 
         # To Store the time when the controller is enabled/disabled
@@ -500,6 +503,10 @@ class VelocityControllerNode:
         self.control_outputs = {} 
         for particle in self.custom_static_particles:
             self.control_outputs[particle] = np.zeros(6) # initialization for the velocity command
+            
+        self.control_outputs_last = {}
+        for particle in self.custom_static_particles:
+            self.control_outputs_last[particle] = np.zeros(6)
 
         # Start the control
         self.calculate_control_timer = rospy.Timer(rospy.Duration(1. / self.pub_rate_odom), self.calculate_control_outputs_timer_callback)
@@ -508,6 +515,7 @@ class VelocityControllerNode:
         # # Event to control the execution of one callback based on user input
         # self.proceed_event = threading.Event()
         ## ----------------------------------------------------------------------------------------
+        self.initialized = True
 
     #     # Start thread for user input
     #     self.input_thread = threading.Thread(target=self.user_input_thread)
@@ -823,37 +831,44 @@ class VelocityControllerNode:
         return pose_msg
 
     def state_array_callback(self, states_msg):
-        self.current_full_state = states_msg
-        
-        for particle in (self.custom_static_particles + self.tip_particles):
-            self.particle_positions[particle] = states_msg.states[particle].pose.position
-            self.particle_orientations[particle] = states_msg.states[particle].pose.orientation
-            self.particle_twists[particle] = states_msg.states[particle].twist
+        if self.initialized:
+            self.current_full_state = states_msg
+            
+            for particle in (self.custom_static_particles + self.tip_particles):
+                self.particle_positions[particle] = states_msg.states[particle].pose.position
+                self.particle_orientations[particle] = states_msg.states[particle].pose.orientation
+                self.particle_twists[particle] = states_msg.states[particle].twist
 
-            wrench_array = self.wrench_to_numpy(states_msg.states[particle].wrench)
-            if particle not in self.particle_wrenches:
-                self.particle_wrenches[particle] = wrench_array
-            else:
-                # Apply low-pass filter to the force and torque values
-                self.particle_wrenches[particle] = self.k_low_pass_ft*self.particle_wrenches[particle] + (1 - self.k_low_pass_ft)*wrench_array
+                wrench_array = self.wrench_to_numpy(states_msg.states[particle].wrench)
+                if particle not in self.particle_wrenches:
+                    self.particle_wrenches[particle] = wrench_array
+                else:
+                    # Apply low-pass filter to the force and torque values
+                    self.particle_wrenches[particle] = self.k_low_pass_ft*self.particle_wrenches[particle] + (1 - self.k_low_pass_ft)*wrench_array
 
     def state_array_dx_callback(self, states_msg, perturbed_particle):
-        self.update_state_arrays(states_msg, perturbed_particle, self.particle_positions_dx, self.particle_orientations_dx, self.particle_twists_dx, self.particle_wrenches_dx)
+        if self.initialized:
+            self.update_state_arrays(states_msg, perturbed_particle, self.particle_positions_dx, self.particle_orientations_dx, self.particle_twists_dx, self.particle_wrenches_dx)
 
     def state_array_dy_callback(self, states_msg, perturbed_particle):
-        self.update_state_arrays(states_msg, perturbed_particle, self.particle_positions_dy, self.particle_orientations_dy, self.particle_twists_dy, self.particle_wrenches_dy)
+        if self.initialized:
+            self.update_state_arrays(states_msg, perturbed_particle, self.particle_positions_dy, self.particle_orientations_dy, self.particle_twists_dy, self.particle_wrenches_dy)
 
     def state_array_dz_callback(self, states_msg, perturbed_particle):
-        self.update_state_arrays(states_msg, perturbed_particle, self.particle_positions_dz, self.particle_orientations_dz, self.particle_twists_dz, self.particle_wrenches_dz)
+        if self.initialized:
+            self.update_state_arrays(states_msg, perturbed_particle, self.particle_positions_dz, self.particle_orientations_dz, self.particle_twists_dz, self.particle_wrenches_dz)
 
     def state_array_dth_x_callback(self, states_msg, perturbed_particle):
-        self.update_state_arrays(states_msg, perturbed_particle, self.particle_positions_dth_x, self.particle_orientations_dth_x, self.particle_twists_dth_x, self.particle_wrenches_dth_x)
+        if self.initialized:
+            self.update_state_arrays(states_msg, perturbed_particle, self.particle_positions_dth_x, self.particle_orientations_dth_x, self.particle_twists_dth_x, self.particle_wrenches_dth_x)
 
     def state_array_dth_y_callback(self, states_msg, perturbed_particle):
-        self.update_state_arrays(states_msg, perturbed_particle, self.particle_positions_dth_y, self.particle_orientations_dth_y, self.particle_twists_dth_y, self.particle_wrenches_dth_y)
+        if self.initialized:
+            self.update_state_arrays(states_msg, perturbed_particle, self.particle_positions_dth_y, self.particle_orientations_dth_y, self.particle_twists_dth_y, self.particle_wrenches_dth_y)
 
     def state_array_dth_z_callback(self, states_msg, perturbed_particle):
-        self.update_state_arrays(states_msg, perturbed_particle, self.particle_positions_dth_z, self.particle_orientations_dth_z, self.particle_twists_dth_z, self.particle_wrenches_dth_z)
+        if self.initialized:
+            self.update_state_arrays(states_msg, perturbed_particle, self.particle_positions_dth_z, self.particle_orientations_dth_z, self.particle_twists_dth_z, self.particle_wrenches_dth_z)
 
     def update_state_arrays(self, states_msg, perturbed_particle, positions_dict, orientations_dict, twists_dict, wrenches_dict):
         if not (perturbed_particle in positions_dict):
@@ -1041,43 +1056,50 @@ class VelocityControllerNode:
         return err, avr_norm_lin_vel_err, avr_norm_ang_vel_err
 
     def min_distances_array_callback(self, min_distances_msg):
-        # Create a set to track the IDs in the current message
-        current_ids = set()
+        if self.initialized:
+            # Create a set to track the IDs in the current message
+            current_ids = set()
 
-        # Iterate over the incoming message and update the dictionary
-        for data in min_distances_msg.data:
-            rigid_body_index = data.index2
+            # Iterate over the incoming message and update the dictionary
+            for data in min_distances_msg.data:
+                rigid_body_index = data.index2
 
-            current_ids.add(rigid_body_index)
-            if rigid_body_index not in self.min_distances or self.min_distances[rigid_body_index] == float('inf'):
-                # Initialize new ID or update 'inf' value with current minDistance
-                self.min_distances[rigid_body_index] = data.minDistance
-            else:
-                # Apply low pass filter for existing ID
-                self.min_distances[rigid_body_index] = self.k_low_pass_min_d*self.min_distances[rigid_body_index] + (1-self.k_low_pass_min_d)*data.minDistance
+                current_ids.add(rigid_body_index)
+                if rigid_body_index not in self.min_distances or self.min_distances[rigid_body_index] == float('inf'):
+                    # Initialize new ID or update 'inf' value with current minDistance
+                    self.min_distances[rigid_body_index] = data.minDistance
+                else:
+                    # Apply low pass filter for existing ID
+                    self.min_distances[rigid_body_index] = self.k_low_pass_min_d*self.min_distances[rigid_body_index] + (1-self.k_low_pass_min_d)*data.minDistance
 
-        # Set values to float('inf') for IDs not in current message
-        for key in list(self.min_distances.keys()):
-            if key not in current_ids:
-                self.min_distances[key] = float('inf')
+            # Set values to float('inf') for IDs not in current message
+            for key in list(self.min_distances.keys()):
+                if key not in current_ids:
+                    self.min_distances[key] = float('inf')
 
     def min_distance_array_dx_callback(self, min_distances_msg, perturbed_particle):
-        self.update_min_distances(self.min_distances_dx, min_distances_msg, perturbed_particle)
+        if self.initialized:
+            self.update_min_distances(self.min_distances_dx, min_distances_msg, perturbed_particle)
 
     def min_distance_array_dy_callback(self, min_distances_msg, perturbed_particle):
-        self.update_min_distances(self.min_distances_dy, min_distances_msg, perturbed_particle)
+        if self.initialized:
+            self.update_min_distances(self.min_distances_dy, min_distances_msg, perturbed_particle)
 
     def min_distance_array_dz_callback(self, min_distances_msg, perturbed_particle):
-        self.update_min_distances(self.min_distances_dz, min_distances_msg, perturbed_particle)
+        if self.initialized:
+            self.update_min_distances(self.min_distances_dz, min_distances_msg, perturbed_particle)
 
     def min_distance_array_dth_x_callback(self, min_distances_msg, perturbed_particle):
-        self.update_min_distances(self.min_distances_dth_x, min_distances_msg, perturbed_particle)
+        if self.initialized:
+            self.update_min_distances(self.min_distances_dth_x, min_distances_msg, perturbed_particle)
 
     def min_distance_array_dth_y_callback(self, min_distances_msg, perturbed_particle):
-        self.update_min_distances(self.min_distances_dth_y, min_distances_msg, perturbed_particle)
+        if self.initialized:
+            self.update_min_distances(self.min_distances_dth_y, min_distances_msg, perturbed_particle)
 
     def min_distance_array_dth_z_callback(self, min_distances_msg, perturbed_particle):
-        self.update_min_distances(self.min_distances_dth_z, min_distances_msg, perturbed_particle)
+        if self.initialized:
+            self.update_min_distances(self.min_distances_dth_z, min_distances_msg, perturbed_particle)
 
     def update_min_distances(self, min_distances, min_distances_msg, perturbed_particle):
         if perturbed_particle not in min_distances:
@@ -1607,279 +1629,284 @@ class VelocityControllerNode:
         """
         Calculates the control outputs (self.control_outputs) for the custom static particles.
         """
-
-        # if self.proceed_event.is_set():
-        #     # print("Executing control calculations...")
-        #     self.enabled = True
-            
-        # Only calculate if enabled
-        if self.enabled:
-            
-            # Increment the controller iteration
-            self.controller_itr += 1
-            
-            # ----------------------------------------------------------------------------------------------------
-            ## Calculate the tip errors and update the error norms
-            
-            # Update the previous error norms
-            self.pos_err_avr_norm_prev = self.pos_err_avr_norm
-            self.ori_err_avr_norm_prev = self.ori_err_avr_norm
-            
-            # Calculate the current tip errors
-            (err_tip, 
-            pos_err_avr_norm, 
-            ori_err_avr_norm) = self.calculate_error_tip() # (12,), scalar, scalar
-            
-            # pretty_print_array(err_tip)
-            # print("---------------------------")
-            
-            # Apply low-pass filter to the error norms
-            self.pos_err_avr_norm = self.k_low_pass_convergence*self.pos_err_avr_norm_prev + (1-self.k_low_pass_convergence)*pos_err_avr_norm
-            self.ori_err_avr_norm = self.k_low_pass_convergence*self.ori_err_avr_norm_prev + (1-self.k_low_pass_convergence)*ori_err_avr_norm
-            
-            
-            # Update the last error change is valid time if the change in the error norms is above the thresholds
-            if ((np.abs(self.pos_err_avr_norm - self.pos_err_avr_norm_prev) >= self.convergence_threshold_pos) or
-                (np.abs(self.ori_err_avr_norm - self.ori_err_avr_norm_prev) >= self.convergence_threshold_ori)):
-                self.update_last_error_change_is_valid_time()
-            # else:
-            #     rospy.logwarn("Error norms are not changing. Current changes in error norms:\npos_err_avr_norm: " + str(np.abs(self.pos_err_avr_norm - self.pos_err_avr_norm_prev)) + ", ori_err_avr_norm: " + str(np.abs(self.ori_err_avr_norm - self.ori_err_avr_norm_prev)))
-            
-            # publish error norms for information
-            self.info_pub_target_pos_error_avr_norm.publish(Float32(data=pos_err_avr_norm))
-            self.info_pub_target_ori_error_avr_norm.publish(Float32(data=ori_err_avr_norm))
-            # ----------------------------------------------------------------------------------------------------
-            
-            # ----------------------------------------------------------------------------------------------------
-            if self.path_tracking_control_enabled:
-                if self.planned_path and self.planned_path_current_target_velocities_of_particles:
-                    # Calculate path tracking control output
-                    path_tracking_control_output = self.calculate_path_tracking_control_output() # (12,)
-                    # print("Path tracking control_output")
-                    # print(path_tracking_control_output)
-                    # print("---------------------------")
-
-                    if self.nominal_control_enabled:
-                        # Calculate nominal control output
-                        nominal_control_output = self.calculate_nominal_control_output(err_tip) # (12,)
-                        # Blend the nominal and path tracking control outputs
-                        control_output = self.blend_control_outputs(nominal_control_output, path_tracking_control_output) # (12,)
-                    else:
-                        control_output = path_tracking_control_output
-                else:
-                    rospy.logwarn_throttle(5, "Waiting for the planned path to be available. Setting control output to zero. (throttled to 5s)")
+        if self.initialized:
+            # if self.proceed_event.is_set():
+            #     # print("Executing control calculations...")
+            #     self.enabled = True
                 
-                    control_output = np.zeros(6*len(self.custom_static_particles))    
-                    self.assign_control_outputs(control_output)
-                    self.update_last_control_output_is_valid_time()
+            # Only calculate if enabled
+            if self.enabled:
+                
+                # Increment the controller iteration
+                self.controller_itr += 1
+                
+                # ----------------------------------------------------------------------------------------------------
+                ## Calculate the tip errors and update the error norms
+                
+                # Update the previous error norms
+                self.pos_err_avr_norm_prev = self.pos_err_avr_norm
+                self.ori_err_avr_norm_prev = self.ori_err_avr_norm
+                
+                # Calculate the current tip errors
+                (err_tip, 
+                pos_err_avr_norm, 
+                ori_err_avr_norm) = self.calculate_error_tip() # (12,), scalar, scalar
+                
+                # pretty_print_array(err_tip)
+                # print("---------------------------")
+                
+                # Apply low-pass filter to the error norms
+                self.pos_err_avr_norm = self.k_low_pass_convergence*self.pos_err_avr_norm_prev + (1-self.k_low_pass_convergence)*pos_err_avr_norm
+                self.ori_err_avr_norm = self.k_low_pass_convergence*self.ori_err_avr_norm_prev + (1-self.k_low_pass_convergence)*ori_err_avr_norm
+                
+                
+                # Update the last error change is valid time if the change in the error norms is above the thresholds
+                if ((np.abs(self.pos_err_avr_norm - self.pos_err_avr_norm_prev) >= self.convergence_threshold_pos) or
+                    (np.abs(self.ori_err_avr_norm - self.ori_err_avr_norm_prev) >= self.convergence_threshold_ori)):
                     self.update_last_error_change_is_valid_time()
-                    return
+                # else:
+                #     rospy.logwarn("Error norms are not changing. Current changes in error norms:\npos_err_avr_norm: " + str(np.abs(self.pos_err_avr_norm - self.pos_err_avr_norm_prev)) + ", ori_err_avr_norm: " + str(np.abs(self.ori_err_avr_norm - self.ori_err_avr_norm_prev)))
                 
-            else: # if path tracking control is not enabled
-                # Calculate nominal control output
-                control_output = self.calculate_nominal_control_output(err_tip) # (12,)
-            # ----------------------------------------------------------------------------------------------------
-                    
-            # ----------------------------------------------------------------------------------------------------  
-            ## Check for the convergence of the controller
+                # publish error norms for information
+                self.info_pub_target_pos_error_avr_norm.publish(Float32(data=pos_err_avr_norm))
+                self.info_pub_target_ori_error_avr_norm.publish(Float32(data=ori_err_avr_norm))
+                # ----------------------------------------------------------------------------------------------------
+                
+                # ----------------------------------------------------------------------------------------------------
+                if self.path_tracking_control_enabled:
+                    if self.planned_path and self.planned_path_current_target_velocities_of_particles:
+                        # Calculate path tracking control output
+                        path_tracking_control_output = self.calculate_path_tracking_control_output() # (12,)
+                        # print("Path tracking control_output")
+                        # print(path_tracking_control_output)
+                        # print("---------------------------")
 
-            # Check if the change in error norms are below the thresholds for a long time
-            if (rospy.Time.now() - self.time_last_error_change_is_valid).to_sec() > self.convergence_wait_timeout:
-                # We will either Disable the controller or replan the path depending on some conditions:
-                
-                ## 1. Check for the arrival to the target pose of the particles 
-                # i.e. Check for the error norms (position and orientation) of the particles, and
-                # disable the controller with success if the errors are below the threshold
-                
-                # if ((self.pos_err_avr_norm < (self.acceptable_pos_err_avr_norm+self.d_obstacle_offset)) and
-                if ((self.pos_err_avr_norm < (self.acceptable_pos_err_avr_norm)) and
-                    (self.ori_err_avr_norm < self.acceptable_ori_err_avr_norm)):
+                        if self.nominal_control_enabled:
+                            # Calculate nominal control output
+                            nominal_control_output = self.calculate_nominal_control_output(err_tip) # (12,)
+                            # Blend the nominal and path tracking control outputs
+                            control_output = self.blend_control_outputs(nominal_control_output, path_tracking_control_output) # (12,)
+                        else:
+                            control_output = path_tracking_control_output
+                    else:
+                        rospy.logwarn_throttle(5, "Waiting for the planned path to be available. Setting control output to zero. (throttled to 5s)")
                     
-                    # Log the current error norms and the acceptable error norms
-                    rospy.loginfo("Current error norms: pos_err_avr_norm: " + str(self.pos_err_avr_norm) + ", ori_err_avr_norm: " + str(self.ori_err_avr_norm))
-                    rospy.loginfo("Acceptable error norms: pos_err_avr_norm: " + str(self.acceptable_pos_err_avr_norm) + ", ori_err_avr_norm: " + str(self.acceptable_ori_err_avr_norm))
+                        control_output = np.zeros(6*len(self.custom_static_particles))    
+                        self.assign_control_outputs(control_output)
+                        self.update_last_control_output_is_valid_time()
+                        self.update_last_error_change_is_valid_time()
+                        return
                     
-                    # assign the zero control output to pause the controller
-                    self.update_last_control_output_is_valid_time()
-                    control_output = np.zeros(6*len(self.custom_static_particles))                
-                    self.assign_control_outputs(control_output)
-                    
-                    # call set_enable service to disable the controller
-                    self.controller_enabler(enable=False, cause="automatic")
-                    # Create green colored log info message
-                    # rospy.loginfo("\033[92m" + "Error norms are below the thresholds. The controller is disabled." + "\033[0m")
-                    rospy.loginfo("Success! Error norms are below the acceptible error thresholds.")
-                    return
-
-                ## 2. Else if the replanning is allowed, replan the path
-                elif self.replanning_allowed and self.num_replanning_attempts < self.max_replanning_attempts:                    
-                    rospy.logwarn("Replanning is triggered due to the error norms are not changing.")
-                    
-                    # Log the current error norms and the acceptable error norms
-                    rospy.logwarn("Current error norms: pos_err_avr_norm: " + str(self.pos_err_avr_norm) + ", ori_err_avr_norm: " + str(self.ori_err_avr_norm))
-                    rospy.logwarn("Acceptable error norms: pos_err_avr_norm: " + str(self.acceptable_pos_err_avr_norm) + ", ori_err_avr_norm: " + str(self.acceptable_ori_err_avr_norm))
-                    
-                    # assign the zero control output to pause the controller
-                    self.update_last_control_output_is_valid_time()
-                    control_output = np.zeros(6*len(self.custom_static_particles))
-                    self.assign_control_outputs(control_output)
-                    
-                    # Disable the path planning with pre-saved paths to allow automatic replanning
-                    self.path_planning_pre_saved_paths_enabled = False
-                    
-                    # Update the initial state as the current state w/out saving it
-                    self.full_states_setter_n_saver(state_type="initial", save=False)
-                    
-                    # Resetting the planned path variables will force replanning
-                    # w/out stopping the controller
-                    self.reset_planned_path_variables() 
-                    
-                    # Set the replanning flag and increment the replanning attempts
-                    self.is_replanning_needed = True
-                    self.num_replanning_attempts += 1
-                    return
-                    
-                ## 3. Else (i.e. if the replanning is not allowed or the replanning attempts are exhausted)
-                # disable the controller with a failure 
-                else:
-                    if not self.replanning_allowed:
-                        rospy.logwarn("Replanning is needed however replanning is not allowed.")
-                    elif self.num_replanning_attempts >= self.max_replanning_attempts:
-                        rospy.logwarn("Replanning is needed however maximum replanning attempts are reached.")
+                else: # if path tracking control is not enabled
+                    # Calculate nominal control output
+                    control_output = self.calculate_nominal_control_output(err_tip) # (12,)
+                # ----------------------------------------------------------------------------------------------------
                         
-                    # Log the current error norms and the acceptable error norms
-                    rospy.logwarn("Current error norms: pos_err_avr_norm: " + str(self.pos_err_avr_norm) + ", ori_err_avr_norm: " + str(self.ori_err_avr_norm))
-                    rospy.logwarn("Acceptable error norms: pos_err_avr_norm: " + str(self.acceptable_pos_err_avr_norm) + ", ori_err_avr_norm: " + str(self.acceptable_ori_err_avr_norm))
-                    
-                    rospy.logwarn("The controller is going to be disabled.")
-                    
-                    self.is_replanning_needed = True
-                    
-                    # call set_enable service to disable the controller
-                    self.controller_enabler(enable=False, cause="error norms are not changing")
-                    # Create red colored log info message
-                    # rospy.logerr("\033[91m" + "The controller is disabled due to the error norms are not changing." + "\033[0m")
-                    rospy.logerr("The controller is disabled due to the error norms are not changing.")
+                # ----------------------------------------------------------------------------------------------------  
+                ## Check for the convergence of the controller
 
-                    # assign the zero control output
-                    self.update_last_control_output_is_valid_time()
-                    control_output = np.zeros(6*len(self.custom_static_particles))
-                    self.assign_control_outputs(control_output)
-                    return
+                # Check if the change in error norms are below the thresholds for a long time
+                if (rospy.Time.now() - self.time_last_error_change_is_valid).to_sec() > self.convergence_wait_timeout:
+                    # We will either Disable the controller or replan the path depending on some conditions:
                     
-            else: # The change in error norms are above the thresholds, i.e. not converged yet
-                # Proceed with the safe control output calculations
-                
-                # init_t = time.time()                
-                
-                # Calculate safe control output with obstacle avoidance        
-                control_output = self.calculate_safe_control_output(control_output) # safe # (12,)
-                # rospy.logwarn("QP solver calculation time: " + str(1000*(time.time() - init_t)) + " ms.")
-                
-                if control_output is not None: # Successfully calculated the safe control output
-                    self.update_last_control_output_is_valid_time()
-                    self.assign_control_outputs(control_output)
-                    return
-                
-                else: # if control output is None (ie. QP solver error)
-                    # check if the control output is None for a long time
-                    if (rospy.Time.now() - self.time_last_control_output_is_valid).to_sec() > self.valid_control_output_wait_timeout:
+                    ## 1. Check for the arrival to the target pose of the particles 
+                    # i.e. Check for the error norms (position and orientation) of the particles, and
+                    # disable the controller with success if the errors are below the threshold
+                    
+                    # if ((self.pos_err_avr_norm < (self.acceptable_pos_err_avr_norm+self.d_obstacle_offset)) and
+                    if ((self.pos_err_avr_norm < (self.acceptable_pos_err_avr_norm)) and
+                        (self.ori_err_avr_norm < self.acceptable_ori_err_avr_norm)):
+                        
+                        # Log the current error norms and the acceptable error norms
+                        rospy.loginfo("Current error norms: pos_err_avr_norm: " + str(self.pos_err_avr_norm) + ", ori_err_avr_norm: " + str(self.ori_err_avr_norm))
+                        rospy.loginfo("Acceptable error norms: pos_err_avr_norm: " + str(self.acceptable_pos_err_avr_norm) + ", ori_err_avr_norm: " + str(self.acceptable_ori_err_avr_norm))
+                        
+                        # assign the zero control output to pause the controller
+                        self.update_last_control_output_is_valid_time()
+                        control_output = np.zeros(6*len(self.custom_static_particles))                
+                        self.assign_control_outputs(control_output)
+                        
                         # call set_enable service to disable the controller
-                        self.controller_enabler(enable=False, cause="QP solver error")
+                        self.controller_enabler(enable=False, cause="automatic")
+                        # Create green colored log info message
+                        # rospy.loginfo("\033[92m" + "Error norms are below the thresholds. The controller is disabled." + "\033[0m")
+                        rospy.loginfo("Success! Error norms are below the acceptible error thresholds.")
+                        return
+
+                    ## 2. Else if the replanning is allowed, replan the path
+                    elif self.replanning_allowed and self.num_replanning_attempts < self.max_replanning_attempts:                    
+                        rospy.logwarn("Replanning is triggered due to the error norms are not changing.")
+                        
+                        # Log the current error norms and the acceptable error norms
+                        rospy.logwarn("Current error norms: pos_err_avr_norm: " + str(self.pos_err_avr_norm) + ", ori_err_avr_norm: " + str(self.ori_err_avr_norm))
+                        rospy.logwarn("Acceptable error norms: pos_err_avr_norm: " + str(self.acceptable_pos_err_avr_norm) + ", ori_err_avr_norm: " + str(self.acceptable_ori_err_avr_norm))
+                        
+                        # assign the zero control output to pause the controller
+                        self.update_last_control_output_is_valid_time()
+                        control_output = np.zeros(6*len(self.custom_static_particles))
+                        self.assign_control_outputs(control_output)
+                        
+                        # Disable the path planning with pre-saved paths to allow automatic replanning
+                        self.path_planning_pre_saved_paths_enabled = False
+                        
+                        # Update the initial state as the current state w/out saving it
+                        self.full_states_setter_n_saver(state_type="initial", save=False)
+                        
+                        # Resetting the planned path variables will force replanning
+                        # w/out stopping the controller
+                        self.reset_planned_path_variables() 
+                        
+                        # Set the replanning flag and increment the replanning attempts
+                        self.is_replanning_needed = True
+                        self.num_replanning_attempts += 1
+                        return
+                        
+                    ## 3. Else (i.e. if the replanning is not allowed or the replanning attempts are exhausted)
+                    # disable the controller with a failure 
+                    else:
+                        if not self.replanning_allowed:
+                            rospy.logwarn("Replanning is needed however replanning is not allowed.")
+                        elif self.num_replanning_attempts >= self.max_replanning_attempts:
+                            rospy.logwarn("Replanning is needed however maximum replanning attempts are reached.")
+                            
+                        # Log the current error norms and the acceptable error norms
+                        rospy.logwarn("Current error norms: pos_err_avr_norm: " + str(self.pos_err_avr_norm) + ", ori_err_avr_norm: " + str(self.ori_err_avr_norm))
+                        rospy.logwarn("Acceptable error norms: pos_err_avr_norm: " + str(self.acceptable_pos_err_avr_norm) + ", ori_err_avr_norm: " + str(self.acceptable_ori_err_avr_norm))
+                        
+                        rospy.logwarn("The controller is going to be disabled.")
+                        
+                        self.is_replanning_needed = True
+                        
+                        # call set_enable service to disable the controller
+                        self.controller_enabler(enable=False, cause="error norms are not changing")
                         # Create red colored log info message
-                        # rospy.logerr("\033[91m" + "The controller is disabled due to the QP solver error." + "\033[0m")
-                        rospy.logerr("The controller is disabled due to the QP solver error.")
+                        # rospy.logerr("\033[91m" + "The controller is disabled due to the error norms are not changing." + "\033[0m")
+                        rospy.logerr("The controller is disabled due to the error norms are not changing.")
 
-                    # assign the zero control output
-                    control_output = np.zeros(6*len(self.custom_static_particles))
-                    self.assign_control_outputs(control_output)
-                    return
-            # ----------------------------------------------------------------------------------------------------  
-            
+                        # assign the zero control output
+                        self.update_last_control_output_is_valid_time()
+                        control_output = np.zeros(6*len(self.custom_static_particles))
+                        self.assign_control_outputs(control_output)
+                        return
+                        
+                else: # The change in error norms are above the thresholds, i.e. not converged yet
+                    # Proceed with the safe control output calculations
+                    
+                    # init_t = time.time()                
+                    
+                    # Calculate safe control output with obstacle avoidance        
+                    control_output = self.calculate_safe_control_output(control_output) # safe # (12,)
+                    # rospy.logwarn("QP solver calculation time: " + str(1000*(time.time() - init_t)) + " ms.")
+                    
+                    if control_output is not None: # Successfully calculated the safe control output
+                        self.update_last_control_output_is_valid_time()
+                        self.assign_control_outputs(control_output)
+                        return
+                    
+                    else: # if control output is None (ie. QP solver error)
+                        # check if the control output is None for a long time
+                        if (rospy.Time.now() - self.time_last_control_output_is_valid).to_sec() > self.valid_control_output_wait_timeout:
+                            # call set_enable service to disable the controller
+                            self.controller_enabler(enable=False, cause="QP solver error")
+                            # Create red colored log info message
+                            # rospy.logerr("\033[91m" + "The controller is disabled due to the QP solver error." + "\033[0m")
+                            rospy.logerr("The controller is disabled due to the QP solver error.")
 
-        # # Reset the event to wait for the next input
-        # self.proceed_event.clear()  
+                        # assign the zero control output
+                        control_output = np.zeros(6*len(self.custom_static_particles))
+                        self.assign_control_outputs(control_output)
+                        return
+                # ----------------------------------------------------------------------------------------------------  
+                
 
-        # else:
-        #     self.enabled = False
+            # # Reset the event to wait for the next input
+            # self.proceed_event.clear()  
+
+            # else:
+            #     self.enabled = False
 
 
     def odom_pub_timer_callback(self,event):
         """
         Integrates the self.control_outputs with time and publishes the resulting poses as Odometry messages.
         """
-        # Only publish if enabled
-        if self.enabled:
-            # TODO: This for loop can be parallelized for better performance
-            for particle in self.custom_static_particles:
-                # Do not proceed until the initial values have been set
-                if ((not (particle in self.particle_positions)) or \
-                    (not self.is_perturbed_states_set_for_particle(particle)) or \
-                    (not self.is_perturbed_min_distances_set(particle))):   
-                    # print("---------------------------")
-                    continue
-                    
-                if self.control_outputs[particle] is not None:
-                    # Prepare Odometry message
-                    odom = Odometry()
-                    odom.header.stamp = rospy.Time.now()
-                    odom.header.frame_id = "map"
+        if self.initialized:
+            # Only publish if enabled
+            if self.enabled:
+                # TODO: This for loop can be parallelized for better performance
+                for particle in self.custom_static_particles:
+                    # Do not proceed until the initial values have been set
+                    if ((not (particle in self.particle_positions)) or \
+                        (not self.is_perturbed_states_set_for_particle(particle)) or \
+                        (not self.is_perturbed_min_distances_set(particle))):   
+                        # print("---------------------------")
+                        continue
+                        
+                    if self.control_outputs[particle] is not None:
+                        # Prepare Odometry message
+                        odom = Odometry()
+                        odom.header.stamp = rospy.Time.now()
+                        odom.header.frame_id = "map"
 
-                    # dt_check = self.nominal_controllers[particle].get_dt() # 
-                    dt = 1./self.pub_rate_odom
+                        # dt_check = self.nominal_controllers[particle].get_dt() # 
+                        dt = 1./self.pub_rate_odom
 
-                    # Scale down the calculated output if its norm is higher than the specified norm max_u
-                    control_outputs_linear = self.scale_down_vector(self.control_outputs[particle][:3], max_u=self.max_linear_velocity)
+                        # Scale down the calculated output if its norm is higher than the specified norm max_u
+                        control_outputs_linear = self.scale_down_vector(self.control_outputs[particle][:3], max_u=self.max_linear_velocity)
 
-                    # Control output is the new position
-                    odom.pose.pose.position.x =  self.particle_positions[particle].x + control_outputs_linear[0]*dt
-                    odom.pose.pose.position.y =  self.particle_positions[particle].y + control_outputs_linear[1]*dt
-                    odom.pose.pose.position.z =  self.particle_positions[particle].z + control_outputs_linear[2]*dt
+                        # Control output is the new position
+                        odom.pose.pose.position.x =  self.particle_positions[particle].x + control_outputs_linear[0]*dt
+                        odom.pose.pose.position.y =  self.particle_positions[particle].y + control_outputs_linear[1]*dt
+                        odom.pose.pose.position.z =  self.particle_positions[particle].z + control_outputs_linear[2]*dt
 
-                    # The new orientation
-                    axis_angle = np.array(self.control_outputs[particle][3:6])
-                    angle = np.linalg.norm(axis_angle)
-                    axis = axis_angle / angle if (angle > 1e-9) else np.array([0, 0, 1])
-                    
-                    # Scale down the angle as omega.
-                    angle = self.scale_down_vector(angle, max_u=self.max_angular_velocity) if (angle > 1e-9) else angle
+                        # The new orientation
+                        axis_angle = np.array(self.control_outputs[particle][3:6])
+                        angle = np.linalg.norm(axis_angle)
+                        axis = axis_angle / angle if (angle > 1e-9) else np.array([0, 0, 1])
+                        
+                        # Scale down the angle as omega.
+                        angle = self.scale_down_vector(angle, max_u=self.max_angular_velocity) if (angle > 1e-9) else angle
 
-                    # Update axis_angle
-                    axis_angle = angle * axis
+                        # Update axis_angle
+                        axis_angle = angle * axis
 
-                    # Convert axis-angle to quaternion
-                    delta_orientation = tf_trans.quaternion_about_axis(angle * dt, axis)
+                        # Convert axis-angle to quaternion
+                        delta_orientation = tf_trans.quaternion_about_axis(angle * dt, axis)
 
-                    # Update the current orientation by multiplying with delta orientation
-                    current_orientation = [self.particle_orientations[particle].x, 
-                                        self.particle_orientations[particle].y, 
-                                        self.particle_orientations[particle].z, 
-                                        self.particle_orientations[particle].w]
-                    
-                    new_orientation = tf_trans.quaternion_multiply(delta_orientation, current_orientation)
+                        # Update the current orientation by multiplying with delta orientation
+                        current_orientation = [self.particle_orientations[particle].x, 
+                                            self.particle_orientations[particle].y, 
+                                            self.particle_orientations[particle].z, 
+                                            self.particle_orientations[particle].w]
+                        
+                        new_orientation = tf_trans.quaternion_multiply(delta_orientation, current_orientation)
 
-                    # Assign the new orientation to the Odometry message
-                    odom.pose.pose.orientation.x = new_orientation[0]
-                    odom.pose.pose.orientation.y = new_orientation[1]
-                    odom.pose.pose.orientation.z = new_orientation[2]
-                    odom.pose.pose.orientation.w = new_orientation[3]
+                        # Assign the new orientation to the Odometry message
+                        odom.pose.pose.orientation.x = new_orientation[0]
+                        odom.pose.pose.orientation.y = new_orientation[1]
+                        odom.pose.pose.orientation.z = new_orientation[2]
+                        odom.pose.pose.orientation.w = new_orientation[3]
 
-                    # Assign the linear and angular velocities to the Odometry message
-                    odom.twist.twist.linear.x = control_outputs_linear[0]
-                    odom.twist.twist.linear.y = control_outputs_linear[1]
-                    odom.twist.twist.linear.z = control_outputs_linear[2]
-                    odom.twist.twist.angular.x = axis_angle[0]
-                    odom.twist.twist.angular.y = axis_angle[1]
-                    odom.twist.twist.angular.z = axis_angle[2]
+                        # Assign the linear and angular velocities to the Odometry message
+                        odom.twist.twist.linear.x = control_outputs_linear[0]
+                        odom.twist.twist.linear.y = control_outputs_linear[1]
+                        odom.twist.twist.linear.z = control_outputs_linear[2]
+                        odom.twist.twist.angular.x = axis_angle[0]
+                        odom.twist.twist.angular.y = axis_angle[1]
+                        odom.twist.twist.angular.z = axis_angle[2]
 
-                    # Update the pose of the particle 
-                    # self.particle_positions[particle] = odom.pose.pose.position
-                    # self.particle_orientations[particle] = odom.pose.pose.orientation
+                        # Update the pose of the particle 
+                        # self.particle_positions[particle] = odom.pose.pose.position
+                        # self.particle_orientations[particle] = odom.pose.pose.orientation
 
-                    # Publish
-                    self.odom_publishers[particle].publish(odom)
-                else:
-                    self.control_outputs[particle] = np.zeros(6)
+                        # Save the applied control output as the last control output
+                        self.control_outputs_last[particle][:3] = control_outputs_linear
+                        self.control_outputs_last[particle][3:6] = axis_angle
+
+                        # Publish
+                        self.odom_publishers[particle].publish(odom)
+                    else:
+                        self.control_outputs[particle] = np.zeros(6)
 
     def odom_publishers_publish_zero_velocities(self):
         """
@@ -2323,75 +2350,75 @@ class VelocityControllerNode:
         return np.linalg.eigh(A)[1][:, -1]
     
     def update_path_status_timer_callback(self, event):
-
-        # Only publish if enabled
-        if self.enabled and self.update_path_status_timer_callback_lock.acquire(blocking=False):
-            try:
-                ## ----------------------------------------------------------------------------------------------
-                if self.path_planning_tesseract_enabled:
+        if self.initialized:
+            # Only publish if enabled
+            if self.enabled and self.update_path_status_timer_callback_lock.acquire(blocking=False):
+                try:
                     ## ----------------------------------------------------------------------------------------------
-                    if (not self.planned_path) and (not self.path_planning_pre_saved_paths_enabled):
-                        """
-                        Calculate the tesseract planned path
-                        """
-                                                                    
-                        (self.planned_path,
-                        self.planned_path_points,
-                        self.planned_path_cumulative_lengths,
-                        self.planned_path_cumulative_rotations,
-                        self.planned_path_direction_vectors,
-                        self.planned_path_rotation_vectors,
-                        self.planned_path_of_particles,
-                        self.planned_path_points_of_particles,
-                        self.planned_path_cumulative_lengths_of_particles,
-                        self.planned_path_cumulative_rotations_of_particles,
-                        self.planned_path_direction_vectors_of_particles,
-                        self.planned_path_rotation_vectors_of_particles) = self.tesseract_planner.plan(self.initial_full_state_dict,
-                                                                                                       self.target_full_state_dict + [self.calculate_centroid_pose_of_target_poses()],
-                                                                                                       self.custom_static_particles)
-                    ## ----------------------------------------------------------------------------------------------
-                    if (self.planned_path) and (not self.planned_path_velocity_profile_of_particles):
-                        """
-                        Calculate the velocity profile for the particles.
-                        """
-                        
-                        rospy.loginfo("Calculating the velocity profile for the particles.")
-                        # Calculate the velocity profile for the particles
-                        self.planned_path_velocity_profile_of_particles = self.calculate_path_tracking_velocity_profile_of_particles()
-                        
-                        # print("Planned path velocity profile of the particles: \n", self.planned_path_velocity_profile_of_particles)
-                        
-                        # Set the current target index and pose for the new planned path
-                        self.planned_path_current_target_index = 1
-                        self.update_current_path_target_poses_and_velocities(self.planned_path_current_target_index)
+                    if self.path_planning_tesseract_enabled:
+                        ## ----------------------------------------------------------------------------------------------
+                        if (not self.planned_path) and (not self.path_planning_pre_saved_paths_enabled):
+                            """
+                            Calculate the tesseract planned path
+                            """
+                                                                        
+                            (self.planned_path,
+                            self.planned_path_points,
+                            self.planned_path_cumulative_lengths,
+                            self.planned_path_cumulative_rotations,
+                            self.planned_path_direction_vectors,
+                            self.planned_path_rotation_vectors,
+                            self.planned_path_of_particles,
+                            self.planned_path_points_of_particles,
+                            self.planned_path_cumulative_lengths_of_particles,
+                            self.planned_path_cumulative_rotations_of_particles,
+                            self.planned_path_direction_vectors_of_particles,
+                            self.planned_path_rotation_vectors_of_particles) = self.tesseract_planner.plan(self.initial_full_state_dict,
+                                                                                                        self.target_full_state_dict + [self.calculate_centroid_pose_of_target_poses()],
+                                                                                                        self.custom_static_particles)
+                        ## ----------------------------------------------------------------------------------------------
+                        if (self.planned_path) and (not self.planned_path_velocity_profile_of_particles):
+                            """
+                            Calculate the velocity profile for the particles.
+                            """
+                            
+                            rospy.loginfo("Calculating the velocity profile for the particles.")
+                            # Calculate the velocity profile for the particles
+                            self.planned_path_velocity_profile_of_particles = self.calculate_path_tracking_velocity_profile_of_particles()
+                            
+                            # print("Planned path velocity profile of the particles: \n", self.planned_path_velocity_profile_of_particles)
+                            
+                            # Set the current target index and pose for the new planned path
+                            self.planned_path_current_target_index = 1
+                            self.update_current_path_target_poses_and_velocities(self.planned_path_current_target_index)
 
-                        # Publish the planned path for visualization
-                        self.publish_path(self.planned_path)
+                            # Publish the planned path for visualization
+                            self.publish_path(self.planned_path)
 
-                        # Publish the planned path of the particles for visualization
-                        self.publish_paths_of_particles(self.planned_path_of_particles)
-                    ## ----------------------------------------------------------------------------------------------
-                    if (self.planned_path) and (self.planned_path_velocity_profile_of_particles):
-                        """
-                        Path tracking...
-                        """
-                        ## ---------------------------------------------------
-                        """
-                        Calculate how much of the planned path is completed and, update and publish the current target point as a geometry_msgs/PointStamped.
-                        """
-                        # Calculate the completion rate of the planned path
-                        # Also update the current target pose and index on the path
-                        self.planned_path_current_target_index = self.update_current_path_target_index(self.planned_path_current_target_index)
-                        self.update_current_path_target_poses_and_velocities(self.planned_path_current_target_index)
+                            # Publish the planned path of the particles for visualization
+                            self.publish_paths_of_particles(self.planned_path_of_particles)
+                        ## ----------------------------------------------------------------------------------------------
+                        if (self.planned_path) and (self.planned_path_velocity_profile_of_particles):
+                            """
+                            Path tracking...
+                            """
+                            ## ---------------------------------------------------
+                            """
+                            Calculate how much of the planned path is completed and, update and publish the current target point as a geometry_msgs/PointStamped.
+                            """
+                            # Calculate the completion rate of the planned path
+                            # Also update the current target pose and index on the path
+                            self.planned_path_current_target_index = self.update_current_path_target_index(self.planned_path_current_target_index)
+                            self.update_current_path_target_poses_and_velocities(self.planned_path_current_target_index)
 
-                        # Create a PointStamped message for the current target points and publish for visualization
-                        self.publish_current_target_points()
-                        ## ---------------------------------------------------
+                            # Create a PointStamped message for the current target points and publish for visualization
+                            self.publish_current_target_points()
+                            ## ---------------------------------------------------
+                        ## ----------------------------------------------------------------------------------------------
                     ## ----------------------------------------------------------------------------------------------
-                ## ----------------------------------------------------------------------------------------------
-            finally:
-                self.update_path_status_timer_callback_lock.release()  
-                # pass      
+                finally:
+                    self.update_path_status_timer_callback_lock.release()  
+                    # pass      
 
     def set_path(self, path_variables):
         """
