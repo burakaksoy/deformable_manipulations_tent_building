@@ -56,6 +56,8 @@ class PerturbationPublisherNode:
         self.odom_publishers_delta_th_x = {}
         self.odom_publishers_delta_th_y = {}
         self.odom_publishers_delta_th_z = {}
+        
+        self.odom_subscribers = {}
 
         for particle in self.custom_static_particles:
             self.odom_publishers_delta_x[particle]    = rospy.Publisher(self.odom_topic_prefix + str(particle) + "_x",    Odometry, queue_size=10)
@@ -71,6 +73,8 @@ class PerturbationPublisherNode:
             # self.odom_publishers_delta_th_x[particle] = rospy.Publisher("th_x" + "/" + str(particle) + "/" + self.odom_topic_prefix , Odometry, queue_size=10)
             # self.odom_publishers_delta_th_y[particle] = rospy.Publisher("th_y" + "/" + str(particle) + "/" + self.odom_topic_prefix , Odometry, queue_size=10)
             # self.odom_publishers_delta_th_z[particle] = rospy.Publisher("th_z" + "/" + str(particle) + "/" + self.odom_topic_prefix , Odometry, queue_size=10)
+            
+            self.odom_subscribers[particle] = rospy.Subscriber(self.odom_topic_prefix + str(particle), Odometry, self.odom_callback, particle, queue_size=10) 
 
         self.odom_pub_timer = rospy.Timer(rospy.Duration(1. / self.pub_rate_odom), self.odom_pub_timer_callback)
 
@@ -88,6 +92,8 @@ class PerturbationPublisherNode:
             odom = Odometry()
             odom.header.stamp = t_now
             odom.header.frame_id = frame_id 
+            
+            odom.twist.twist = self.particle_twists[particle]
             
             #------- POSITIONS --------------------
             # ----------------------------------------------------------------------------------------
@@ -182,8 +188,6 @@ class PerturbationPublisherNode:
             odom.pose.pose = pose_delta_th_z
             self.odom_publishers_delta_th_z[particle].publish(odom)
 
-
-
     def state_array_callback(self, states_msg):
         for particle in self.custom_static_particles:
             self.particle_positions[particle] = states_msg.states[particle].pose.position
@@ -193,7 +197,12 @@ class PerturbationPublisherNode:
         if not self.initial_values_set:
             # After all initial relative positions and orientations have been calculated, set the initialization state variable to True
             self.initial_values_set = True
-
+            
+    def odom_callback(self, odom_msg, particle):
+        self.particle_positions[particle] = odom_msg.pose.pose.position
+        self.particle_orientations[particle] = odom_msg.pose.pose.orientation
+        self.particle_twists[particle] = odom_msg.twist.twist
+        
 
 if __name__ == "__main__":
     rospy.init_node('perturbation_publisher_node', anonymous=False)
