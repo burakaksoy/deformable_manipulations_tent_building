@@ -101,23 +101,31 @@ class VelocityControllerNode:
         
         # Create information publishers for the evaluation of the controller
         self.info_pub_controller_status = rospy.Publisher("~info_controller_status", ControllerStatus, queue_size=10) # Publishes the status of the controller when it is enabled/disabled
+        rospy.sleep(0.1)  # Small delay to ensure publishers are fully set up
 
         self.info_pub_target_pos_error_avr_norm = rospy.Publisher("~info_target_pos_error_avr_norm", Float32, queue_size=10) # average norm of the target position errors
+        rospy.sleep(0.1)  # Small delay to ensure publishers are fully set up
         self.info_pub_target_ori_error_avr_norm = rospy.Publisher("~info_target_ori_error_avr_norm", Float32, queue_size=10) # average norm of the target orientation errors
+        rospy.sleep(0.1)  # Small delay to ensure publishers are fully set up
         
         self.info_pub_overall_min_distance_collision = rospy.Publisher("~info_overall_min_distance_collision", Float32, queue_size=10)
+        rospy.sleep(0.1)  # Small delay to ensure publishers are fully set up
         
         self.info_pub_stress_avoidance_performance = rospy.Publisher("~info_stress_avoidance_performance", Float32, queue_size=10)
+        rospy.sleep(0.1)  # Small delay to ensure publishers are fully set up
         self.info_pub_stress_avoidance_performance_avr = rospy.Publisher("~info_stress_avoidance_performance_avr", Float32, queue_size=10)
-
+        rospy.sleep(0.1)  # Small delay to ensure publishers are fully set up
 
         self.info_pub_wildcard_array = rospy.Publisher("~info_wildcard_array", Float32MultiArray, queue_size=10)
+        rospy.sleep(0.1)  # Small delay to ensure publishers are fully set up
         self.info_pub_wildcard_scalar = rospy.Publisher("~info_wildcard_scalar", Float32, queue_size=10)
+        rospy.sleep(0.1)  # Small delay to ensure publishers are fully set up
 
         # Create an (odom) Publisher for each static particle (i.e. held particles by the robots) as control output to them.
         self.odom_publishers = {}
         for particle in self.custom_static_particles:
             self.odom_publishers[particle] = rospy.Publisher(self.odom_topic_prefix + str(particle), Odometry, queue_size=10)
+            rospy.sleep(0.1)  # Small delay to ensure publishers are fully set up
 
         self.delta_x = rospy.get_param("/perturbation_publisher/delta_x", 0.1) # m
         self.delta_y = rospy.get_param("/perturbation_publisher/delta_y", 0.1) # m
@@ -226,6 +234,7 @@ class VelocityControllerNode:
         
         # Subscriber for deformable object states to figure out the current particle positions
         self.sub_state = rospy.Subscriber(self.deformable_object_state_topic_name, SegmentStateArray, self.state_array_callback, queue_size=10)
+        rospy.sleep(0.1)  # Small delay to ensure publishers are fully set up
         
         # Subscribers to the particle states with perturbations      
         ## We create 6 subscribers for perturbed states of each custom static particle
@@ -281,11 +290,17 @@ class VelocityControllerNode:
 
             # Create the subscribers (also takes the particle argument)
             self.subs_state_dx[particle]    = rospy.Subscriber(state_dx_topic_name,    SegmentStateArray, self.state_array_dx_callback,    particle, queue_size=10)
+            rospy.sleep(0.1)  # Small delay to ensure publishers are fully set up
             self.subs_state_dy[particle]    = rospy.Subscriber(state_dy_topic_name,    SegmentStateArray, self.state_array_dy_callback,    particle, queue_size=10)
+            rospy.sleep(0.1)  # Small delay to ensure publishers are fully set up
             self.subs_state_dz[particle]    = rospy.Subscriber(state_dz_topic_name,    SegmentStateArray, self.state_array_dz_callback,    particle, queue_size=10)
+            rospy.sleep(0.1)  # Small delay to ensure publishers are fully set up
             self.subs_state_dth_x[particle] = rospy.Subscriber(state_dth_x_topic_name, SegmentStateArray, self.state_array_dth_x_callback, particle, queue_size=10)
+            rospy.sleep(0.1)  # Small delay to ensure publishers are fully set up
             self.subs_state_dth_y[particle] = rospy.Subscriber(state_dth_y_topic_name, SegmentStateArray, self.state_array_dth_y_callback, particle, queue_size=10)
+            rospy.sleep(0.1)  # Small delay to ensure publishers are fully set up
             self.subs_state_dth_z[particle] = rospy.Subscriber(state_dth_z_topic_name, SegmentStateArray, self.state_array_dth_z_callback, particle, queue_size=10)
+            rospy.sleep(0.1)  # Small delay to ensure publishers are fully set up
         
         ## ----------------------------------------------------------------------------------------
         ## SETUP FOR MINIMUM DISTANCE READINGS FROM SIMULATION PERTURBATIONS
@@ -294,6 +309,7 @@ class VelocityControllerNode:
 
         # Subscriber to figure out the current deformable object minimum distances to the rigid bodies in the scene 
         self.sub_min_distance = rospy.Subscriber(self.min_distance_topic_name, MinDistanceDataArray, self.min_distances_array_callback, queue_size=10)
+        rospy.sleep(0.1)  # Small delay to ensure publishers are fully set up
 
         # Subscribers to the particle minimum distances with perturbations      
         ## We create 6 subscribers for perturbed states of each custom static particle
@@ -328,11 +344,17 @@ class VelocityControllerNode:
         
             # Create the subscribers (also takes the particle argument)
             self.subs_min_distance_dx[particle]    = rospy.Subscriber(min_distance_dx_topic_name,    MinDistanceDataArray, self.min_distance_array_dx_callback,    particle, queue_size=10)
+            rospy.sleep(0.1)  # Small delay to ensure publishers are fully set up
             self.subs_min_distance_dy[particle]    = rospy.Subscriber(min_distance_dy_topic_name,    MinDistanceDataArray, self.min_distance_array_dy_callback,    particle, queue_size=10)
+            rospy.sleep(0.1)  # Small delay to ensure publishers are fully set up
             self.subs_min_distance_dz[particle]    = rospy.Subscriber(min_distance_dz_topic_name,    MinDistanceDataArray, self.min_distance_array_dz_callback,    particle, queue_size=10)
+            rospy.sleep(0.1)  # Small delay to ensure publishers are fully set up
             self.subs_min_distance_dth_x[particle] = rospy.Subscriber(min_distance_dth_x_topic_name, MinDistanceDataArray, self.min_distance_array_dth_x_callback, particle, queue_size=10)
+            rospy.sleep(0.1)  # Small delay to ensure publishers are fully set up
             self.subs_min_distance_dth_y[particle] = rospy.Subscriber(min_distance_dth_y_topic_name, MinDistanceDataArray, self.min_distance_array_dth_y_callback, particle, queue_size=10)
+            rospy.sleep(0.1)  # Small delay to ensure publishers are fully set up
             self.subs_min_distance_dth_z[particle] = rospy.Subscriber(min_distance_dth_z_topic_name, MinDistanceDataArray, self.min_distance_array_dth_z_callback, particle, queue_size=10)
+            rospy.sleep(0.1)  # Small delay to ensure publishers are fully set up
         ## ----------------------------------------------------------------------------------------
 
         ## ----------------------------------------------------------------------------------------
@@ -409,9 +431,11 @@ class VelocityControllerNode:
         if self.path_planning_tesseract_enabled:
             # Create the information publishers for the planned path
             self.info_pub_planned_path_current_target_point = rospy.Publisher("~info_planned_path_current_target_point", PointStamped, queue_size=10)
-
+            rospy.sleep(0.1)  # Small delay to ensure publishers are fully set up
+            
             # Create the planned path publisher
             self.path_pub = rospy.Publisher("~planned_path", Path, queue_size=10)
+            rospy.sleep(0.1)  # Small delay to ensure publishers are fully set up
             
             # Create the planned path publisher for the particles
             # Create the information publishers for the current target point of the planned path
@@ -420,8 +444,10 @@ class VelocityControllerNode:
 
             for particle in self.custom_static_particles:
                 self.path_pub_particles[particle] = rospy.Publisher("~planned_path_particle_" + str(particle), Path, queue_size=10)
+                rospy.sleep(0.1)  # Small delay to ensure publishers are fully set up
                 self.info_pub_planned_path_current_target_point_particles[particle] = rospy.Publisher("~info_planned_path_current_target_point_particle_" + str(particle), 
                                                                                                       PointStamped, queue_size=10)
+                rospy.sleep(0.1)  # Small delay to ensure publishers are fully set up
 
             self.update_path_status_timer_callback_lock = threading.Lock()
             # Create timer to update the path status and tracking
