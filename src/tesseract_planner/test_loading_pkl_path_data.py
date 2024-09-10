@@ -47,9 +47,11 @@ def set_axes_equal(ax):
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++    
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++    
+scene_id = 4
+experiment = 1
+filename = "./generated_plans_i9_10885h/scene_" + str(scene_id) + "/scene_" + str(scene_id) + "_experiment_" + str(experiment).zfill(3) + "_data.pkl" 
 
-# filename = "./generated_plans_i9_10885h/scene_1/scene_1_experiment_001_data.pkl" # Change this to the file you want to load
-filename = "./generated_plans_i9_10885h/scene_4/scene_4_experiment_003_data.pkl" # Change this to the file you want to load
+# filename = "./generated_plans_i9_10885h/scene_4/scene_4_experiment_003_data.pkl" # Change this to the file you want to load
 
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++    
@@ -108,7 +110,7 @@ with open(filename, 'rb') as inp:
         ax = plt.figure().add_subplot(projection='3d')
 
         # Add title with the number of segments
-        ax.set_title("Generated Paths of Centroid and Holding Points\n w/ Number of Segments = " + str(simplified_dlo_num_segments), fontsize=30)
+        ax.set_title("Generated Path with " + str(simplified_dlo_num_segments) + " rigid links\nScene: " + str(scene_id) + ", Experiment: "+ str(experiment_id) , fontsize=30)
 
         ax.plot(initial_full_state[:,0], # x
                 initial_full_state[:,1], # y
@@ -183,7 +185,7 @@ with open(filename, 'rb') as inp:
             ax.plot(polyline[:,0], # x
                     polyline[:,1], # y
                     polyline[:,2], # z
-                    '-', color=color_gradient[i], markersize=6, linewidth=4, alpha=.8)
+                    '-', color=color_gradient[i], markersize=6, linewidth=4, alpha=.2)
                 
         ax.legend(fontsize=20)
         ax.tick_params(axis='both', which='major', labelsize=20)

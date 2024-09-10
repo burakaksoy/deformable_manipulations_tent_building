@@ -34,6 +34,9 @@ from tesseract_planner import TesseractPlanner
 
 from presaved_paths_experiments_manager import PresavedPathsExperimentsManager
 
+# Moving average class
+from convergence_checker import MovingAverageWithConvergenceAndTrend
+
 # Set print options to reduce precision and increase line width
 np.set_printoptions(precision=2, linewidth=200)
 
@@ -167,6 +170,22 @@ class VelocityControllerNode:
         self.convergence_threshold_pos = float(rospy.get_param("~convergence_threshold_pos", 1e-6)) # m
         self.convergence_threshold_ori = float(rospy.get_param("~convergence_threshold_ori", 1e-4)) # rad        
 
+        # moving average of the change in the average norm of the position and orientation errors
+        if np.isfinite(self.convergence_wait_timeout):
+            # win_size = (self.convergence_wait_timeout*self.pub_rate_odom)//1
+            win_size = (self.pub_rate_odom)//1
+        else:
+            win_size = 10    
+            
+        self.pos_err_convergence_checker = MovingAverageWithConvergenceAndTrend(n=win_size, 
+                                                                                tolerance=self.convergence_threshold_pos, 
+                                                                                trend_tolerance=self.convergence_threshold_pos*10, 
+                                                                                stable_count=5)
+        self.ori_err_convergence_checker = MovingAverageWithConvergenceAndTrend(n=win_size, 
+                                                                                tolerance=self.convergence_threshold_ori, 
+                                                                                trend_tolerance=self.convergence_threshold_ori*1, 
+                                                                                stable_count=5)
+        
         # Particle/Segment ids of the tip points of the tent pole 
         # to be placed into the grommets
         self.tip_particles = rospy.get_param("~tip_particles", [0,39])
@@ -516,6 +535,7 @@ class VelocityControllerNode:
         # self.proceed_event = threading.Event()
         ## ----------------------------------------------------------------------------------------
         self.initialized = True
+        rospy.loginfo("Velocity controller is initialized.")
 
     #     # Start thread for user input
     #     self.input_thread = threading.Thread(target=self.user_input_thread)
@@ -725,6 +745,9 @@ class VelocityControllerNode:
             self.ori_err_avr_norm = 0.0 # float('inf') # initialize average norm of the orientation errors
             self.pos_err_avr_norm_prev = 0.0 # float('inf') # initialize average norm of the previous position errors
             self.ori_err_avr_norm_prev = 0.0 # float('inf') # initialize average norm of the previous orientation errors
+            
+            self.pos_err_convergence_checker.reset() # reset the position error convergence checker
+            self.ori_err_convergence_checker.reset() # reset the orientation error convergence checker
             rospy.loginfo("-------------- Controller is enabled --------------")
         else:
             self.controller_disabled_time = rospy.Time.now()
@@ -1659,6 +1682,8 @@ class VelocityControllerNode:
                 self.pos_err_avr_norm = self.k_low_pass_convergence*self.pos_err_avr_norm_prev + (1-self.k_low_pass_convergence)*pos_err_avr_norm
                 self.ori_err_avr_norm = self.k_low_pass_convergence*self.ori_err_avr_norm_prev + (1-self.k_low_pass_convergence)*ori_err_avr_norm
                 
+                _, is_pos_err_converged = self.pos_err_convergence_checker.update(self.pos_err_avr_norm)
+                _, is_ori_err_converged = self.ori_err_convergence_checker.update(self.ori_err_avr_norm)
                 
                 # Update the last error change is valid time if the change in the error norms is above the thresholds
                 if ((np.abs(self.pos_err_avr_norm - self.pos_err_avr_norm_prev) >= self.convergence_threshold_pos) or
@@ -1706,7 +1731,8 @@ class VelocityControllerNode:
                 ## Check for the convergence of the controller
 
                 # Check if the change in error norms are below the thresholds for a long time
-                if (rospy.Time.now() - self.time_last_error_change_is_valid).to_sec() > self.convergence_wait_timeout:
+                if (((rospy.Time.now() - self.time_last_error_change_is_valid).to_sec() > self.convergence_wait_timeout) and
+                    is_pos_err_converged and is_ori_err_converged):
                     # We will either Disable the controller or replan the path depending on some conditions:
                     
                     ## 1. Check for the arrival to the target pose of the particles 

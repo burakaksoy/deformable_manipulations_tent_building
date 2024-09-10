@@ -571,6 +571,11 @@ task_composer_plugins:
                 inputs: [output_data]
                 outputs: [output_data]
                 format_result_as_input: false
+            DiscreteContactCheckTask:
+              class: DiscreteContactCheckTaskFactory
+              config:
+                conditional: true
+                inputs: [output_data]
             IterativeSplineParameterizationTask:
               class: IterativeSplineParameterizationTaskFactory
               config:
@@ -581,6 +586,8 @@ task_composer_plugins:
             - source: MinLengthTask
               destinations: [ErrorTask, TrajOptMotionPlannerTask]
             - source: TrajOptMotionPlannerTask
+              destinations: [ErrorTask, DiscreteContactCheckTask]
+            - source: DiscreteContactCheckTask
               destinations: [ErrorTask, IterativeSplineParameterizationTask]
             - source: IterativeSplineParameterizationTask
               destinations: [ErrorTask, DoneTask]

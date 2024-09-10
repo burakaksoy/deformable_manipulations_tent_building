@@ -1,0 +1,2 @@
+from .convergence_checker import MovingAverageWithConvergenceAndTrend
+__all__ = ['MovingAverageWithConvergenceAndTrend']
