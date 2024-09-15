@@ -322,9 +322,10 @@ class PathAchievabilityScorer:
 
             # Publish
             self.odom_publishers[particle].publish(odom)
-            
+
+    # ----------------------------------------------------------------------------------
     def send_to_target_poses(self, speedup=1.0):
-        # TODO: Gradually change the position and orientation of the particles 
+        # Gradually change the position and orientation of the particles 
         # to the target pose (self.planned_path_current_target_poses_of_particles[particle]) 
         # based on a trapezoidal velocity profile described with
         # given self.a_max, self.v_max, self.alpha_max, self.omega_max
@@ -613,7 +614,10 @@ class PathAchievabilityScorer:
 
         # Compute the distance moved based on the trapezoidal velocity profile
         p = self.p_from_trap_vel_profile(t=elapsed_time, a=profile['a_p'], t_acc=profile['t_a_p'], t_total=profile['t_tot'], delta=profile['d_p'])        
-        new_position = start_position +  profile['dir_p']*(p/profile['d_p'])
+        if profile['d_p'] > 0.0:
+            new_position = start_position +  profile['dir_p']*(p/profile['d_p'])
+        else:
+            new_position = start_position
 
         return Point(x=new_position[0], y=new_position[1], z=new_position[2])
 
@@ -665,6 +669,7 @@ class PathAchievabilityScorer:
         # Apply the rotation to the start orientation
         new_orientation = tf_trans.quaternion_multiply(delta_orientation, start_quat)
         return new_orientation
+    # ----------------------------------------------------------------------------------
     
     def update_current_path_target_poses(self, current_target_index):
         """
@@ -1193,6 +1198,22 @@ def save_scores(scene_id, experiment_number, saved_paths_dir, scores):
         
         scores_csv_file = os.path.expanduser(os.path.join(saved_paths_dir, scene_dir, file_name))
         
+        # Also create a folder to store the scores as pickle files
+        scores_pickle_dir = os.path.expanduser(os.path.join(saved_paths_dir, scene_dir, "scores"))
+        if not os.path.exists(scores_pickle_dir):
+            os.makedirs(scores_pickle_dir)
+            print(f"Created a folder to store the scores: {scores_pickle_dir}")
+            
+        # Save the scores as a pickle file
+        # File name for the results
+        # Ensure experiment_id is always three digits long with leading zeros
+        formatted_experiment_id = f"{experiment_number:03d}"
+        scores_pickle_file = os.path.join(scores_pickle_dir, f"scene_{scene_id}_experiment_{formatted_experiment_id}_achievability_scores.pkl")
+        with open(scores_pickle_file, 'wb') as f:
+            pickle.dump(scores, f)
+        rospy.loginfo(f"Scores saved to {scores_pickle_file}")
+        
+        # Save some useful score statistics to a csv file
         if len(scores) == 9:
             (errs,
             peak_err,
