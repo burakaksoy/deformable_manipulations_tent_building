@@ -176,6 +176,9 @@ class PathAchievabilityScorer:
         if experiment_number:
             self.experiment_number = experiment_number
         
+        # Reset the previous path variables
+        self.frames = [] # frames for the animation of the pose comparison
+        
         # Reset the planned path variables
         self.reset_planned_path_variables()
         # Load the path from the pickle file
@@ -294,7 +297,7 @@ class PathAchievabilityScorer:
             self.update_current_path_target_poses(self.planned_path_current_target_index)
             
             # Apply the control to the particles
-            self.send_to_target_poses(speedup=50.0)
+            self.send_to_target_poses(speedup=2.0)
             
             # # Wait for the particles to reach the target pose
             # rospy.sleep(self.wp_wait_time) # seconds
@@ -1441,8 +1444,10 @@ def save_scores(scene_id, experiment_number, saved_paths_dir, scores, scores_min
     else:
         rospy.logwarn("Scores are None, not saving to CSV.")
 
-        
-if __name__ == "__main__":
+
+# ------------------------------ Main Function ------------------------------
+
+def main_single_path():
     rospy.init_node('path_achievability_scorer_node', anonymous=False)
     
     scorer = PathAchievabilityScorer()
@@ -1491,7 +1496,7 @@ if __name__ == "__main__":
                 
         (min_distances,
         min_distance_path,
-        min_distance_path_idx) = scores_min_distances
+        min_distance_path_idx) = scores_min_distances # SCORE UNITS ARE IN MILLIMETERS!!
         
         # Print the scores
         rospy.loginfo(f"Peak Error: {peak_err} at waypoint index {peak_err_waypoint_idx}")
@@ -1531,3 +1536,109 @@ if __name__ == "__main__":
     save_scores(scene_id, experiment_number, saved_paths_dir, scores, scores_min_distances)
 
     rospy.spin()
+    
+def main_all_paths():
+    rospy.init_node('path_achievability_scorer_node', anonymous=False)
+
+    scorer = PathAchievabilityScorer()
+
+    # User inputs
+    # scenes = [1, 2, 3, 4]
+    # experiments = range(1, 101)  # Experiments from 1 to 100
+    
+    scenes = [3]
+    experiments = range(1, 101)  # Experiments from 1 to 100
+    
+    saved_paths_dir = "~/catkin_ws_deformable/src/deformable_manipulations_tent_building/src/tesseract_planner/generated_plans_i9_10885h"
+    # saved_paths_dir = "~/catkin_ws_deformable/src/deformable_manipulations_tent_building/src/tesseract_planner/generated_plans_i9_10885h_10_segments"
+
+    for scene_id in scenes:
+        for experiment_number in experiments:
+            try:
+                # Process the file name
+                scene_dir = f"scene_{scene_id}"
+                formatted_experiment_id = f"{experiment_number:03d}"
+                file_name = f"scene_{scene_id}_experiment_{formatted_experiment_id}_data.pkl"  # e.g. "scene_1_experiment_001_data.pkl"
+                path_pickle_file = os.path.expanduser(os.path.join(saved_paths_dir, scene_dir, file_name))
+                rospy.loginfo("Path (Pickle) File to be scored: " + path_pickle_file)
+                
+                # Score the path
+                scores, scores_min_distances = scorer.score_path_from_pickle_file(path_pickle_file=path_pickle_file, 
+                                                            scene_id=scene_id, experiment_number=experiment_number)
+                
+                # Print and plot the scores
+                if scores is not None:
+                    # Unpack the scores
+                    (errs,
+                    peak_err,
+                    peak_err_waypoint_idx,
+                    avr_err,
+                    
+                    err_changes,
+                    peak_err_change,
+                    peak_err_change_idx,
+                    avr_err_change,
+                    
+                    smoothed_errs,
+                    smoothed_peak_err,
+                    smoothed_peak_err_waypoint_idx,
+                    smoothed_avr_err,
+                    
+                    err_changes_on_smoothed,
+                    peak_err_change_on_smoothed,
+                    peak_err_change_idx_on_smoothed,
+                    avr_err_change_on_smoothed,
+                    
+                    scoring_duration_per_waypoint) = scores # SCORE UNITS ARE IN MILLIMETERS!!
+                            
+                    (min_distances,
+                    min_distance_path,
+                    min_distance_path_idx) = scores_min_distances # SCORE UNITS ARE IN MILLIMETERS!!
+                    
+                    # Print the scores
+                    rospy.loginfo(f"Peak Error: {peak_err} at waypoint index {peak_err_waypoint_idx}")
+                    rospy.loginfo(f"Average Error: {avr_err}")
+                    rospy.loginfo(f"Peak Error Change: {peak_err_change} at waypoint index {peak_err_change_idx}")
+                    rospy.loginfo(f"Average Error Change: {avr_err_change}")
+                    
+                    # Print the smoothed scores
+                    rospy.loginfo(f"Smoothed Peak Error: {smoothed_peak_err} at waypoint index {smoothed_peak_err_waypoint_idx}")
+                    rospy.loginfo(f"Smoothed Average Error: {smoothed_avr_err}")
+                    rospy.loginfo(f"Smoothed Peak Error Change: {peak_err_change_on_smoothed} at waypoint index {peak_err_change_idx_on_smoothed}")
+                    rospy.loginfo(f"Smoothed Average Error Change: {avr_err_change_on_smoothed}")
+                    
+                    rospy.loginfo(f"Average scoring time per waypoint: {scoring_duration_per_waypoint} seconds.")
+                    
+                    rospy.loginfo(f"Overall minimum distance to obstacles on the path: {min_distances} mm at waypoint index {min_distance_path_idx}")
+                    
+                    # Plot the scores
+                    
+                    # Plot ALL scores
+                    # plot_scores(scores, scores_min_distances, scene_id, experiment_number, saved_paths_dir, show_plot=True) 
+                    
+                    # Plot only the raw scores (First 8 elements, and the last element is the scoring duration)
+                    # plot_scores(scores[:8] + (scores[-1],), scores_min_distances, scene_id, experiment_number, saved_paths_dir, show_plot=True) 
+                    
+                    # Plot only the smoothed scores (Last 9 elements)
+                    plot_scores(scores[-9:], scores_min_distances, scene_id, experiment_number, saved_paths_dir, show_plot=False) 
+                    
+                    # Once all iterations are done, call the function to generate the animation
+                    scorer.plot_dlo_sim_state_vs_rigid_link_apprx_comparisons(scorer.frames, 
+                                                                            save_as_animation=True, 
+                                                                            animation_file=None)
+                else:
+                    rospy.logwarn("Scores are None")
+
+                # Save the scores to a csv file
+                save_scores(scene_id, experiment_number, saved_paths_dir, scores, scores_min_distances)
+
+            
+            except Exception as e:
+                rospy.logerr(f"An error occurred while processing Scene {scene_id}, Experiment {experiment_number}: {e}")
+                continue  # Skip to the next experiment
+
+    rospy.spin()
+    
+if __name__ == "__main__":
+    # main_single_path()
+    main_all_paths()
