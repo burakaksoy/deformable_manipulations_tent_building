@@ -18,8 +18,9 @@ import rosbag
 import tf.transformations as tf_trans
 
 from dlo_simulator_stiff_rods.msg import SegmentStateArray
-import threading
+from dlo_simulator_stiff_rods.msg import MinDistanceDataArray
 
+import threading
 
 from geometry_msgs.msg import Twist, Point, PointStamped, Quaternion, Pose, PoseStamped, Wrench, Vector3
 from nav_msgs.msg import Odometry, Path
@@ -71,6 +72,9 @@ def set_axes_equal(ax):
 
 class PathAchievabilityScorer:
     def __init__(self):
+        # Set a flag for node initialization status
+        self.initialized = False
+        
         self.reset_planned_path_variables()
         
         self.plots_enabled = False
@@ -148,6 +152,21 @@ class PathAchievabilityScorer:
         # Subscriber for deformable object states to figure out the current particle positions
         self.sub_state = rospy.Subscriber(self.deformable_object_state_topic_name, SegmentStateArray, self.state_array_callback, queue_size=10)
         rospy.sleep(0.1)  # Small delay to ensure publishers are fully set up
+        
+        # Subscribed topic name for the minimum distances of the deformable object to the rigid bodies in the scene
+        self.min_distance_topic_name = rospy.get_param("/min_dist_to_rb_topic_name") # subscribed, 
+        # this is also like prefix to the perturbed particles' new minimum distances
+        
+        # Obstacle avoidance performance record variables
+        self.overall_min_distance_collision = float('inf')
+
+        # Subscriber to figure out the current deformable object minimum distances to the rigid bodies in the scene 
+        self.sub_min_distance = rospy.Subscriber(self.min_distance_topic_name, MinDistanceDataArray, self.min_distances_array_callback, queue_size=10)
+        rospy.sleep(0.1)  # Small delay to ensure publishers are fully set up
+        
+        ## ----------------------------------------------------------------------------------------
+        self.initialized = True
+        rospy.loginfo("Path scorer is initialized.")
     
     def score_path_from_pickle_file(self, path_pickle_file, scene_id = None, experiment_number= None):
         
@@ -170,7 +189,7 @@ class PathAchievabilityScorer:
             return self.score_path()
         else:
             # Return None if planning was not successful
-            return None # scores returned as None if planning was not successful
+            return None, None # scores returned as None if planning was not successful
         
     def score_path(self):
         errs = []
@@ -181,6 +200,8 @@ class PathAchievabilityScorer:
         peak_err_change = 0.0   
         peak_err_change_idx = 0
         avr_err_change = 0.0
+        
+        min_distances = []
         
         print("path number of waypoints: ", len(self.planned_path))
 
@@ -225,6 +246,9 @@ class PathAchievabilityScorer:
                     peak_err_change = err_change
                     peak_err_change_idx = self.planned_path_current_target_index
                     
+            # Append the minimum distance to the minimum distances array
+            min_distances.append(self.overall_min_distance_collision*1000) # convert to mm
+                    
         # Calculate the average error
         avr_err = np.mean(errs)
                 
@@ -245,6 +269,14 @@ class PathAchievabilityScorer:
         
         # Append the smoothed scores to the scores
         scores = scores + smoothed_scores
+        
+        # Calculate the min distance scores
+        min_distance_path = np.min(min_distances)
+        min_distance_path_idx = np.argmin(min_distances)
+        
+        scores_min_distances = (min_distances,
+                                min_distance_path,
+                                min_distance_path_idx)
         
         end_time = time.time()
         
@@ -267,8 +299,7 @@ class PathAchievabilityScorer:
             # # Wait for the particles to reach the target pose
             # rospy.sleep(self.wp_wait_time) # seconds
 
-        
-        return scores
+        return scores, scores_min_distances
     
     def calculate_pose_errors(self):
         if self.update_dlo_state_lock.acquire(blocking=False):
@@ -894,6 +925,18 @@ class PathAchievabilityScorer:
 
             self.path_pub_particles[particle].publish(path_msg)
 
+    def min_distances_array_callback(self, min_distances_msg):
+        if self.initialized:
+            overall_min_distance = float('inf')
+
+            # Iterate over the incoming message and update the dictionary
+            for data in min_distances_msg.data:
+                if data.minDistance < overall_min_distance:
+                    overall_min_distance = data.minDistance
+
+            # Obstacle avoidance performance record variables
+            self.overall_min_distance_collision = overall_min_distance
+
     def smooth_scores(self, errs):
         """
         Smooths the scores using Savitzky-Golay filter
@@ -1101,169 +1144,233 @@ class PathAchievabilityScorer:
         except Exception as e:
             print(f"Error plotting the path points: {e}")
 
-def plot_scores(scores):
-    """ Plot the scores of the path with respect to the waypoints, also highlight the peak error and the peak error change points.
+def plot_scores(scores, scores_min_distances, scene_id=None, experiment_number=None, saved_paths_dir='.', show_plot=False):
+    """Plot the scores of the path with respect to the waypoints, also highlight the peak error,
+    the peak error change points, and the minimum distances, and save the plot image.
 
     Args:
-        errs (List[float]): List of avr errors for each waypoint
-        peak_err (float): Peak error value
-        peak_err_waypoint_idx (int): Index of the waypoint with the peak error
-        avr_err (float): Average error value 
-        err_changes (List[float]): List of error changes for each waypoint
-        peak_err_change (float): Peak error change value
-        peak_err_change_idx (int): Index of the waypoint with the peak error change
-        avr_err_change (float): Average error change value
+        scores (List[float] or List[float]): List containing error metrics.
+        scores_min_distances (Tuple[List[float], float, int]): Tuple containing minimum distances data.
+        scene_id (optional): ID of the scene.
+        experiment_number (optional): Number of the experiment.
+        saved_paths_dir (str, optional): Base directory to save the plot image. Defaults to current directory.
     """
-    
-    # Plot the scores
-    fig, ax = plt.subplots(2, 1, figsize=(32, 18))
+
+    # Unpack scores_min_distances
+    (min_distances,
+    min_distance_value,
+    min_distance_idx) = scores_min_distances
+
+    # Adjust the figure size to accommodate three subplots
+    fig, ax = plt.subplots(3, 1, figsize=(32, 27))
 
     if len(scores) == 9:
         (errs,
         peak_err,
         peak_err_waypoint_idx,
         avr_err,
-        
+
         err_changes,
         peak_err_change,
         peak_err_change_idx,
         avr_err_change,
-        
+
         scoring_duration_per_waypoint) = scores
-        
+
         # Figure title
-        fig.suptitle(f"Scene {scene_id} Experiment {experiment_number} Path Achievability Scores", fontsize=40)
-        
-        ax[0].plot(errs, label="Error", markersize=12,  linewidth=8)
-        ax[0].plot([peak_err_waypoint_idx], [peak_err], 'ro', label="Peak Error", markersize=12,  linewidth=8)
-        ax[0].axhline(y=avr_err, color='g', linestyle='--', label="Average Error", markersize=12,  linewidth=8)
+        fig_title = "Path Achievability Scores"
+        if scene_id is not None and experiment_number is not None:
+            fig_title = f"Scene {scene_id} Experiment {experiment_number} {fig_title}"
+        fig.suptitle(fig_title, fontsize=40)
+
+        # ------------------------------ Error --------------------------------
+        ax[0].plot(errs, label="Error", markersize=12, linewidth=8)
+        ax[0].plot([peak_err_waypoint_idx], [peak_err], 'ro', label="Peak Error", markersize=12, linewidth=8)
+        ax[0].axhline(y=avr_err, color='g', linestyle='--', label="Average Error", linewidth=8)
         ax[0].set_title("Error vs Waypoint Index", fontsize=35)
-        # ax[0].set_xlabel("Waypoint Index", fontsize=30)
-        ax[0].set_ylabel("Error (mm)",fontsize=30)
+        ax[0].set_ylabel("Error (mm)", fontsize=30)
         ax[0].legend(fontsize=35)
         ax[0].tick_params(axis='both', which='major', labelsize=20)
-        
-        ax[1].plot(err_changes, label="Error Change", markersize=12,  linewidth=8, )
-        ax[1].plot([peak_err_change_idx], [peak_err_change], 'ro', label="Peak Error Increase", markersize=12,  linewidth=8)
-        ax[1].axhline(y=avr_err_change, color='g', linestyle='--', label="Average Error Change", markersize=12,  linewidth=8)
+
+        # ------------------------------ Error Change --------------------------------
+        ax[1].plot(err_changes, label="Error Change", markersize=12, linewidth=8)
+        ax[1].plot([peak_err_change_idx], [peak_err_change], 'ro', label="Peak Error Increase", markersize=12, linewidth=8)
+        ax[1].axhline(y=avr_err_change, color='g', linestyle='--', label="Average Error Change", linewidth=8)
         ax[1].set_title("Error Change vs Waypoint Index", fontsize=35)
-        ax[1].set_xlabel("Waypoint Index", fontsize=30)
         ax[1].set_ylabel("Error Change (mm)", fontsize=30)
         ax[1].legend(fontsize=35)
         ax[1].tick_params(axis='both', which='major', labelsize=20)
+
+        # ------------------------------ Minimum Distances --------------------------------
+        ax[2].plot(min_distances, label="Minimum Distance", markersize=12, linewidth=8)
+        ax[2].plot([min_distance_idx], [min_distance_value], 'ro', label="Minimum Distance", markersize=12, linewidth=8)
+        ax[2].set_title("Minimum Distance vs Waypoint Index", fontsize=35)
+        ax[2].set_xlabel("Waypoint Index", fontsize=30)
+        ax[2].set_ylabel("Minimum Distance (mm)", fontsize=30)
+        ax[2].legend(fontsize=35)
+        ax[2].tick_params(axis='both', which='major', labelsize=20)
         
-        plt.show()
-        
-    if len(scores) == 17:
+        # Add a horizontal line at y=0
+        ax[2].axhline(y=0, color='k', linestyle='--', linewidth=2)
+        # Shade the area below y=0 across the entire x-axis range
+        ax[2].axhspan(ymin=ax[2].get_ylim()[0], ymax=0, facecolor='red', alpha=0.3)
+
+    elif len(scores) == 17:
         (errs,
         peak_err,
         peak_err_waypoint_idx,
         avr_err,
-        
+
         err_changes,
         peak_err_change,
         peak_err_change_idx,
         avr_err_change,
-        
+
         smoothed_errs,
         smoothed_peak_err,
         smoothed_peak_err_waypoint_idx,
         smoothed_avr_err,
-        
+
         err_changes_on_smoothed,
         peak_err_change_on_smoothed,
         peak_err_change_idx_on_smoothed,
         avr_err_change_on_smoothed,
-        
+
         scoring_duration_per_waypoint) = scores
-    
+
         # Figure title
-        fig.suptitle(f"Scene {scene_id} Experiment {experiment_number} Path Achievability Scores", fontsize=40)
-        
+        fig_title = "Path Achievability Scores"
+        if scene_id is not None and experiment_number is not None:
+            fig_title = f"Scene {scene_id} Experiment {experiment_number} {fig_title}"
+        fig.suptitle(fig_title, fontsize=40)
+
         # ------------------------------ Error --------------------------------
-        # Plot the scores
-        ax[0].plot(errs, label="Error", markersize=12,  linewidth=8)
-        ax[0].plot([peak_err_waypoint_idx], [peak_err], 'ro', label="Peak Error", markersize=12,  linewidth=8)
-        ax[0].axhline(y=avr_err, color='g', linestyle='--', label="Average Error", markersize=12,  linewidth=8)
-        
-        # Plot the smoothed scores
-        ax[0].plot(smoothed_errs, label="Smoothed Error", markersize=12,  linewidth=8)
-        ax[0].plot([smoothed_peak_err_waypoint_idx], [smoothed_peak_err], 'bo', label="Smoothed Peak Error", markersize=12,  linewidth=8)
-        ax[0].axhline(y=smoothed_avr_err, color='b', linestyle='--', label="Smoothed Average Error", markersize=12,  linewidth=8)
-        
+        # Plot the original and smoothed errors
+        ax[0].plot(errs, label="Error", markersize=12, linewidth=8)
+        ax[0].plot([peak_err_waypoint_idx], [peak_err], 'ro', label="Peak Error", markersize=12, linewidth=8)
+        ax[0].axhline(y=avr_err, color='g', linestyle='--', label="Average Error", linewidth=8)
+
+        ax[0].plot(smoothed_errs, label="Smoothed Error", markersize=12, linewidth=8)
+        ax[0].plot([smoothed_peak_err_waypoint_idx], [smoothed_peak_err], 'bo', label="Smoothed Peak Error", markersize=12, linewidth=8)
+        ax[0].axhline(y=smoothed_avr_err, color='b', linestyle='--', label="Smoothed Average Error", linewidth=8)
+
         ax[0].set_title("Error vs Waypoint Index", fontsize=35)
-        # ax[0].set_xlabel("Waypoint Index", fontsize=30)
-        ax[0].set_ylabel("Error (mm)",fontsize=30)
+        ax[0].set_ylabel("Error (mm)", fontsize=30)
         ax[0].legend(fontsize=35)
         ax[0].tick_params(axis='both', which='major', labelsize=20)
-        
+
         # ------------------------------ Error Change --------------------------------
-        # Plot the scores
-        ax[1].plot(err_changes, label="Error Change", markersize=12,  linewidth=8, )
-        ax[1].plot([peak_err_change_idx], [peak_err_change], 'ro', label="Peak Error Increase", markersize=12,  linewidth=8)
-        ax[1].axhline(y=avr_err_change, color='g', linestyle='--', label="Average Error Change", markersize=12,  linewidth=8)
-        
-        # Plot the smoothed scores
-        ax[1].plot(err_changes_on_smoothed, label="Smoothed Error Change", markersize=12,  linewidth=8)
-        ax[1].plot([peak_err_change_idx_on_smoothed], [peak_err_change_on_smoothed], 'bo', label="Smoothed Peak Error Increase", markersize=12,  linewidth=8)
-        ax[1].axhline(y=avr_err_change_on_smoothed, color='b', linestyle='--', label="Smoothed Average Error Change", markersize=12,  linewidth=8)
-        
+        # Plot the original and smoothed error changes
+        ax[1].plot(err_changes, label="Error Change", markersize=12, linewidth=8)
+        ax[1].plot([peak_err_change_idx], [peak_err_change], 'ro', label="Peak Error Increase", markersize=12, linewidth=8)
+        ax[1].axhline(y=avr_err_change, color='g', linestyle='--', label="Average Error Change", linewidth=8)
+
+        ax[1].plot(err_changes_on_smoothed, label="Smoothed Error Change", markersize=12, linewidth=8)
+        ax[1].plot([peak_err_change_idx_on_smoothed], [peak_err_change_on_smoothed], 'bo', label="Smoothed Peak Error Increase", markersize=12, linewidth=8)
+        ax[1].axhline(y=avr_err_change_on_smoothed, color='b', linestyle='--', label="Smoothed Average Error Change", linewidth=8)
+
         ax[1].set_title("Error Change vs Waypoint Index", fontsize=35)
-        ax[1].set_xlabel("Waypoint Index", fontsize=30)
         ax[1].set_ylabel("Error Change (mm)", fontsize=30)
         ax[1].legend(fontsize=35)
         ax[1].tick_params(axis='both', which='major', labelsize=20)
-        
-        plt.show()
-    
 
-def save_scores(scene_id, experiment_number, saved_paths_dir, scores):
-    """ Save the scores to a csv file
+        # ------------------------------ Minimum Distances --------------------------------
+        ax[2].plot(min_distances, label="Minimum Distance", markersize=12, linewidth=8)
+        ax[2].plot([min_distance_idx], [min_distance_value], 'ro', label="Minimum Distance", markersize=12, linewidth=8)
+        ax[2].set_title("Minimum Distance vs Waypoint Index", fontsize=35)
+        ax[2].set_xlabel("Waypoint Index", fontsize=30)
+        ax[2].set_ylabel("Minimum Distance (mm)", fontsize=30)
+        ax[2].legend(fontsize=35)
+        ax[2].tick_params(axis='both', which='major', labelsize=20)
+        
+        # Add a horizontal line at y=0
+        ax[2].axhline(y=0, color='k', linestyle='--', linewidth=2)
+        # Shade the area below y=0 across the entire x-axis range
+        ax[2].axhspan(ymin=ax[2].get_ylim()[0], ymax=0, facecolor='red', alpha=0.3)
+
+    # --- Save the plot ---
+    # Process the file name and directory
+    if scene_id is not None and experiment_number is not None:
+        scene_dir = f"scene_{scene_id}"
+        formatted_experiment_id = f"{experiment_number:03d}"
+        
+        # Create the plots directory
+        plots_dir = os.path.expanduser(os.path.join(saved_paths_dir, scene_dir, "plots"))
+        if not os.path.exists(plots_dir):
+            os.makedirs(plots_dir)
+            print(f"Created a folder to store the plots: {plots_dir}")
+        
+        # Create the plot file name
+        plot_file = os.path.join(plots_dir, f"scene_{scene_id}_experiment_{formatted_experiment_id}_achievability_plot.png")
+        
+        # Save the figure
+        plt.savefig(plot_file)
+        print(f"Plot saved to {plot_file}")
+    else:
+        print("Scene ID or Experiment Number not provided. Plot will not be saved to file.")
+    
+    # Optionally display the plot
+    if show_plot:
+        plt.show()
+
+def save_scores(scene_id, experiment_number, saved_paths_dir, scores, scores_min_distances):
+    """Save the scores to a CSV file.
 
     Args:
         scene_id (int): Scene ID
         experiment_number (int): Experiment Number
-        scores (Tuple): Tuple of scores
+        saved_paths_dir (str): Directory to save the scores.
+        scores (Tuple): Tuple of scores.
+        scores_min_distances (Tuple): Tuple containing minimum distances data.
     """
-    rospy.loginfo("Saving scores to a csv file")
-    
+    rospy.loginfo("Saving scores to a CSV file")
+
     if scores is not None:
         # Process the file name
         scene_dir = f"scene_{scene_id}"
-        file_name = f"scene_{scene_id}_path_achievability_scores.csv"  # e.g. "scene_1_path_achievability_scores.csv"
+        file_name = f"scene_{scene_id}_path_achievability_scores.csv"  # e.g., "scene_1_path_achievability_scores.csv"
         
         scores_csv_file = os.path.expanduser(os.path.join(saved_paths_dir, scene_dir, file_name))
         
-        # Also create a folder to store the scores as pickle files
+        # Create a folder to store the scores as pickle files
         scores_pickle_dir = os.path.expanduser(os.path.join(saved_paths_dir, scene_dir, "scores"))
         if not os.path.exists(scores_pickle_dir):
             os.makedirs(scores_pickle_dir)
             print(f"Created a folder to store the scores: {scores_pickle_dir}")
-            
+                
         # Save the scores as a pickle file
-        # File name for the results
         # Ensure experiment_id is always three digits long with leading zeros
         formatted_experiment_id = f"{experiment_number:03d}"
         scores_pickle_file = os.path.join(scores_pickle_dir, f"scene_{scene_id}_experiment_{formatted_experiment_id}_achievability_scores.pkl")
+        
+        scores_all = (scores, scores_min_distances)
+        
         with open(scores_pickle_file, 'wb') as f:
-            pickle.dump(scores, f)
+            pickle.dump(scores_all, f)
         rospy.loginfo(f"Scores saved to {scores_pickle_file}")
         
-        # Save some useful score statistics to a csv file
+        # Save some useful score statistics to a CSV file
+        # Unpack scores_min_distances
+        (min_distances,
+            min_distance_value,
+            min_distance_idx) = scores_min_distances
+        
         if len(scores) == 9:
             (errs,
-            peak_err,
-            peak_err_waypoint_idx,
-            avr_err,
-            
-            err_changes,
-            peak_err_change,
-            peak_err_change_idx,
-            avr_err_change,
-            
-            scoring_duration_per_waypoint) = scores
-            
-            row_title = ["experiment_id", "peak_err", "peak_err_waypoint_idx", "avr_err", "peak_err_change", "peak_err_change_idx", "avr_err_change", "scoring_duration_per_waypoint"]
+                peak_err,
+                peak_err_waypoint_idx,
+                avr_err,
+                
+                err_changes,
+                peak_err_change,
+                peak_err_change_idx,
+                avr_err_change,
+                
+                scoring_duration_per_waypoint) = scores
+                
+            row_title = ["experiment_id", "peak_err", "peak_err_waypoint_idx", "avr_err", 
+                            "peak_err_change", "peak_err_change_idx", "avr_err_change", 
+                            "scoring_duration_per_waypoint", "min_distance", "min_distance_idx"]
             
             # If the file does not exist, create it and write the header
             if not os.path.exists(scores_csv_file):
@@ -1274,38 +1381,43 @@ def save_scores(scene_id, experiment_number, saved_paths_dir, scores):
             # Write the scores
             with open(scores_csv_file, 'a', newline='') as f:
                 writer = csv.writer(f)
-                if scores is not None:
-                    writer.writerow([experiment_number, peak_err, peak_err_waypoint_idx, avr_err, peak_err_change, peak_err_change_idx, avr_err_change, scoring_duration_per_waypoint])
+                if scores is not None and scores_min_distances is not None:
+                    writer.writerow([experiment_number, peak_err, peak_err_waypoint_idx, avr_err, 
+                                        peak_err_change, peak_err_change_idx, avr_err_change, 
+                                        scoring_duration_per_waypoint, min_distance_value, min_distance_idx])
                 else:
-                    writer.writerow([experiment_number] + ["Nan"]*(len(row_title)-1))
-                    rospy.logwarn("Scores are None, writing Nan values to the csv file")
+                    writer.writerow([experiment_number] + ["NaN"]*(len(row_title)-1))
+                    rospy.logwarn("Scores or min distances are None, writing NaN values to the CSV file")
                 rospy.loginfo(f"Scores saved to {scores_csv_file}")
-            
-        if len(scores) == 17:
+                
+        elif len(scores) == 17:
             (errs,
-            peak_err,
-            peak_err_waypoint_idx,
-            avr_err,
-            
-            err_changes,
-            peak_err_change,
-            peak_err_change_idx,
-            avr_err_change,
-            
-            smoothed_errs,
-            smoothed_peak_err,
-            smoothed_peak_err_waypoint_idx,
-            smoothed_avr_err,
-            
-            err_changes_on_smoothed,
-            peak_err_change_on_smoothed,
-            peak_err_change_idx_on_smoothed,
-            avr_err_change_on_smoothed,
-            
-            scoring_duration_per_waypoint) = scores
-            
-            row_title = ["experiment_id", "peak_err", "peak_err_waypoint_idx", "avr_err", "peak_err_change", "peak_err_change_idx", "avr_err_change",
-                        "smoothed_peak_err", "smoothed_peak_err_waypoint_idx", "smoothed_avr_err", "peak_err_change_on_smoothed", "peak_err_change_idx_on_smoothed", "avr_err_change_on_smoothed", "scoring_duration_per_waypoint"]
+                peak_err,
+                peak_err_waypoint_idx,
+                avr_err,
+                
+                err_changes,
+                peak_err_change,
+                peak_err_change_idx,
+                avr_err_change,
+                
+                smoothed_errs,
+                smoothed_peak_err,
+                smoothed_peak_err_waypoint_idx,
+                smoothed_avr_err,
+                
+                err_changes_on_smoothed,
+                peak_err_change_on_smoothed,
+                peak_err_change_idx_on_smoothed,
+                avr_err_change_on_smoothed,
+                
+                scoring_duration_per_waypoint) = scores
+                
+            row_title = ["experiment_id", "peak_err", "peak_err_waypoint_idx", "avr_err", 
+                            "peak_err_change", "peak_err_change_idx", "avr_err_change",
+                            "smoothed_peak_err", "smoothed_peak_err_waypoint_idx", "smoothed_avr_err", 
+                            "peak_err_change_on_smoothed", "peak_err_change_idx_on_smoothed", "avr_err_change_on_smoothed", 
+                            "scoring_duration_per_waypoint", "min_distance", "min_distance_idx"]
             
             # If the file does not exist, create it and write the header
             if not os.path.exists(scores_csv_file):
@@ -1316,13 +1428,18 @@ def save_scores(scene_id, experiment_number, saved_paths_dir, scores):
             # Write the scores
             with open(scores_csv_file, 'a', newline='') as f:
                 writer = csv.writer(f)
-                if scores is not None:
-                    writer.writerow([experiment_number, peak_err, peak_err_waypoint_idx, avr_err, peak_err_change, peak_err_change_idx, avr_err_change,
-                                    smoothed_peak_err, smoothed_peak_err_waypoint_idx, smoothed_avr_err, peak_err_change_on_smoothed, peak_err_change_idx_on_smoothed, avr_err_change_on_smoothed, scoring_duration_per_waypoint])
+                if scores is not None and scores_min_distances is not None:
+                    writer.writerow([experiment_number, peak_err, peak_err_waypoint_idx, avr_err, 
+                                        peak_err_change, peak_err_change_idx, avr_err_change,
+                                        smoothed_peak_err, smoothed_peak_err_waypoint_idx, smoothed_avr_err, 
+                                        peak_err_change_on_smoothed, peak_err_change_idx_on_smoothed, avr_err_change_on_smoothed, 
+                                        scoring_duration_per_waypoint, min_distance_value, min_distance_idx])
                 else:
-                    writer.writerow([experiment_number] + ["Nan"]*(len(row_title)-1))
-                    rospy.logwarn("Scores are None, writing Nan values to the csv file")
+                    writer.writerow([experiment_number] + ["NaN"]*(len(row_title)-1))
+                    rospy.logwarn("Scores or min distances are None, writing NaN values to the CSV file")
                 rospy.loginfo(f"Scores saved to {scores_csv_file}")
+    else:
+        rospy.logwarn("Scores are None, not saving to CSV.")
 
         
 if __name__ == "__main__":
@@ -1344,7 +1461,7 @@ if __name__ == "__main__":
     rospy.loginfo("Path (Pickle) File to be scored: " + path_pickle_file)
     
     # Score the path
-    scores = scorer.score_path_from_pickle_file(path_pickle_file=path_pickle_file, 
+    scores, scores_min_distances = scorer.score_path_from_pickle_file(path_pickle_file=path_pickle_file, 
                                                 scene_id=scene_id, experiment_number=experiment_number)
     
     # Print and plot the scores
@@ -1372,6 +1489,10 @@ if __name__ == "__main__":
         
         scoring_duration_per_waypoint) = scores # SCORE UNITS ARE IN MILLIMETERS!!
                 
+        (min_distances,
+        min_distance_path,
+        min_distance_path_idx) = scores_min_distances
+        
         # Print the scores
         rospy.loginfo(f"Peak Error: {peak_err} at waypoint index {peak_err_waypoint_idx}")
         rospy.loginfo(f"Average Error: {avr_err}")
@@ -1386,10 +1507,18 @@ if __name__ == "__main__":
         
         rospy.loginfo(f"Average scoring time per waypoint: {scoring_duration_per_waypoint} seconds.")
         
+        rospy.loginfo(f"Overall minimum distance to obstacles on the path: {min_distances} mm at waypoint index {min_distance_path_idx}")
+        
         # Plot the scores
-        # plot_scores(scores) # Plot ALL scores
-        # plot_scores(scores[:8] + (scores[-1],)) # Plot only the raw scores (First 8 elements, and the last element is the scoring duration)
-        plot_scores(scores[-9:]) # Plot only the smoothed scores (Last 9 elements)
+        
+        # Plot ALL scores
+        # plot_scores(scores, scores_min_distances, scene_id, experiment_number, saved_paths_dir, show_plot=True) 
+        
+        # Plot only the raw scores (First 8 elements, and the last element is the scoring duration)
+        # plot_scores(scores[:8] + (scores[-1],), scores_min_distances, scene_id, experiment_number, saved_paths_dir, show_plot=True) 
+        
+        # Plot only the smoothed scores (Last 9 elements)
+        plot_scores(scores[-9:], scores_min_distances, scene_id, experiment_number, saved_paths_dir, show_plot=True) 
         
         # Once all iterations are done, call the function to generate the animation
         scorer.plot_dlo_sim_state_vs_rigid_link_apprx_comparisons(scorer.frames, 
@@ -1399,6 +1528,6 @@ if __name__ == "__main__":
         rospy.logwarn("Scores are None")
 
     # Save the scores to a csv file
-    save_scores(scene_id, experiment_number, saved_paths_dir, scores)
+    save_scores(scene_id, experiment_number, saved_paths_dir, scores, scores_min_distances)
 
     rospy.spin()
