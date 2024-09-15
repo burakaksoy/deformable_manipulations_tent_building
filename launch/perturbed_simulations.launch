@@ -20,9 +20,11 @@
     
     <arg name="dlo_node_console_logs"  default="log"/>
 
+    <arg name="is_collision_handling_enabled"  default="true"/>
 
-    <arg name="line_marker_scale_multiplier"  default="2.0"/>
-    <arg name="line_marker_alpha"  default="1.0"/>
+    <arg name="line_marker_scale_multiplier"  default="1.0"/>
+    <arg name="line_marker_alpha"  default="0.7"/>
+    <arg name="min_dist_line_marker_scale_multiplier"  default="0.025"/>
 
     <!-- x -->
     <group>
@@ -42,6 +44,9 @@
             <arg name="namespace" value="$(arg simulation_name)" />
             <arg name="dlo_simulator_config" value="$(arg dlo_simulator_config)" />
         </include>
+
+        <!-- Override is_collision_handling_enabled parameter using the argument -->
+        <rosparam param="$(arg simulation_name)/is_collision_handling_enabled" subst_value="true">$(arg is_collision_handling_enabled)</rosparam>
 
         <!-- Simulation -->
         <node type="dlo_simulator_stiff_rods_node" name="$(arg simulation_name)" pkg="dlo_simulator_stiff_rods" output="$(arg dlo_node_console_logs)">        
@@ -76,7 +81,7 @@
             <rosparam param="line_marker_scale_multiplier"              subst_value="true">$(arg line_marker_scale_multiplier)</rosparam>
             <rosparam param="line_marker_color_rgba"                    subst_value="true">[1.0, 0.0, 0.0, $(arg line_marker_alpha)]</rosparam>
             <rosparam param="rb_visualization_mode"                     subst_value="true">-1</rosparam>
-            <rosparam param="min_dist_line_marker_scale_multiplier"     subst_value="true">1.0</rosparam>
+            <rosparam param="min_dist_line_marker_scale_multiplier"     subst_value="true">$(arg min_dist_line_marker_scale_multiplier)</rosparam>
             <rosparam param="min_dist_line_marker_color_rgba"           subst_value="true">[1.0, 0.0, 0.0, 1.0]</rosparam>
 
         </node>
@@ -101,6 +106,9 @@
             <arg name="namespace" value="$(arg simulation_name)" />
             <arg name="dlo_simulator_config" value="$(arg dlo_simulator_config)" />
         </include>
+
+        <!-- Override is_collision_handling_enabled parameter using the argument -->
+        <rosparam param="$(arg simulation_name)/is_collision_handling_enabled" subst_value="true">$(arg is_collision_handling_enabled)</rosparam>
 
         <!-- Simulation -->
         <node type="dlo_simulator_stiff_rods_node" name="$(arg simulation_name)" pkg="dlo_simulator_stiff_rods" output="$(arg dlo_node_console_logs)">        
@@ -135,7 +143,7 @@
             <rosparam param="line_marker_scale_multiplier"              subst_value="true">$(arg line_marker_scale_multiplier)</rosparam>
             <rosparam param="line_marker_color_rgba"                    subst_value="true">[0.0, 1.0, 0.0, $(arg line_marker_alpha)]</rosparam>
             <rosparam param="rb_visualization_mode"                     subst_value="true">-1</rosparam>
-            <rosparam param="min_dist_line_marker_scale_multiplier"     subst_value="true">1.0</rosparam>
+            <rosparam param="min_dist_line_marker_scale_multiplier"     subst_value="true">$(arg min_dist_line_marker_scale_multiplier)</rosparam>
             <rosparam param="min_dist_line_marker_color_rgba"           subst_value="true">[0.0, 1.0, 0.0, 1.0]</rosparam>
 
         </node>
@@ -160,6 +168,9 @@
             <arg name="namespace" value="$(arg simulation_name)" />
             <arg name="dlo_simulator_config" value="$(arg dlo_simulator_config)" />
         </include>
+
+        <!-- Override is_collision_handling_enabled parameter using the argument -->
+        <rosparam param="$(arg simulation_name)/is_collision_handling_enabled" subst_value="true">$(arg is_collision_handling_enabled)</rosparam>
 
         <!-- Simulation -->
         <node type="dlo_simulator_stiff_rods_node" name="$(arg simulation_name)" pkg="dlo_simulator_stiff_rods" output="$(arg dlo_node_console_logs)">        
@@ -194,7 +205,7 @@
             <rosparam param="line_marker_scale_multiplier"              subst_value="true">$(arg line_marker_scale_multiplier)</rosparam>
             <rosparam param="line_marker_color_rgba"                    subst_value="true">[0.0, 0.0, 1.0, $(arg line_marker_alpha)]</rosparam>
             <rosparam param="rb_visualization_mode"                     subst_value="true">-1</rosparam>
-            <rosparam param="min_dist_line_marker_scale_multiplier"     subst_value="true">1.0</rosparam>
+            <rosparam param="min_dist_line_marker_scale_multiplier"     subst_value="true">$(arg min_dist_line_marker_scale_multiplier)</rosparam>
             <rosparam param="min_dist_line_marker_color_rgba"           subst_value="true">[0.0, 0.0, 1.0, 1.0]</rosparam>
 
         </node>
@@ -219,6 +230,9 @@
             <arg name="namespace" value="$(arg simulation_name)" />
             <arg name="dlo_simulator_config" value="$(arg dlo_simulator_config)" />
         </include>
+
+        <!-- Override is_collision_handling_enabled parameter using the argument -->
+        <rosparam param="$(arg simulation_name)/is_collision_handling_enabled" subst_value="true">$(arg is_collision_handling_enabled)</rosparam>
 
         <!-- Simulation -->
         <node type="dlo_simulator_stiff_rods_node" name="$(arg simulation_name)" pkg="dlo_simulator_stiff_rods" output="$(arg dlo_node_console_logs)">        
@@ -253,7 +267,7 @@
             <rosparam param="line_marker_scale_multiplier"              subst_value="true">$(arg line_marker_scale_multiplier)</rosparam>
             <rosparam param="line_marker_color_rgba"                    subst_value="true">[1.0, 0.0, 0.0, $(arg line_marker_alpha)]</rosparam>
             <rosparam param="rb_visualization_mode"                     subst_value="true">-1</rosparam>
-            <rosparam param="min_dist_line_marker_scale_multiplier"     subst_value="true">1.0</rosparam>
+            <rosparam param="min_dist_line_marker_scale_multiplier"     subst_value="true">$(arg min_dist_line_marker_scale_multiplier)</rosparam>
             <rosparam param="min_dist_line_marker_color_rgba"           subst_value="true">[1.0, 0.0, 0.0, 1.0]</rosparam>
 
         </node>
@@ -280,6 +294,9 @@
             <arg name="dlo_simulator_config" value="$(arg dlo_simulator_config)" />
         </include>
 
+        <!-- Override is_collision_handling_enabled parameter using the argument -->
+        <rosparam param="$(arg simulation_name)/is_collision_handling_enabled" subst_value="true">$(arg is_collision_handling_enabled)</rosparam>
+
         <!-- Simulation -->
         <node type="dlo_simulator_stiff_rods_node" name="$(arg simulation_name)" pkg="dlo_simulator_stiff_rods" output="$(arg dlo_node_console_logs)">        
             <!-- Subscriptions -->
@@ -313,7 +330,7 @@
             <rosparam param="line_marker_scale_multiplier"              subst_value="true">$(arg line_marker_scale_multiplier)</rosparam>
             <rosparam param="line_marker_color_rgba"                    subst_value="true">[0.0, 1.0, 0.0, $(arg line_marker_alpha)]</rosparam>
             <rosparam param="rb_visualization_mode"                     subst_value="true">-1</rosparam>
-            <rosparam param="min_dist_line_marker_scale_multiplier"     subst_value="true">1.0</rosparam>
+            <rosparam param="min_dist_line_marker_scale_multiplier"     subst_value="true">$(arg min_dist_line_marker_scale_multiplier)</rosparam>
             <rosparam param="min_dist_line_marker_color_rgba"           subst_value="true">[0.0, 1.0, 0.0, 1.0]</rosparam>
 
         </node>
@@ -338,6 +355,9 @@
             <arg name="namespace" value="$(arg simulation_name)" />
             <arg name="dlo_simulator_config" value="$(arg dlo_simulator_config)" />
         </include>
+
+        <!-- Override is_collision_handling_enabled parameter using the argument -->
+        <rosparam param="$(arg simulation_name)/is_collision_handling_enabled" subst_value="true">$(arg is_collision_handling_enabled)</rosparam>
 
         <!-- Simulation -->
         <node type="dlo_simulator_stiff_rods_node" name="$(arg simulation_name)" pkg="dlo_simulator_stiff_rods" output="$(arg dlo_node_console_logs)">        
@@ -372,7 +392,7 @@
             <rosparam param="line_marker_scale_multiplier"              subst_value="true">$(arg line_marker_scale_multiplier)</rosparam>
             <rosparam param="line_marker_color_rgba"                    subst_value="true">[0.0, 0.0, 1.0, $(arg line_marker_alpha)]</rosparam>
             <rosparam param="rb_visualization_mode"                     subst_value="true">-1</rosparam>
-            <rosparam param="min_dist_line_marker_scale_multiplier"     subst_value="true">1.0</rosparam>
+            <rosparam param="min_dist_line_marker_scale_multiplier"     subst_value="true">$(arg min_dist_line_marker_scale_multiplier)</rosparam>
             <rosparam param="min_dist_line_marker_color_rgba"           subst_value="true">[0.0, 0.0, 1.0, 1.0]</rosparam>
 
         </node>

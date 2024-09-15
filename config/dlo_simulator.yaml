@@ -18,8 +18,8 @@ dlo_young_modulus: 30.0e+9 # 30.0e+9 # 3.0e+7 # E, elasticity modulus (unit: Pa?
 dlo_torsion_modulus: 10.0e+9 # 10.0e+9 # 1.0e+7 # G, Shear modulus in classical phsysics. (unit: Pa?)
 
 is_collision_handling_enabled: false # default: true
-contact_tolerance: 0.01 # m, It's like offset around the obstacle object for aabb checking. default: 0.1
-contact_sdf_domain_offset: 0.1 # m, defines the minimum distance to a rigid body that will start contact checking and reporting minimum distance readings
+contact_tolerance: 0.01 # 0.005 # m, It's like offset around the obstacle object for aabb checking. default: 0.1
+contact_sdf_domain_offset: 0.1 # 0.05 # m, defines the minimum distance to a rigid body that will start contact checking and reporting minimum distance readings
 
 use_zero_stretch_stiffness: true
 # use_zero_stretch_stiffness: (default: true)
