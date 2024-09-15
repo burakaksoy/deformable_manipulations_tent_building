@@ -83,17 +83,24 @@ class PathAchievabilityScorer:
         self.update_dlo_state_lock = threading.Lock()
         
         # wait time for the particles in dynamic simulation to reach the steady state
-        self.wp_wait_time = rospy.get_param("~wp_wait_time", 0.0) # seconds 
+        # self.wp_wait_time = rospy.get_param("~wp_wait_time", 0.0) # seconds 
+        self.wp_wait_time = rospy.get_param("~wp_wait_time", 0.1) # seconds 
+        # self.wp_wait_time = rospy.get_param("~wp_wait_time", 0.2) # seconds 
+        # self.wp_wait_time = rospy.get_param("~wp_wait_time", 0.01) # seconds 
         
-        self.v_max = rospy.get_param("~max_linear_velocity", 10.0) # m/s
-        self.omega_max = rospy.get_param("~max_angular_velocity", 15.0) # rad/s
+        self.v_max = rospy.get_param("~max_linear_velocity", 0.3) # m/s
+        self.omega_max = rospy.get_param("~max_angular_velocity", 0.450) # rad/s
         
         # self.a_max = rospy.get_param("~max_linear_acceleration", 0.5) # m/s^2
         # self.alpha_max = rospy.get_param("~max_angular_acceleration", 0.75) # rad/s^2
+        # self.a_max = rospy.get_param("~max_linear_acceleration", 1.0) # m/s^2
+        # self.alpha_max = rospy.get_param("~max_angular_acceleration", 1.5) # rad/s^2
         # self.a_max = rospy.get_param("~max_linear_acceleration", 2.0) # m/s^2
         # self.alpha_max = rospy.get_param("~max_angular_acceleration", 3.0) # rad/s^2
-        self.a_max = rospy.get_param("~max_linear_acceleration", 4.0) # m/s^2
-        self.alpha_max = rospy.get_param("~max_angular_acceleration", 6.0) # rad/s^2
+        # self.a_max = rospy.get_param("~max_linear_acceleration", 4.0) # m/s^2
+        # self.alpha_max = rospy.get_param("~max_angular_acceleration", 6.0) # rad/s^2
+        self.a_max = rospy.get_param("~max_linear_acceleration", 10.0) # m/s^2
+        self.alpha_max = rospy.get_param("~max_angular_acceleration", 15.0) # rad/s^2
         
         self.custom_static_particles = None
         self.odom_topic_prefix = None
@@ -186,6 +193,7 @@ class PathAchievabilityScorer:
             self.update_current_path_target_poses(self.planned_path_current_target_index)
             
             # Apply the control to the particles
+            # self.send_to_target_poses_basic()
             self.send_to_target_poses()
             
             # Wait for the particles to reach the target pose
@@ -330,7 +338,7 @@ class PathAchievabilityScorer:
         # based on a trapezoidal velocity profile described with
         # given self.a_max, self.v_max, self.alpha_max, self.omega_max
         
-        rate = rospy.Rate(100)  # Control frequency
+        rate = rospy.Rate(500)  # Control frequency
 
         # Initialize variables
         max_time = 0
@@ -897,45 +905,29 @@ class PathAchievabilityScorer:
         # Smooth the errors
         smoothed_errs = savgol_filter(errs, window_size, poly_order)
         
-        peak_err = 0.0 
-        peak_err_waypoint_idx = 0
-        avr_err = 0.0
-        err_changes = [] 
-        peak_err_change = 0.0   
-        peak_err_change_idx = 0
-        avr_err_change = 0.0
+        err_changes = np.diff(smoothed_errs)
         
-        for i, err in enumerate(smoothed_errs):                        
-            # Update the peak error and the peak error waypoint index
-            if err > peak_err:
-                peak_err = err
-                peak_err_waypoint_idx = i
-                
-            # Append the error change to the error changes array
-            if i == 0:
-                err_changes.append(0.0)
-            
-            if i > 0:
-                err_change = err - smoothed_errs[i - 1]
-                err_changes.append(err_change)
-                
-                # Update the peak error change and the peak error change waypoint index
-                if err_change > peak_err_change:
-                    peak_err_change = err_change
-                    peak_err_change_idx = i
+        # Smooth the error changes
+        smoothed_err_changes = savgol_filter(err_changes, window_size, poly_order)
+        
+        peak_err = np.max(smoothed_errs)
+        peak_err_change = np.max(smoothed_err_changes)
+        
+        peak_err_waypoint_idx = np.argmax(smoothed_errs)
+        peak_err_change_idx = np.argmax(smoothed_err_changes)
                     
         # Calculate the average error
         avr_err = np.mean(smoothed_errs)
                 
         # Calculate the average error change
-        avr_err_change = np.mean(err_changes)
+        avr_err_change = np.mean(smoothed_err_changes)
                 
         scores = (smoothed_errs,
                 peak_err,
                 peak_err_waypoint_idx,
                 avr_err,
                 
-                err_changes,
+                smoothed_err_changes,
                 peak_err_change,
                 peak_err_change_idx,
                 avr_err_change)
@@ -1351,7 +1343,9 @@ if __name__ == "__main__":
         rospy.loginfo(f"Average scoring time per waypoint: {scoring_duration_per_waypoint} seconds.")
         
         # Plot the scores
-        plot_scores(scores)
+        # plot_scores(scores) # Plot ALL scores
+        # plot_scores(scores[:8] + (scores[-1],)) # Plot only the raw scores (First 8 elements, and the last element is the scoring duration)
+        plot_scores(scores[-9:]) # Plot only the smoothed scores (Last 9 elements)
         
         # Once all iterations are done, call the function to generate the animation
         scorer.plot_dlo_sim_state_vs_rigid_link_apprx_comparisons(scorer.frames, 
