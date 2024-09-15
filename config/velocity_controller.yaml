@@ -83,8 +83,12 @@ target_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulation
 
 # Maximum velocity limits for each robot
 # Any velocity command exceeding these limits will be scaled down to these values
-max_linear_velocity: 0.2 # 0.2 # 0.1 # [m/s]
-max_angular_velocity: 0.3 # 0.3 # 0.15 # [rad/s]
+max_linear_velocity: 0.2 # 0.05 # 0.2 # 0.1 # [m/s]
+max_angular_velocity: 0.3 # 0.075 # 0.3 # 0.15 # [rad/s]
+
+# Maximum acceleration limits for each robot
+max_linear_acceleration: 0.01 # 0.5  # [m/s^2]
+max_angular_acceleration: 0.2 # 0.5  # [rad/s^2]
 
 # Acceptable error for the target pose to consider the target is reached successfully
 # If the average error is less than this value, the target is not considered as reached
@@ -218,8 +222,7 @@ experiments_scene_id: "4"
 # - If two values are given, the range is assumed to be a range of experiments, inclusive of both the start and end values
 # experiments_range: [32,6,9,13,18,22,26,27,33,39] # Most potentially difficult experiments for 4th scene, Auto segments
 # experiments_range: [18,25,26] # Most potentially difficult experiments for 4th scene, 10 segments
-experiments_range: [36,100]
-# experiments_range: [32]
+experiments_range: [1,100]
 
 # Given the directory below we assume there exists sub folders with names "scene_<experiments_scene_id>"
 experiments_saved_paths_directory: "~/catkin_ws_deformable/src/deformable_manipulations_tent_building/src/tesseract_planner/generated_plans_i9_10885h"
@@ -233,21 +236,22 @@ k_low_pass_min_d: 0.1 # low pass filter coefficient for the ratio of minimum dis
 
 # offset distance from the obstacles
 d_obstacle_offset: 0.002 # 0.004 # 0.05 # (meter) 
+# d_obstacle_offset: 0.01 # 0.004 # 0.05 # (meter) 
 
 d_obstacle_freezone: 0.1 # GOOD 0.3 # (meter) # further than this distance, no obstacles considered by the controller 
+# d_obstacle_freezone: 0.03 # GOOD 0.3 # (meter) # further than this distance, no obstacles considered by the controller 
 
-# # alpha(h) function obstacle avoidance coefficients 
-# # Piecewise linear function slope coefficients 
-# # decrease c1_alpha_obstacle to start reacting early to be more safe, (but causes less nominal controller following)
-# # increase c2_alpha_obstacle to remove the offset violation more agressively, (but may cause instability due to the discretization if too agressive)
-# c1_alpha_obstacle: 0.05 # 0.05 # for h >= 0 # 0.4 # 0.8 # 0.01 # 0.01 # 0.00335 
-# c2_alpha_obstacle: 2.0 # 2.0 # for h < 0 # 5.0 # 3.0 # 0.04 # 0.02 # 0.01 
-
-# alpha(h) function obstacle avoidance coefficients NEW
+# alpha(h) function obstacle avoidance coefficients OLD
 # see: https://www.desmos.com/calculator/hc6lc7nzkk for the function visualizations
 c1_alpha_obstacle: 0.26 # GOOD 0.26 # GOOD 0.02 # 0.1 # 1.0 # 0.25 # 0.08 # Decrease this to start reacting early 
 c2_alpha_obstacle: 1.0   # GOOD 1.0  # GOOD 4.0  # 2.7 # 4.0 # 1.16 # 
 c3_alpha_obstacle: 1.0   # GOOD 1.0  # GOOD 0.05 # linear slope if h < 0 # Increase this to remove the offset violation more agressively
+
+# # alpha(h) function obstacle avoidance coefficients NEW
+# # see: https://www.desmos.com/calculator/eccc1oqisp for the function visualizations
+# c1_alpha_obstacle: 0.1 # [0,1] # Decrease this to start reacting early 
+# c2_alpha_obstacle: 1.0   # NOT USED
+# c3_alpha_obstacle: 1.0   # GOOD 1.0  # linear slope if h < 0 # Increase this to remove the offset violation more agressively
 ## -------------------------------------------------------
 
 ## -------------------------------------------------------

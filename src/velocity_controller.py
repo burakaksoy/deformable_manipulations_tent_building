@@ -150,6 +150,9 @@ class VelocityControllerNode:
 
         self.max_linear_velocity = rospy.get_param("~max_linear_velocity", 0.1) # m/s
         self.max_angular_velocity = rospy.get_param("~max_angular_velocity", 0.15) # rad/s
+        
+        self.max_linear_acceleration = rospy.get_param("~max_linear_acceleration", 0.5) # m/s^2
+        self.max_angular_acceleration = rospy.get_param("~max_angular_acceleration", 0.5) # rad/s^2
 
         self.acceptable_pos_err_avr_norm = rospy.get_param("~acceptable_pos_err_avr_norm", 0.01) # m
         self.acceptable_ori_err_avr_norm = rospy.get_param("~acceptable_ori_err_avr_norm", 0.1) # rad
@@ -1359,7 +1362,7 @@ class VelocityControllerNode:
             constraints += [cp.multiply(-sign_ft, (J_ft @ u)) >= -alpha_h_ft]
         ## ---------------------------------------------------
             
-        ## ---------------------------------------------------
+        # ## ---------------------------------------------------
         ## Add also limit to the feasible u
         
         # With using the same limits to both linear and angular velocities
@@ -1380,8 +1383,100 @@ class VelocityControllerNode:
         angular_indices = np.concatenate([np.arange(i+3, i+6) for i in range(0, 6*len(self.custom_static_particles), 6)])
         # Apply constraint to angular components
         constraints += [cp.norm(u[angular_indices],'inf') <= u_angular_max]
+        # ## ---------------------------------------------------
+        
+        
+        # ## ---------------------------------------------------
+        # ## Limit velocity and accelerations at once
+        
+        # # Using the different limits to linear and angular velocities
+        # u_lin_max = self.max_linear_velocity*1.0 # 0.3 # 0.1
+        # u_ang_max = self.max_angular_velocity*1.0 # 0.5 # 0.15
+        
+        # a_lin_max = self.max_linear_acceleration * 1.0
+        # a_ang_max = self.max_angular_acceleration * 1.0
+        
+        # ## Calculate the time step based on the average control calculation rate
+        # # Calculate the duration since the controller is enabled
+        # dur = (rospy.Time.now() - self.controller_enabled_time).to_sec() # seconds
+        # # Calculate the average control calculation rate        
+        # dt = dur/self.controller_itr  # Time step size
+        # # # Or use hard coded value
+        # # dt = 1.0/self.pub_rate_odom
+        # # print("dt: ", dt)
+        
+        # # Precompute useful quantities
+        # a_lin_max_dt = a_lin_max * dt
+        # a_ang_max_dt = a_ang_max * dt
+        
+        # # Assuming control_outputs_last is a dictionary or structure where velocities are stored
+        # # Example structure for control_outputs_last:
+        # # self.control_outputs_last[particle] = np.array([v_x, v_y, v_z, w_x, w_y, w_z])
 
-        ## ---------------------------------------------------
+        # for i, particle in enumerate(self.custom_static_particles):            
+        #     lin_indices = np.arange(6*i, 6*i+3)  # Linear velocity indices
+        #     ang_indices = np.arange(6*i+3, 6*i+6)  # Angular velocity indices
+            
+        #     v_prev = self.control_outputs_last[particle][0:3]  # Previous linear velocity
+        #     w_prev = self.control_outputs_last[particle][3:6]  # Previous angular velocity
+            
+        #     # Optimization variables
+        #     u_lin = u[lin_indices]
+        #     u_ang = u[ang_indices]
+            
+        #     # Precompute useful quantities for the current particle
+        #     v_min = np.minimum(u_lin_max, a_lin_max_dt + v_prev)
+        #     w_min = np.minimum(u_ang_max, a_ang_max_dt + w_prev)
+            
+        #     v_neg_min = np.minimum(u_lin_max, a_lin_max_dt - v_prev)
+        #     w_neg_min = np.minimum(u_ang_max, a_ang_max_dt - w_prev)
+            
+        #     # Create masks for each case
+        #     mask_lin_case1 = np.abs(v_prev) <= a_lin_max_dt  # |v_prev| <= a_max * dt
+        #     mask_lin_case2 = v_prev > a_lin_max_dt          # v_prev >= a_max * dt
+        #     mask_lin_case3 = -v_prev >= a_lin_max_dt         # -v_prev >= a_max * dt
+            
+        #     mask_ang_case1 = np.abs(w_prev) <= a_ang_max_dt  # |w_prev| <= a_max * dt
+        #     mask_ang_case2 = w_prev > a_ang_max_dt           # w_prev >= a_max * dt
+        #     mask_ang_case3 = -w_prev >= a_ang_max_dt         # -w_prev >= a_max * dt
+            
+        #     # Apply constraints only if the mask selects non-empty elements
+            
+        #     ## Linear velocity constraints
+        #     if np.any(mask_lin_case1):  # Check if mask selects any element
+        #         constraints += [
+        #             u_lin[mask_lin_case1] <= v_min[mask_lin_case1],
+        #             -u_lin[mask_lin_case1] <= v_neg_min[mask_lin_case1]
+        #         ]
+        #     if np.any(mask_lin_case2):
+        #         constraints += [
+        #             u_lin[mask_lin_case2] <= v_min[mask_lin_case2],
+        #             -u_lin[mask_lin_case2] <= 0
+        #         ]
+        #     if np.any(mask_lin_case3):
+        #         constraints += [
+        #             u_lin[mask_lin_case3] <= 0,
+        #             -u_lin[mask_lin_case3] <= v_neg_min[mask_lin_case3]
+        #         ]
+            
+        #     ## Angular velocity constraints
+        #     if np.any(mask_ang_case1):
+        #         constraints += [
+        #             u_ang[mask_ang_case1] <= w_min[mask_ang_case1],
+        #             -u_ang[mask_ang_case1] <= w_neg_min[mask_ang_case1]
+        #         ]
+        #     if np.any(mask_ang_case2):
+        #         constraints += [
+        #             u_ang[mask_ang_case2] <= w_min[mask_ang_case2],
+        #             -u_ang[mask_ang_case2] <= 0
+        #         ]
+        #     if np.any(mask_ang_case3):
+        #         constraints += [
+        #             u_ang[mask_ang_case3] <= 0,
+        #             -u_ang[mask_ang_case3] <= w_neg_min[mask_ang_case3]
+        #         ]
+                        
+        # ## ---------------------------------------------------
         
         ## ---------------------------------------------------
         # Define the problem
@@ -1410,6 +1505,36 @@ class VelocityControllerNode:
 
         # Define cost function with weights
         cost = cp.sum_squares(cp.multiply(weights, u - nominal_u)) / 2.0
+        
+        # ## ---------------------------------------------------
+        # # Add cost of change in control input (acceleration) as a COST FUNCTION (not a constraint)
+        
+        # # Define the maximum allowable accelerations for linear and angular components
+        # a_linear_max = self.max_linear_acceleration * 1.0
+        # a_angular_max = self.max_angular_acceleration * 1.0
+        
+        # # Define the weights for the acceleration cost
+        # w_lin_acc = 0.0001 # 1.0 # 0.01
+        # w_ang_acc = 0.0001 # 1.0 # 0.01
+
+        # # Calculate the time step based on the average control calculation rate
+        # # Calculate the duration since the controller is enabled
+        # dur = (rospy.Time.now() - self.controller_enabled_time).to_sec() # seconds
+        # # Calculate the average control calculation rate        
+        # dt = dur/self.controller_itr  # Time step size
+        # # print("dt: ", dt)
+        
+        # for i, particle in enumerate(self.custom_static_particles):            
+        #     linear_indices = np.arange(6*i, 6*i+3)
+        #     angular_indices = np.arange(6*i+3, 6*i+6)
+            
+        #     delta_u_linear = (u[linear_indices] - self.control_outputs_last[particle][:3])/dt
+        #     delta_u_angular = (u[angular_indices] - self.control_outputs_last[particle][3:6])/dt
+            
+        #     cost += (w_lin_acc/a_linear_max**2) *cp.sum_squares(delta_u_linear)/2.0
+        #     cost += (w_ang_acc/a_angular_max**2) *cp.sum_squares(delta_u_angular)/2.0
+        
+        # ## ---------------------------------------------------
         
         problem = cp.Problem(cp.Minimize(cost), constraints)
         ## ---------------------------------------------------
@@ -1462,6 +1587,16 @@ class VelocityControllerNode:
         # # For warm-start in the next iteration
         # self.prev_optimal_u = u.value
         ## ---------------------------------------------------
+        
+        # # Find the acceleration for each particle
+        # for idx_particle, particle in enumerate(self.custom_static_particles):
+        #     if idx_particle == 0:
+        #         a_lin = (u.value[6*idx_particle:6*idx_particle+3] - self.control_outputs_last[particle][:3] )/dt
+                
+        #         # If any of the linear acceleration components is above the maximum allowable value
+        #         if np.any(np.abs(a_lin) > a_linear_max):
+        #             rospy.logerr("a_lin is above thresholds: " +  str(a_lin))
+            
         
         # Return optimal u
         return u.value
@@ -2298,6 +2433,25 @@ class VelocityControllerNode:
             alpha_h = float('inf')
         
         return alpha_h
+    
+    # def alpha_collision_avoidance(self,h):
+    #     """
+    #     Calculates the value of extended_class_K function \alpha(h) for COLLISION AVOIDANCE
+    #     Piecewise Linear function is used when h is less than 0,
+    #     when h is greater or equal to 0 a nonlinear function is used.
+    #     See: https://www.desmos.com/calculator/owyqxbpbn3 for the function visualizations
+    #     """        
+    #     if (h < -self.d_obstacle_offset):
+    #         alpha_h = -self.c3_alpha_obstacle*self.d_obstacle_offset # Use this if you want to have a fixed value for alpha when h < -d_obstacle_offset
+    #         # alpha_h = self.c3_alpha_obstacle*h # Use this if you want to have a linear function for alpha when h < -d_obstacle_offset
+    #     elif (-self.d_obstacle_offset <= h < 0 ):
+    #         alpha_h = self.c3_alpha_obstacle*h
+    #     elif (0 <= h < (self.d_obstacle_freezone - self.d_obstacle_offset)):
+    #         alpha_h = np.tan((self.c1_alpha_obstacle*np.pi*h)/(2*(self.d_obstacle_freezone - self.d_obstacle_offset)))
+    #     else:
+    #         alpha_h = np.tan((self.c1_alpha_obstacle*np.pi)/2)
+        
+    #     return alpha_h
     
     def alpha_robot_stress(self, h):
         """
