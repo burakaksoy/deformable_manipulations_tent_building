@@ -935,85 +935,104 @@ class PathAchievabilityScorer:
         return scores
         
             
-    def plot_dlo_sim_state_vs_rigid_link_apprx_comparison(self, polyline, points):
+    def plot_dlo_sim_state_vs_rigid_link_apprx_comparison(self, polyline, points, perpendicular_angle=False):
         try:
             ax = plt.figure().add_subplot(projection='3d')
-            # Set figure size
             ax.figure.set_size_inches(32, 18)
             
             if self.scene_id is not None and self.experiment_number is not None:
                 fig_title = f"Pose Comparisons\nScene {self.scene_id}, Experiment {self.experiment_number}, Waypoint {self.planned_path_current_target_index}"
             else:
-                fig_title = "Pose Comparisons\n Waypoint {self.planned_path_current_target_index}"
+                fig_title = f"Pose Comparisons\nWaypoint {self.planned_path_current_target_index}"
                 
-            # Add the title
             ax.set_title(fig_title, fontsize=30)
             
-            ax.plot(points[:,0], # x
-                points[:,1], # y
-                points[:,2], # z
-                # 'og', label='Initial State: Original', markersize=10, fillstyle='none')
-                'Xg', label='Original Centers', markersize=10,  mec = 'k', alpha=.5)
+            ax.plot(points[:, 0], points[:, 1], points[:, 2],
+                    'Xg', label='Original Centers', markersize=10, mec='k', alpha=0.5)
             
-            ax.plot(polyline[:,0], # x
-                polyline[:,1], # y
-                polyline[:,2], # z
-                '-b', label='Approximation Line', markersize=12, linewidth=3)
-                # '-g', label='Initial State: Approximation', markersize=12, linewidth=6, alpha=.5)
+            ax.plot(polyline[:, 0], polyline[:, 1], polyline[:, 2],
+                    '-b', label='Approximation Line', markersize=12, linewidth=3)
         
             ax.legend(fontsize=20)
             ax.tick_params(axis='both', which='major', labelsize=20)
-            # ax.set_aspect('equal')
             set_axes_equal(ax)
+            
+            if perpendicular_angle:
+                # Combine and center the data
+                data = np.vstack((points, polyline))
+                mean_data = np.mean(data, axis=0)
+                data_centered = data - mean_data
+
+                # Compute PCA
+                cov_mat = np.cov(data_centered.T)
+                eigenvalues, eigenvectors = np.linalg.eigh(cov_mat)
+                idx = np.argsort(eigenvalues)[::-1]
+                eigenvectors = eigenvectors[:, idx]
+
+                # The viewing direction is the third principal component
+                viewing_direction = eigenvectors[:, 2]
+
+                # Compute elevation and azimuth angles
+                azim = np.degrees(np.arctan2(viewing_direction[1], viewing_direction[0]))
+                elev = np.degrees(np.arcsin(viewing_direction[2] / np.linalg.norm(viewing_direction)))
+
+                # Set the view to be perpendicular to the first two principal axes
+                ax.view_init(elev=elev, azim=azim)
+            
             plt.show()
-        except Exception:
-            print("Error plotting the path points")
+        except Exception as e:
+            print(f"Error plotting the path points: {e}")
         
     def plot_dlo_sim_state_vs_rigid_link_apprx_comparisons(self, frames, 
-                                                            save_as_animation=False, 
-                                                            animation_file=None):
+                                                        save_as_animation=False, 
+                                                        animation_file=None,
+                                                        perpendicular_angle=False):
         try:
+            import numpy as np
+            import matplotlib.pyplot as plt
+            from matplotlib import animation
+
             fig = plt.figure()
             ax = fig.add_subplot(projection='3d')
             # Set figure size
             ax.figure.set_size_inches(32, 18)
             
             # Initialize the plot objects for the original points and the approximation line
-            orig_points_plot, = ax.plot([], [], [], 'Xg', label='Original Centers', markersize=10, mec='k', alpha=.5)
+            orig_points_plot, = ax.plot([], [], [], 'Xg', label='Original Centers', markersize=10, mec='k', alpha=0.5)
             approx_line_plot, = ax.plot([], [], [], '-b', label='Approximation Line', linewidth=3)
-
+        
             # Function to set equal axis scaling for all three dimensions
             def set_axes_equal(ax):
                 """Set equal scaling for all three axes in a 3D plot."""
                 limits = np.array([ax.get_xlim3d(), ax.get_ylim3d(), ax.get_zlim3d()])
-
+        
                 # Calculate the span for each axis
                 spans = limits[:, 1] - limits[:, 0]
                 # Find the maximum span across all axes
                 max_span = np.max(spans)
                 # Calculate the centers for each axis
                 centers = np.mean(limits, axis=1)
-
+        
                 # Set limits so all axes cover the same range
                 for i, center in enumerate(centers):
                     limits[i] = [center - max_span / 2, center + max_span / 2]
-
+        
                 ax.set_xlim3d(limits[0])
                 ax.set_ylim3d(limits[1])
                 ax.set_zlim3d(limits[2])
-
+        
             # Dynamically adjust the axis limits and set them to equal scale
             def set_dynamic_axes_limits(points, polyline):
                 all_data = np.vstack([points, polyline])  # Combine both sets of points
                 x_limits = [np.min(all_data[:, 0]), np.max(all_data[:, 0])]
                 y_limits = [np.min(all_data[:, 1]), np.max(all_data[:, 1])]
                 z_limits = [np.min(all_data[:, 2]), np.max(all_data[:, 2])]
-
+        
                 ax.set_xlim(x_limits)
                 ax.set_ylim(y_limits)
                 ax.set_zlim(z_limits)
                 set_axes_equal(ax)  # Ensure equal scaling after setting limits
-
+        
             # Initialize function for FuncAnimation
             def init():
                 orig_points_plot.set_data([], [])
@@ -1021,7 +1040,7 @@ class PathAchievabilityScorer:
                 approx_line_plot.set_data([], [])
                 approx_line_plot.set_3d_properties([])
                 return orig_points_plot, approx_line_plot
-
+        
             # Update function for FuncAnimation, with dynamic title for each waypoint
             def update_frame(data):
                 frame_idx, frame_data = data  # Unpack the tuple
@@ -1037,11 +1056,37 @@ class PathAchievabilityScorer:
                 
                 # Update the axes limits to fit the current frame's data and set equal scaling
                 set_dynamic_axes_limits(points, polyline)
+                
+                if perpendicular_angle:
+                    # Compute PCA and adjust the view
+                    all_data = np.vstack((points, polyline))
+                    mean_data = np.mean(all_data, axis=0)
+                    data_centered = all_data - mean_data
+
+                    # Compute PCA
+                    cov_mat = np.cov(data_centered.T)
+                    eigenvalues, eigenvectors = np.linalg.eigh(cov_mat)
+                    idx = np.argsort(eigenvalues)[::-1]
+                    eigenvectors = eigenvectors[:, idx]
+
+                    # The viewing direction is the third principal component
+                    viewing_direction = eigenvectors[:, 2]
+
+                    # Compute elevation and azimuth angles
+                    azim = np.degrees(np.arctan2(viewing_direction[1], viewing_direction[0]))
+                    elev = np.degrees(np.arcsin(viewing_direction[2] / np.linalg.norm(viewing_direction)))
+
+                    # Set the view to be perpendicular to the first two principal axes
+                    ax.view_init(elev=elev, azim=azim)
+                else:
+                    # Optionally, reset to default view if needed
+                    ax.view_init(elev=30, azim=-60)  # Default Matplotlib 3D view angles
+
                 return orig_points_plot, approx_line_plot
 
             # Create the animation, pass frames as tuples with (index, data)
             ani = animation.FuncAnimation(fig, update_frame, frames=enumerate(frames), init_func=init, interval=self.wp_wait_time*1000, blit=True)
-
+        
             # Automatically generate the filename if none is provided
             if save_as_animation:
                 if animation_file is None:
@@ -1052,10 +1097,9 @@ class PathAchievabilityScorer:
                 print(f"Animation saved as {animation_file}")
             else:
                 plt.show()
-
+        
         except Exception as e:
             print(f"Error plotting the path points: {e}")
-
 
 def plot_scores(scores):
     """ Plot the scores of the path with respect to the waypoints, also highlight the peak error and the peak error change points.
