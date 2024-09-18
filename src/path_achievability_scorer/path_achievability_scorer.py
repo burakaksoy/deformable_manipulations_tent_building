@@ -297,7 +297,7 @@ class PathAchievabilityScorer:
             self.update_current_path_target_poses(self.planned_path_current_target_index)
             
             # Apply the control to the particles
-            self.send_to_target_poses(speedup=2.0)
+            self.send_to_target_poses(speedup=1.0)
             
             # # Wait for the particles to reach the target pose
             # rospy.sleep(self.wp_wait_time) # seconds
@@ -516,6 +516,10 @@ class PathAchievabilityScorer:
         rotation_vector = self.quaternion_to_rotation_vec(quaternion_error)
         
         angle = np.linalg.norm(rotation_vector)
+        
+        # wrap the angle to [-pi, pi]
+        angle = np.arctan2(np.sin(angle), np.cos(angle))
+            
         
         if angle > 0.0:
             axis = rotation_vector / angle
@@ -1546,11 +1550,11 @@ def main_all_paths():
     # scenes = [1, 2, 3, 4]
     # experiments = range(1, 101)  # Experiments from 1 to 100
     
-    scenes = [3]
+    scenes = [2]
     experiments = range(1, 101)  # Experiments from 1 to 100
     
-    saved_paths_dir = "~/catkin_ws_deformable/src/deformable_manipulations_tent_building/src/tesseract_planner/generated_plans_i9_10885h"
-    # saved_paths_dir = "~/catkin_ws_deformable/src/deformable_manipulations_tent_building/src/tesseract_planner/generated_plans_i9_10885h_10_segments"
+    # saved_paths_dir = "~/catkin_ws_deformable/src/deformable_manipulations_tent_building/src/tesseract_planner/generated_plans_i9_10885h"
+    saved_paths_dir = "~/catkin_ws_deformable/src/deformable_manipulations_tent_building/src/tesseract_planner/generated_plans_i9_10885h_10_segments"
 
     for scene_id in scenes:
         for experiment_number in experiments:
@@ -1609,7 +1613,7 @@ def main_all_paths():
                     
                     rospy.loginfo(f"Average scoring time per waypoint: {scoring_duration_per_waypoint} seconds.")
                     
-                    rospy.loginfo(f"Overall minimum distance to obstacles on the path: {min_distances} mm at waypoint index {min_distance_path_idx}")
+                    rospy.loginfo(f"Overall minimum distance to obstacles on the path: {min_distance_path} mm at waypoint index {min_distance_path_idx}")
                     
                     # Plot the scores
                     
