@@ -6,13 +6,13 @@ from matplotlib.lines import Line2D
 import numpy as np
 import re
 
-def plot_scene_experiments(scene_id, saved_paths_dir):
+def plot_scene_experiments(scene_id, saved_scores_dir):
     """
     Plots all experiments data and statistics for a given scene.
 
     Args:
         scene_id (int): Scene ID.
-        saved_paths_dir (str): Directory containing the saved paths.
+        saved_scores_dir (str): Directory containing the saved path scores.
     """
     # Initialize data structures
     experiments_data = {}  # Key: experiment_number, value: data
@@ -21,7 +21,7 @@ def plot_scene_experiments(scene_id, saved_paths_dir):
     min_distance_values = []
     
     # Directory containing the scores
-    scene_dir = os.path.join(saved_paths_dir, f'scene_{scene_id}')
+    scene_dir = os.path.join(saved_scores_dir, f'scene_{scene_id}')
     scores_dir = os.path.join(scene_dir, 'scores')
     
     # Get list of pickle files
@@ -420,9 +420,9 @@ def plot_scene_experiments(scene_id, saved_paths_dir):
 
 # ------------------------------------------------------------------------
 
-saved_paths_dir = './scores_i9_10885h'
-saved_paths_dir = './scores_i9_10885h_10_segments'
+saved_scores_dir = './scores_i9_10885h'
+# saved_scores_dir = './scores_i9_10885h_10_segments'
 
 for scene_id in [1, 2, 3, 4]:
 # for scene_id in [1]:
-    plot_scene_experiments(scene_id, saved_paths_dir)
+    plot_scene_experiments(scene_id, saved_scores_dir)
