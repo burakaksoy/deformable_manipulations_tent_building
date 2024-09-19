@@ -409,10 +409,16 @@ def plot_scene_experiments(scene_id, saved_scores_dir):
     plt.tight_layout(rect=[0, 0, 1, 0.96])
 
     # Save the figure
-    plots_dir = os.path.join(scene_dir, 'plots')
-    if not os.path.exists(plots_dir):
-        os.makedirs(plots_dir)
+    plots_dir = '.' # Current directory
     plot_file = os.path.join(plots_dir, f'scene_{scene_id}_experiments_path_analysis.png')
+    
+    # Also add "_10_segments" to the file name if saved_scores_dir contains "10_segments"
+    if '10_segments' in saved_scores_dir:
+        plot_file = plot_file.replace('.png', '_10_segments.png')
+    
+    # if not os.path.exists(plots_dir):
+    #     os.makedirs(plots_dir)
+    
     plt.savefig(plot_file)
     print(f"Plot saved to {plot_file}")
     plt.close(fig)
@@ -420,9 +426,12 @@ def plot_scene_experiments(scene_id, saved_scores_dir):
 
 # ------------------------------------------------------------------------
 
-saved_scores_dir = './scores_i9_10885h'
-# saved_scores_dir = './scores_i9_10885h_10_segments'
+scenes = [1, 2, 3, 4]
 
-for scene_id in [1, 2, 3, 4]:
-# for scene_id in [1]:
+saved_scores_dir = './scores_i9_10885h'
+for scene_id in scenes:
+    plot_scene_experiments(scene_id, saved_scores_dir)
+
+saved_scores_dir = './scores_i9_10885h_10_segments'
+for scene_id in scenes:
     plot_scene_experiments(scene_id, saved_scores_dir)

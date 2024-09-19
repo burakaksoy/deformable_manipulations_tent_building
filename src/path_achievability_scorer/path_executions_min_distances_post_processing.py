@@ -88,15 +88,14 @@ def plot_min_distances(scene_id, saved_scores_dir, d_obstacle_offset):
 
 # ------------------------------------------------------------------------
 d_obstacle_offset = 2  # mm
+scenes = [1, 2, 3, 4]
 
 # Set the directory containing the CSV files
 saved_scores_dir = '../tesseract_planner/generated_plans_i9_10885h'
-
-for scene_id in [1, 2, 3, 4]:
+for scene_id in scenes:
     plot_min_distances(scene_id, saved_scores_dir, d_obstacle_offset)
 
 # For the 10_segments data, uncomment the line below
 saved_scores_dir = '../tesseract_planner/generated_plans_i9_10885h_10_segments'
-
-for scene_id in [1, 2, 3, 4]:
+for scene_id in scenes:
     plot_min_distances(scene_id, saved_scores_dir, d_obstacle_offset)
