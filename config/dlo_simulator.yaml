@@ -14,8 +14,31 @@ dlo_density: 1792.89 # dlo mass per meter cube (kg/m^3)
 dlo_num_segments: 40 # max 45 # number of segment in dlo (int)
 
 dlo_zero_stretch_stiffness: 1.0e+14
-dlo_young_modulus: 30.0e+9 # 30.0e+9 # 3.0e+7 # E, elasticity modulus (unit: Pa?)
-dlo_torsion_modulus: 10.0e+9 # 10.0e+9 # 1.0e+7 # G, Shear modulus in classical phsysics. (unit: Pa?)
+
+# Stiffness values for the DLO
+# dlo_young_modulus: 30.0e+9 # 30.0e+9 # 3.0e+7 # E, elasticity modulus (unit: Pa?)
+# dlo_torsion_modulus: 10.0e+9 # 10.0e+9 # 1.0e+7 # G, Shear modulus in classical phsysics. (unit: Pa?)
+
+# ---------------------------------------------
+# mingruiyu DLO 1 - stiffness values
+dlo_young_modulus: 10.0e+6 # E, elasticity modulus (unit: Pa?)
+dlo_torsion_modulus: 1.0e+8 # G, Shear modulus in classical phsysics. (unit: Pa?)
+
+# # mingruiyu DLO 4 - stiffness values
+# dlo_young_modulus: 3.0e+6 # E, elasticity modulus (unit: Pa?)
+# dlo_torsion_modulus: 1.0e+8 # G, Shear modulus in classical phsysics. (unit: Pa?)
+
+# # mingruiyu DLO 5 - stiffness values
+# dlo_young_modulus: 1.0e+6 # E, elasticity modulus (unit: Pa?)
+# dlo_torsion_modulus: 1.0e+8 # G, Shear modulus in classical phsysics. (unit: Pa?)
+# ---------------------------------------------
+
+set_dlo_young_modulus_service_name: "set_dlo_young_modulus"
+set_dlo_torsion_modulus_service_name: "set_dlo_torsion_modulus"
+get_dlo_young_modulus_service_name: "get_dlo_young_modulus"
+get_dlo_torsion_modulus_service_name: "get_dlo_torsion_modulus"
+change_dlo_young_modulus_topic_name: "change_dlo_young_modulus"
+change_dlo_torsion_modulus_topic_name: "change_dlo_torsion_modulus"
 
 is_collision_handling_enabled: false # default: true
 contact_tolerance: 0.01 # 0.005 # m, It's like offset around the obstacle object for aabb checking. default: 0.1
@@ -34,6 +57,8 @@ global_damp_coeff_w: 1.1e-0 # 0.9e-1 # 0.9e-2 # 0.9e-3 # 0.0 # 0.9e-3 # 2.1e-4;
 # DLO Initial Transformations (By Default, the dlo is laying in +y-axis to -y-axis direction centered at the origin)
 # initial_height: 0.0 # initial dlo height from ground (m) (Deprecated, use dlo_translation instead)
 
+# ---------------------------------------------
+# For Simulated Experiments
 # # mingruiyu scene 1
 # dlo_translation: [0.25, 0, 0.1] 
 # dlo_rotationAxis: [0, 0, 1] # [1, 0, 0]
@@ -49,10 +74,30 @@ global_damp_coeff_w: 1.1e-0 # 0.9e-1 # 0.9e-2 # 0.9e-3 # 0.0 # 0.9e-3 # 2.1e-4;
 # dlo_rotationAxis: [0, 0, 1] # [1, 0, 0]
 # dlo_rotationAngle: 0.0 # Radians
 
-# mingruiyu scene 4
-dlo_translation: [-0.05, 0.05, 0.1] 
+# # mingruiyu scene 4
+# dlo_translation: [-0.05, 0.05, 0.1] 
+# dlo_rotationAxis: [0, 0, 1] # [1, 0, 0]
+# dlo_rotationAngle: -1.5708 # Radians
+# ---------------------------------------------
+
+# ---------------------------------------------
+# For Real Robot Experiments
+# # mingruiyu scene 0
+# dlo_translation: [0.1, 0, 0.3] 
+# dlo_rotationAxis: [0, 0, 1] # [1, 0, 0]
+# dlo_rotationAngle: 0.0 # Radians
+
+# # mingruiyu scene 2
+# dlo_translation: [0.0, 0, 0.3] 
+# dlo_rotationAxis: [0, 0, 1] # [1, 0, 0]
+# dlo_rotationAngle: -1.5708 # Radians
+
+# mingruiyu scene 6
+dlo_translation: [-0.04, -0.025, 0.1] 
 dlo_rotationAxis: [0, 0, 1] # [1, 0, 0]
-dlo_rotationAngle: -1.5708 # Radians
+dlo_rotationAngle: 0.0 # Radians
+# ---------------------------------------------
+
 
 
 # dlo_scale: [1, 1, 1] # NOT USED, use dlo_l and dlo_r parameters instead
@@ -100,15 +145,19 @@ min_dist_to_rb_pub_rate: 50.0 # Hz, frequency to publish minimum distances to th
 # rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/l_shape_corridor_width_1.1.json
 # rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/l_shape_corridor_width_1.2.json
 
-# Scenes for Mingrui Yu comparisons
-# rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/scene_mingruiyu_0.json
-# rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/scene_mingruiyu_1.json
-# rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/scene_mingruiyu_2.json
-# rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/scene_mingruiyu_3.json
-rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/scene_mingruiyu_4.json
+# Scenes for Mingrui Yu comparisons (Simulated Experiments)
+# rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/scene_mingruiyu_1.json # TASK 1
+# rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/scene_mingruiyu_2.json # TASK 2
+# rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/scene_mingruiyu_3.json # TASK 3
+# rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/scene_mingruiyu_4.json # TASK 4
+
+# Scenes for Mingrui Yu comparisons (Real Robot Experiments)
+# rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/scene_mingruiyu_0.json # TASK 1
+# rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/scene_mingruiyu_2.json # TASK 2
+rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/scene_mingruiyu_6.json # TASK 3
+
 
 # DLO VISUALIZATION RELATED PARAMETERS
-
 dlo_frame_id: "map" # the reference tf frame ID that the visualization marker msgs are published in.
 dlo_markers_topic_name: "dlo_markers" # topic name to publish the RVIZ visualization marker msgs
 dlo_visualization_mode: 4 # -1: Disabled, # 0: Points Only, 1: Line Segments Only, 2: Orientation Frames and Line Segments, 3: Points and Line Segments, 4: All
