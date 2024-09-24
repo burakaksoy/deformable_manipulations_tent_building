@@ -1020,7 +1020,13 @@ locator = GeneralResourceLocator() # locator_fn must be kept alive by maintainin
 
 env = Environment()
 
-mingruiyu_scene_id = 1
+mingruiyu_scene_id = 6
+
+# Mingrui Yu Real Experiments Representative DLO Type
+dlo_type = None # Default: None
+dlo_type = 1 
+# dlo_type = 4 
+# dlo_type = 5
 
 
 json_file_path = None # TODO: Must be passed at the initialization, default: None
@@ -1107,9 +1113,12 @@ if viewer_enabled:
 # 1.
 # initial_full_state_file = "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_4_initial_states.csv"
 # target_full_state_file = "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_4_target_states.csv"
-
-initial_full_state_file = "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_"+ str(mingruiyu_scene_id)+ "_initial_states.csv"
-target_full_state_file = "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_" + str(mingruiyu_scene_id)+ "_target_states.csv"
+if dlo_type is None:
+    initial_full_state_file = "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_"+ str(mingruiyu_scene_id)+ "_initial_states.csv"
+    target_full_state_file = "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_" + str(mingruiyu_scene_id)+ "_target_states.csv"
+else:
+    initial_full_state_file = "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_"+ str(mingruiyu_scene_id)+ "_dlo_" + str(dlo_type) + "_initial_states.csv"
+    target_full_state_file = "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_" + str(mingruiyu_scene_id)+ "_dlo_" + str(dlo_type) + "_target_states.csv"
 
 
 # Read the state dictionaries from the csv files
@@ -1170,7 +1179,7 @@ approximation_error_threshold = 0.02 # Example # TODO: Must be passed, Default: 
 # simplified_dlo_num_segments= 9
 # for simplified_dlo_num_segments in range(10, max_simplified_dlo_num_segments+1):
 is_num_segments_validated = False
-simplified_dlo_num_segments = 0 
+simplified_dlo_num_segments = 1 
 planning_success = 1
 
 experiment_id = 1
@@ -2134,7 +2143,10 @@ while (simplified_dlo_num_segments <= max_simplified_dlo_num_segments
         print(f"Directory '{results_folder}' created.")
         
     # File name for the results
-    perf_results_csv_file = f"scene_{mingruiyu_scene_id}_experiment_results.csv"
+    if dlo_type is None:
+        perf_results_csv_file = f"scene_{mingruiyu_scene_id}_experiment_results.csv"
+    else:
+        perf_results_csv_file = f"scene_{mingruiyu_scene_id}_dlo_{dlo_type}_experiment_results.csv"
     
     # If the file does not exist, create it and write the header
     if not os.path.exists(os.path.join(results_folder, perf_results_csv_file)):
@@ -2204,7 +2216,10 @@ while (simplified_dlo_num_segments <= max_simplified_dlo_num_segments
     # File name for the results
     # Ensure experiment_id is always three digits long with leading zeros
     formatted_experiment_id = f"{experiment_id:03d}"
-    perf_results_pkl_file = f"scene_{mingruiyu_scene_id}_experiment_{formatted_experiment_id}_data.pkl"
+    if dlo_type is None:
+        perf_results_pkl_file = f"scene_{mingruiyu_scene_id}_experiment_{formatted_experiment_id}_data.pkl"
+    else:
+        perf_results_pkl_file = f"scene_{mingruiyu_scene_id}_dlo_{dlo_type}_experiment_{formatted_experiment_id}_data.pkl"
     
     # Save the plan data to the pickle file
     with open(os.path.join(results_folder, perf_results_pkl_file), 'wb') as outp:  # Overwrites any existing file.

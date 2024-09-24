@@ -634,6 +634,8 @@ from tesseract_robotics.tesseract_srdf import SRDFModel,\
 
 import pandas as pd
 
+import itertools
+
 # -----------------------------------------------------------------------
 # OPTIONAL
 import matplotlib.pyplot as plt 
@@ -992,13 +994,28 @@ def process_planner_results(results,
 
 # -----------------------------------------------------------------------
 # Scene for the experiments
-mingruiyu_scene_id = 1
+# scene_ids = [1, 2, 3, 4]
+scene_ids = [0,2,6]
 
-for mingruiyu_scene_id in range(4,0, -1):
+# DLO Types, None for the default
+# dlo_types = None
+dlo_types = [1,4,5]
+
+# If dlo_types is None, set it to [None]
+if dlo_types is None:
+    dlo_types = [None]
+
+# Use itertools.product to get all combinations
+for mingruiyu_scene_id, dlo_type in itertools.product(scene_ids, dlo_types):
+    print(f"Scene ID: {mingruiyu_scene_id}, DLO Type: {dlo_type}")
 
     # Set the folder name to save the results and created paths
-    saving_folder_name = f"generated_plans_i9_10885h/scene_{mingruiyu_scene_id}"
+    # saving_folder_name = f"generated_plans_i9_10885h/scene_{mingruiyu_scene_id}"
     # saving_folder_name = f"generated_plans_i9_10885h_10_segments/scene_{mingruiyu_scene_id}"
+    if dlo_type is None:
+        saving_folder_name = f"generated_plans/scene_{mingruiyu_scene_id}"
+    else:
+        saving_folder_name = f"generated_plans_real_demo/scene_{mingruiyu_scene_id}_dlo_{dlo_type}"
 
     # Number of experiments to run
     num_experiments = 100
@@ -1127,8 +1144,12 @@ for mingruiyu_scene_id in range(4,0, -1):
     # initial_full_state_file = "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_4_initial_states.csv"
     # target_full_state_file = "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_4_target_states.csv"
 
-    initial_full_state_file = "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_"+ str(mingruiyu_scene_id)+ "_initial_states.csv"
-    target_full_state_file = "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_" + str(mingruiyu_scene_id)+ "_target_states.csv"
+    if dlo_type is None:
+        initial_full_state_file = "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_"+ str(mingruiyu_scene_id)+ "_initial_states.csv"
+        target_full_state_file = "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_" + str(mingruiyu_scene_id)+ "_target_states.csv"
+    else:
+        initial_full_state_file = "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_"+ str(mingruiyu_scene_id)+ "_dlo_" + str(dlo_type) + "_initial_states.csv"
+        target_full_state_file = "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_" + str(mingruiyu_scene_id)+ "_dlo_" + str(dlo_type) + "_target_states.csv"
 
 
     # Read the state dictionaries from the csv files
@@ -1155,7 +1176,7 @@ for mingruiyu_scene_id in range(4,0, -1):
     full_dlo_holding_segment_ids = [0,39] # Example # TODO: Must be passed, Default: []
 
     # 4.
-    max_simplified_dlo_num_segments = 10 # Example (If given) # TODO: Must be passed, Default: None
+    max_simplified_dlo_num_segments = 11 # Example (If given) # TODO: Must be passed, Default: None
 
     # Handle the cases where max_simplified_dlo_num_segments is not given or is not valid
     if (max_simplified_dlo_num_segments is None):
@@ -2152,7 +2173,10 @@ for mingruiyu_scene_id in range(4,0, -1):
                 print(f"Directory '{results_folder}' created.")
                 
             # File name for the results
-            perf_results_csv_file = f"scene_{mingruiyu_scene_id}_experiment_results.csv"
+            if dlo_type is None:
+                perf_results_csv_file = f"scene_{mingruiyu_scene_id}_experiment_results.csv"
+            else:
+                perf_results_csv_file = f"scene_{mingruiyu_scene_id}_dlo_{dlo_type}_experiment_results.csv"
             
             # If the file does not exist, create it and write the header
             if not os.path.exists(os.path.join(results_folder, perf_results_csv_file)):
@@ -2222,7 +2246,10 @@ for mingruiyu_scene_id in range(4,0, -1):
             # File name for the results
             # Ensure experiment_id is always three digits long with leading zeros
             formatted_experiment_id = f"{experiment_id:03d}"
-            perf_results_pkl_file = f"scene_{mingruiyu_scene_id}_experiment_{formatted_experiment_id}_data.pkl"
+            if dlo_type is None:
+                perf_results_pkl_file = f"scene_{mingruiyu_scene_id}_experiment_{formatted_experiment_id}_data.pkl"
+            else:
+                perf_results_pkl_file = f"scene_{mingruiyu_scene_id}_dlo_{dlo_type}_experiment_{formatted_experiment_id}_data.pkl"
             
             # Save the plan data to the pickle file
             with open(os.path.join(results_folder, perf_results_pkl_file), 'wb') as outp:  # Overwrites any existing file.
