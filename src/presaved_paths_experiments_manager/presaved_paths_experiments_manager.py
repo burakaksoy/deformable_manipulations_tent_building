@@ -20,10 +20,15 @@ from geometry_msgs.msg import Twist, Point, PointStamped, Quaternion, Pose, Pose
 from nav_msgs.msg import Odometry, Path
 
 class PresavedPathsExperimentsManager(object):
-    def __init__(self, velocity_controller_node, scene_id, experiments_range, saved_paths_dir):
+    def __init__(self, velocity_controller_node, 
+                        scene_id, 
+                        experiments_range, 
+                        saved_paths_dir,
+                        dlo_type=None):
         
         self.velocity_controller_node = velocity_controller_node
         self.scene_id = scene_id
+        self.dlo_type = dlo_type
         self.experiments_range = experiments_range
         self.experiment_number = None
         self.saved_paths_dir = saved_paths_dir
@@ -122,9 +127,17 @@ class PresavedPathsExperimentsManager(object):
     def load_presaved_path(self, experiment_number):
         rospy.loginfo("Loading presaved path for experiment number %d" % experiment_number)
         
-        scene_dir = f"scene_{self.scene_id}"
+        if self.dlo_type is None:
+            scene_dir = f"scene_{self.scene_id}"
+        else:
+            scene_dir = f"scene_{self.scene_id}_dlo_{self.dlo_type}"
+        
         formatted_experiment_id = f"{experiment_number:03d}"
-        file_name = f"scene_{self.scene_id}_experiment_{formatted_experiment_id}_data.pkl"  # e.g. "scene_1_experiment_001_data.pkl"
+        
+        if self.dlo_type is None:
+            file_name = f"scene_{self.scene_id}_experiment_{formatted_experiment_id}_data.pkl"  # e.g. "scene_1_experiment_001_data.pkl"
+        else:
+            file_name = f"scene_{self.scene_id}_dlo_{self.dlo_type}_experiment_{formatted_experiment_id}_data.pkl"  # e.g. "scene_1_dlo_1_experiment_001_data.pkl"
         
         path_file = os.path.expanduser(os.path.join(self.saved_paths_dir, scene_dir, file_name))
         rospy.loginfo("File: " + path_file)
@@ -164,10 +177,19 @@ class PresavedPathsExperimentsManager(object):
             rospy.logwarn("Rosbag recorder is already running. Stopping the current recording and starting a new one.")
             self.stop_rosbag_recording()
         
-        # Create the rosbag file name
-        scene_dir = f"scene_{self.scene_id}"
+        # Create the rosbag file name 
+        if self.dlo_type is None:
+            scene_dir = f"scene_{self.scene_id}"
+        else:
+            scene_dir = f"scene_{self.scene_id}_dlo_{self.dlo_type}"
+        
         formatted_experiment_id = f"{experiment_number:03d}"
-        file_name = f"scene_{self.scene_id}_experiment_{formatted_experiment_id}.bag"  # e.g. "scene_1_experiment_001.bag"
+        
+        if self.dlo_type is None:
+            file_name = f"scene_{self.scene_id}_experiment_{formatted_experiment_id}.bag" # e.g. "scene_1_experiment_001.bag"
+        else:
+            file_name = f"scene_{self.scene_id}_dlo_{self.dlo_type}_experiment_{formatted_experiment_id}.bag"  # e.g. "scene_1_dlo_1_experiment_001.bag"
+        
         self.rosbag_file = os.path.expanduser(os.path.join(self.saved_paths_dir, scene_dir, file_name))
         
         # Topics to record
@@ -296,8 +318,16 @@ class PresavedPathsExperimentsManager(object):
         rospy.loginfo("Saving experiment results")
         
         # Create the results csv file name
-        scene_dir = f"scene_{self.scene_id}"
-        file_name = f"scene_{self.scene_id}_experiment_execution_results.csv"  # e.g. "scene_1_experiment_001_execution_results.csv"
+        if self.dlo_type is None:
+            scene_dir = f"scene_{self.scene_id}"
+        else:
+            scene_dir = f"scene_{self.scene_id}_dlo_{self.dlo_type}"
+        
+        if self.dlo_type is None:
+            file_name = f"scene_{self.scene_id}_experiment_execution_results.csv"  # e.g. "scene_1_experiment_execution_results.csv"
+        else:
+            file_name = f"scene_{self.scene_id}_dlo_{self.dlo_type}_experiment_execution_results.csv" # e.g. "scene_1_dlo_1_experiment_execution_results.csv"
+        
         self.csv_file = os.path.expanduser(os.path.join(self.saved_paths_dir, scene_dir, file_name))
         
         row_title = ["experiment_id", "ft_on", "collision_on", "success", 

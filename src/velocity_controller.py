@@ -482,7 +482,11 @@ class VelocityControllerNode:
         ## ----------------------------------------------------------------------------------------
         ## Experiments with pre-saved paths paramaters and variables
         self.experiments_scene_id = rospy.get_param("~experiments_scene_id", "1")
+        self.experiments_dlo_type = rospy.get_param("~experiments_dlo_type", None)
         
+        if self.experiments_dlo_type == "None" or self.experiments_dlo_type == "none" or self.experiments_dlo_type == "NONE" or self.experiments_dlo_type == "" or self.experiments_dlo_type == " ":
+            self.experiments_dlo_type = None
+                
         self.experiments_range = rospy.get_param("~experiments_range", [1,100])
         # Ensure the parameter is always treated as a list
         if not isinstance(self.experiments_range, list):
@@ -507,7 +511,8 @@ class VelocityControllerNode:
         self.experiments_manager = PresavedPathsExperimentsManager(self, 
                                                                    self.experiments_scene_id, 
                                                                    self.experiments_range, 
-                                                                   self.experiments_saved_paths_directory)
+                                                                   self.experiments_saved_paths_directory,
+                                                                   self.experiments_dlo_type)
         
         ## ----------------------------------------------------------------------------------------
 

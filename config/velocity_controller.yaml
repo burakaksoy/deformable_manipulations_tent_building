@@ -54,9 +54,9 @@ tip_particles: [0,39]
 # target_poses: [[[-0.24,  0.08, 0.3], [90, 0, 70]],
 #                [[+0.24,  0.08, 0.3], [90, 0, 110]]] 
 
-# # For Mingrui Yu Scene 3 (TASK 3)
-target_poses: [[[+0.00,  0.2, 0.1], [90, 0, -20]],
-               [[+0.00, -0.2, 0.1], [90, 0,  20]]] 
+# # # For Mingrui Yu Scene 3 (TASK 3)
+# target_poses: [[[+0.00,  0.2, 0.1], [90, 0, -20]],
+#                [[+0.00, -0.2, 0.1], [90, 0,  20]]] 
 
 # # # For Mingrui Yu Scene 4 (TASK 4)
 # target_poses: [[[0.2,  0.03, 0.12], [90, 0, -85]],
@@ -95,9 +95,9 @@ target_poses: [[[+0.00,  0.2, 0.1], [90, 0, -20]],
 # target_poses: [[[+0.05,  -0.17, 0.165], [ 70, -10, -150]],
 #                [[-0.05,  -0.17, 0.165], [110, -20, -30]]]
 
-# # # For Mingrui Yu Scene 6 (TASK 3) - DLO 4
-# target_poses: [[[+0.04,  0.219, 0.1], [90, 0, 0]],
-#                [[+0.04, -0.269, 0.1], [90, 0, 0]]]
+# # For Mingrui Yu Scene 6 (TASK 3) - DLO 4
+target_poses: [[[+0.04,  0.219, 0.1], [90, 0, 0]],
+               [[+0.04, -0.269, 0.1], [90, 0, 0]]]
 
 # # # For Mingrui Yu Scene 6 (TASK 3) - DLO 5
 # target_poses: [[[+0.04,  0.219, 0.1], [90, 0, 0]],
@@ -118,21 +118,26 @@ state_saving_directory: "~/catkin_ws_deformable/src/deformable_manipulations_ten
 # If not specified, the initial poses are expected to manually set using the set_n_save_initial_state service
 # initial_state_file: "" 
 
+# MINGRUI YU SIMULATION SCENES STATES
 # initial_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_1_initial_states.csv"
 # initial_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_2_initial_states.csv"
-initial_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_3_initial_states.csv" 
+# initial_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_3_initial_states.csv" 
 # initial_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_4_initial_states.csv"
 
+# MINGRUI YU REAL EXPERIMENT SCENES STATES
+# Scene 0 (TASK 1)
 # initial_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_0_dlo_1_initial_states.csv"
 # initial_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_0_dlo_4_initial_states.csv"
 # initial_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_0_dlo_5_initial_states.csv"
 
+# Scene 2 (TASK 2)
 # initial_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_2_dlo_1_initial_states.csv"
 # initial_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_2_dlo_4_initial_states.csv"
 # initial_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_2_dlo_5_initial_states.csv"
 
+# Scene 6 (TASK 3)
 # initial_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_6_dlo_1_initial_states.csv"
-# initial_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_6_dlo_4_initial_states.csv"
+initial_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_6_dlo_4_initial_states.csv"
 # initial_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_6_dlo_5_initial_states.csv"
 ## ----------------------------------------------------------------------------------------
 
@@ -144,7 +149,7 @@ initial_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulatio
 
 # target_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_1_target_states.csv"
 # target_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_2_target_states.csv"
-target_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_3_target_states.csv"
+# target_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_3_target_states.csv"
 # target_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_4_target_states.csv"
 
 # target_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_0_dlo_1_target_states.csv"
@@ -156,7 +161,7 @@ target_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulation
 # target_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_2_dlo_5_target_states.csv"
 
 # target_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_6_dlo_1_target_states.csv"
-# target_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_6_dlo_4_target_states.csv"
+target_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_6_dlo_4_target_states.csv"
 # target_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_6_dlo_5_target_states.csv"
 ## ----------------------------------------------------------------------------------------
 
@@ -292,28 +297,23 @@ tesseract_use_default_viewer: True # default: False
 ## ------------------------------------------------------------------------------------------------------
 ## Parameters for the Experiments with pre-saved paths
 
-# Scene of the experiment, we use Mingrui Yu's scenes (For Simulation 1,2,3,4, For Real Experiments 0,2,6)
-experiments_scene_id: "3" 
+# Scene of the experiment, we use Mingrui Yu's scenes (For Simulation "1","2","3","4", For Real Experiments "0","2","6")
+experiments_scene_id: "6" 
+# Dlo type of the experiment (For simulation assign to None or Comment out, For Real Experiments assign "1", "4", "5")
+experiments_dlo_type: "4" 
 
 # experiments_range: The pre-saved experiments has a range, e.g 1-100, in the directory make sure the paths exist given this range
 # This can be specigied as list of experiment numbers as well, e.g. [1,2,3,4,5,6,7,8,9,10]
 # Note that:
 # - If only one value is given or more than two values are given, the range is assumed to be a list of experiments
 # - If two values are given, the range is assumed to be a range of experiments, inclusive of both the start and end values
-experiments_range: [1,100]
+# experiments_range: [1,100]
+experiments_range: [101] 
 
 # Given the directory below we assume there exists sub folders with names "scene_<experiments_scene_id>"
-experiments_saved_paths_directory: "~/catkin_ws_deformable/src/deformable_manipulations_tent_building/src/tesseract_planner/generated_plans_i9_10885h"
+# experiments_saved_paths_directory: "~/catkin_ws_deformable/src/deformable_manipulations_tent_building/src/tesseract_planner/generated_plans_i9_10885h"
 # experiments_saved_paths_directory: "~/catkin_ws_deformable/src/deformable_manipulations_tent_building/src/tesseract_planner/generated_plans_i9_10885h_10_segments"
-
-# experiments_saved_paths_directory: "~/catkin_ws_deformable/src/deformable_manipulations_tent_building/src/tesseract_planner/generated_plans_real_dlo_1"
-# experiments_saved_paths_directory: "~/catkin_ws_deformable/src/deformable_manipulations_tent_building/src/tesseract_planner/generated_plans_real_dlo_1_10_segments"
-
-# experiments_saved_paths_directory: "~/catkin_ws_deformable/src/deformable_manipulations_tent_building/src/tesseract_planner/generated_plans_real_dlo_4"
-# experiments_saved_paths_directory: "~/catkin_ws_deformable/src/deformable_manipulations_tent_building/src/tesseract_planner/generated_plans_real_dlo_4_10_segments"
-
-# experiments_saved_paths_directory: "~/catkin_ws_deformable/src/deformable_manipulations_tent_building/src/tesseract_planner/generated_plans_real_dlo_5"
-# experiments_saved_paths_directory: "~/catkin_ws_deformable/src/deformable_manipulations_tent_building/src/tesseract_planner/generated_plans_real_dlo_5_10_segments"
+experiments_saved_paths_directory: "~/catkin_ws_deformable/src/deformable_manipulations_tent_building/src/tesseract_planner/generated_plans_real_demo" # For Real Experiments
 
 ## ------------------------------------------------------------------------------------------------------
 
