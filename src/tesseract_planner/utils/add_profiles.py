@@ -1,102 +1,64 @@
-import os
-import re
-import traceback
 import numpy as np
-import time
-import sys
-from pathlib import Path
 
-from tesseract_robotics.tesseract_common import FilesystemPath, \
-                                                Isometry3d, \
-                                                Translation3d, \
-                                                Quaterniond, \
-                                                ManipulatorInfo, \
-                                                GeneralResourceLocator, \
-                                                CollisionMarginData, \
-                                                AnyPoly, \
-                                                AnyPoly_wrap_double, \
-                                                ResourceLocator, \
-                                                SimpleLocatedResource, \
-                                                TransformMap, \
-                                                CONSOLE_BRIDGE_LOG_DEBUG, \
-                                                setLogLevel, \
-                                                Timer, \
-                                                AngleAxisd
+from tesseract_robotics.tesseract_collision import (
+    CollisionCheckProgramType_ALL,
+    CollisionCheckProgramType_ALL_EXCEPT_END,
+    CollisionCheckProgramType_ALL_EXCEPT_START,
+    CollisionCheckProgramType_END_ONLY,
+    CollisionCheckProgramType_INTERMEDIATE_ONLY,
+    CollisionCheckProgramType_START_ONLY,
+    CollisionEvaluatorType_CONTINUOUS,
+    CollisionEvaluatorType_DISCRETE,
+    CollisionEvaluatorType_LVS_CONTINUOUS,
+    CollisionEvaluatorType_LVS_DISCRETE,
+    CollisionEvaluatorType_NONE,
+    ContactTestType_ALL,
+    ContactTestType_CLOSEST,
+    ContactTestType_FIRST,
+)
 
-from tesseract_robotics.tesseract_environment import Environment, \
-                                                     AddLinkCommand, \
-                                                     Commands 
-                                                                                                     
-from tesseract_robotics.tesseract_scene_graph import Joint, \
-                                                     Link, \
-                                                     Visual, \
-                                                     Collision, \
-                                                     JointType_FIXED, \
-                                                     Material
-                                                     
-from tesseract_robotics.tesseract_geometry import Sphere, \
-                                                    Box, \
-                                                    Cylinder, \
-                                                    ConvexMesh, \
-                                                    Mesh, \
-                                                    Plane, \
-                                                    MeshMaterial     
-                                                    
-# ----------------------------------------------------------------------------------------------------------------
- 
-from tesseract_robotics.tesseract_task_composer import  TaskComposerPluginFactory, \
-                                                        PlanningTaskComposerProblem, \
-                                                        PlanningTaskComposerProblemUPtr, \
-                                                        PlanningTaskComposerProblemUPtr_as_TaskComposerProblemUPtr, \
-                                                        TaskComposerDataStorage, \
-                                                        TaskComposerContext, \
-                                                        TaskComposerFuture, \
-                                                        TaskComposerFutureUPtr, \
-                                                        MinLengthProfile, \
-                                                        ProfileDictionary_addProfile_MinLengthProfile
-                                                        
-                                                        
-from tesseract_robotics.tesseract_motion_planners_trajopt import TrajOptDefaultPlanProfile,\
-                                                                 TrajOptPlanProfile, \
-                                                                 ProfileDictionary_addProfile_TrajOptPlanProfile, \
-                                                                 TrajOptDefaultCompositeProfile, \
-                                                                 TrajOptCompositeProfile, \
-                                                                 ProfileDictionary_addProfile_TrajOptCompositeProfile, \
-                                                                 TrajOptDefaultSolverProfile, \
-                                                                 TrajOptSolverProfile, \
-                                                                 ProfileDictionary_addProfile_TrajOptSolverProfile, \
-                                                                 TrajOptProblemGeneratorFn, \
-                                                                 TrajOptMotionPlanner, \
-                                                                 CollisionEvaluatorType_SINGLE_TIMESTEP, \
-                                                                 CollisionEvaluatorType_DISCRETE_CONTINUOUS, \
-                                                                 CollisionEvaluatorType_CAST_CONTINUOUS, \
-                                                                 ModelType, \
-                                                                 BasicTrustRegionSQPParameters
-                                                                 
-from tesseract_robotics.tesseract_collision import ContactTestType_ALL, \
-                                                   ContactTestType_FIRST, \
-                                                   ContactTestType_CLOSEST, \
-                                                    CollisionEvaluatorType_NONE, \
-                                                    CollisionEvaluatorType_DISCRETE, \
-                                                    CollisionEvaluatorType_LVS_DISCRETE, \
-                                                    CollisionEvaluatorType_CONTINUOUS, \
-                                                    CollisionEvaluatorType_LVS_CONTINUOUS, \
-                                                    CollisionCheckProgramType_ALL, \
-                                                    CollisionCheckProgramType_ALL_EXCEPT_START,\
-                                                    CollisionCheckProgramType_ALL_EXCEPT_END,\
-                                                    CollisionCheckProgramType_START_ONLY,\
-                                                    CollisionCheckProgramType_END_ONLY,\
-                                                    CollisionCheckProgramType_INTERMEDIATE_ONLY
-                                                   
-                                                   
-from tesseract_robotics.tesseract_motion_planners_ompl import OMPLDefaultPlanProfile, \
-                                                              RRTConnectConfigurator, \
-                                                              OMPLProblemGeneratorFn, \
-                                                              OMPLMotionPlanner, \
-                                                              ProfileDictionary_addProfile_OMPLPlanProfile, \
-                                                              OMPLProblemStateSpace_REAL_STATE_SPACE, \
-                                                              OMPLProblemStateSpace_SE3_STATE_SPACE, \
-                                                              OMPLProblemStateSpace_REAL_CONSTRAINTED_STATE_SPACE
+from tesseract_robotics.tesseract_motion_planners_ompl import (
+    OMPLDefaultPlanProfile,
+    OMPLMotionPlanner,
+    OMPLProblemGeneratorFn,
+    OMPLProblemStateSpace_REAL_CONSTRAINTED_STATE_SPACE,
+    OMPLProblemStateSpace_REAL_STATE_SPACE,
+    OMPLProblemStateSpace_SE3_STATE_SPACE,
+    ProfileDictionary_addProfile_OMPLPlanProfile,
+    RRTConnectConfigurator,
+)
+
+from tesseract_robotics.tesseract_motion_planners_trajopt import (
+    BasicTrustRegionSQPParameters,
+    CollisionEvaluatorType_CAST_CONTINUOUS,
+    CollisionEvaluatorType_DISCRETE_CONTINUOUS,
+    CollisionEvaluatorType_SINGLE_TIMESTEP,
+    ModelType,
+    ProfileDictionary_addProfile_TrajOptCompositeProfile,
+    ProfileDictionary_addProfile_TrajOptPlanProfile,
+    ProfileDictionary_addProfile_TrajOptSolverProfile,
+    TrajOptCompositeProfile,
+    TrajOptDefaultCompositeProfile,
+    TrajOptDefaultPlanProfile,
+    TrajOptDefaultSolverProfile,
+    TrajOptMotionPlanner,
+    TrajOptPlanProfile,
+    TrajOptProblemGeneratorFn,
+    TrajOptSolverProfile,
+)
+
+from tesseract_robotics.tesseract_task_composer import (
+    MinLengthProfile,
+    PlanningTaskComposerProblem,
+    PlanningTaskComposerProblemUPtr,
+    PlanningTaskComposerProblemUPtr_as_TaskComposerProblemUPtr,
+    ProfileDictionary_addProfile_MinLengthProfile,
+    TaskComposerContext,
+    TaskComposerDataStorage,
+    TaskComposerFuture,
+    TaskComposerFutureUPtr,
+    TaskComposerPluginFactory,
+)
                                                             
                                                                                                     
 def add_MinLengthProfile(profiles, name, length=100):

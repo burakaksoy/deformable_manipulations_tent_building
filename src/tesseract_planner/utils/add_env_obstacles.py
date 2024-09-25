@@ -1,52 +1,64 @@
 import os
 import re
-import traceback
-import numpy as np
-import time
 import sys
+import time
+import traceback
 from pathlib import Path
 
-from tesseract_robotics.tesseract_common import FilesystemPath, \
-                                                Isometry3d, \
-                                                Translation3d, \
-                                                Quaterniond, \
-                                                ManipulatorInfo, \
-                                                GeneralResourceLocator, \
-                                                CollisionMarginData, \
-                                                AnyPoly, \
-                                                AnyPoly_wrap_double, \
-                                                ResourceLocator, \
-                                                SimpleLocatedResource, \
-                                                TransformMap, \
-                                                CONSOLE_BRIDGE_LOG_DEBUG, \
-                                                setLogLevel, \
-                                                Timer, \
-                                                AngleAxisd
+import numpy as np
 
-from tesseract_robotics.tesseract_environment import Environment, \
-                                                     AddLinkCommand, \
-                                                     AddSceneGraphCommand, \
-                                                     Commands
-                                                                                                     
-from tesseract_robotics.tesseract_scene_graph import Joint, \
-                                                     Link, \
-                                                     Visual, \
-                                                     Collision, \
-                                                     JointType_FIXED, \
-                                                     Material, \
-                                                     SceneGraph
-                                                     
-from tesseract_robotics.tesseract_geometry import Sphere, \
-                                                    Box, \
-                                                    Cylinder, \
-                                                    ConvexMesh, \
-                                                    Mesh, \
-                                                    Plane, \
-                                                    MeshMaterial     
-                                                    
-from tesseract_robotics.tesseract_urdf import parseURDFString, \
-                                              parseURDFFile, \
-                                              writeURDFFile
+from tesseract_robotics.tesseract_common import (
+    AngleAxisd,
+    AnyPoly,
+    AnyPoly_wrap_double,
+    CollisionMarginData,
+    CONSOLE_BRIDGE_LOG_DEBUG,
+    FilesystemPath,
+    GeneralResourceLocator,
+    Isometry3d,
+    ManipulatorInfo,
+    Quaterniond,
+    ResourceLocator,
+    setLogLevel,
+    SimpleLocatedResource,
+    Timer,
+    TransformMap,
+    Translation3d,
+)
+
+from tesseract_robotics.tesseract_environment import (
+    AddLinkCommand,
+    AddSceneGraphCommand,
+    Commands,
+    Environment,
+)
+
+from tesseract_robotics.tesseract_geometry import (
+    Box,
+    ConvexMesh,
+    Cylinder,
+    Mesh,
+    MeshMaterial,
+    Plane,
+    Sphere,
+)
+
+from tesseract_robotics.tesseract_scene_graph import (
+    Collision,
+    Joint,
+    JointType_FIXED,
+    Link,
+    Material,
+    SceneGraph,
+    Visual,
+)
+
+from tesseract_robotics.tesseract_urdf import (
+    parseURDFFile,
+    parseURDFString,
+    writeURDFFile,
+)
+
                                               
 # from .tesseract_support_resource_locator import TesseractSupportResourceLocator
 
