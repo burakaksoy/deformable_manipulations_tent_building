@@ -30,7 +30,7 @@ import threading
 
 from scipy.spatial import KDTree
 
-from tesseract_planner import TesseractPlanner
+from tesseract_planner.planner import TesseractPlanner
 
 from presaved_paths_experiments_manager import PresavedPathsExperimentsManager
 

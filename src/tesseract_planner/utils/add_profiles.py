@@ -99,7 +99,7 @@ from tesseract_robotics.tesseract_motion_planners_ompl import OMPLDefaultPlanPro
                                                               OMPLProblemStateSpace_REAL_CONSTRAINTED_STATE_SPACE
                                                             
                                                                                                     
-def add_MinLengthProfile(profiles, name, length=60):
+def add_MinLengthProfile(profiles, name, length=100):
     """Add a MinLengthProfile to the ProfileDictionary
 
     Args:
@@ -115,8 +115,7 @@ def add_MinLengthProfile(profiles, name, length=60):
 
     ProfileDictionary_addProfile_MinLengthProfile(profiles, MINLENGTH_DEFAULT_NAMESPACE, name, min_length_profile)
     
-
-def add_TrajOptPlanProfile(profiles, name):
+def add_TrajOptPlanProfile(profiles, name, num_joints):
     """Add a TrajOptPlanProfile to the ProfileDictionary
 
     Args:
@@ -130,11 +129,22 @@ def add_TrajOptPlanProfile(profiles, name):
     ## Plan Profile BEGIN
 
     trajopt_plan_profile = TrajOptDefaultPlanProfile()
+    
 
     # trajopt_plan_profile.cartesian_coeff = np.array([1, 1, 1, 1, 1, 1], dtype=np.float64)
     # trajopt_plan_profile.joint_coeff = np.array([10, 10, 1, 100, 100, 100, 1], dtype=np.float64)
     # trajopt_plan_profile.joint_coeff = np.array([1000, 1000, 0, 100, 100, 100, 0], dtype=np.float64)
     # trajopt_plan_profile.joint_coeff = np.array([0,0,0,0,0,0,0], dtype=np.float64)
+    
+    joint_coeff = np.ones(num_joints, dtype=np.float64)
+    # joint_coeff[:2] = 2 # x, y
+    # joint_coeff[2] = 1 # z
+    # joint_coeff[3:6] = 1 # rx, ry, rz of the initial segment orientation
+    # if num_joints > 6:
+    #     joint_coeff[6::3] = 10 # rx of the internal joints
+    #     joint_coeff[7::3] = 10 # ry of the internal joints
+    #     joint_coeff[8::3] = 100 # rz of the internal joints
+    trajopt_plan_profile.joint_coeff = joint_coeff
 
     # trajopt_plan_profile.constraint_error_functions # ???
 
@@ -156,26 +166,29 @@ def add_TrajOptPlanProfile(profiles, name):
     trajopt_composite_profile = TrajOptDefaultCompositeProfile()
 
     trajopt_composite_profile.collision_cost_config.enabled = True # If true, a collision cost term will be added to the problem. Default: true*/
-    trajopt_composite_profile.collision_cost_config.use_weighted_sum = False # Use the weighted sum for each link pair. This reduces the number equations added to the problem. If set to true, it is recommended to start with the coeff set to one Default: false*/
-    trajopt_composite_profile.collision_cost_config.safety_margin = 0.05 # 0.0150 # 2.5cm #  Max distance in which collision costs will be evaluated. Default: 0.025*/
-    trajopt_composite_profile.collision_cost_config.safety_margin_buffer = 0.00 # Distance beyond buffer_margin in which collision optimization will be evaluated. This is set to 0 by default (effectively disabled) for collision costs.
+    trajopt_composite_profile.collision_cost_config.use_weighted_sum = True # Use the weighted sum for each link pair. This reduces the number equations added to the problem. If set to true, it is recommended to start with the coeff set to one Default: false*/
+    trajopt_composite_profile.collision_cost_config.safety_margin = 0.015 # 0.005 # 0.025 # 0.0150 # 2.5cm #  Max distance in which collision costs will be evaluated. Default: 0.025*/
+    trajopt_composite_profile.collision_cost_config.safety_margin_buffer = 0.0 # 0.01 # Distance beyond buffer_margin in which collision optimization will be evaluated. This is set to 0 by default (effectively disabled) for collision costs.
     trajopt_composite_profile.collision_cost_config.type = CollisionEvaluatorType_DISCRETE_CONTINUOUS # The evaluator type that will be used for collision checking. # SINGLE_TIMESTEP, DISCRETE_CONTINUOUS, CAST_CONTINUOUS. Default: DISCRETE_CONTINUOUS
-    trajopt_composite_profile.collision_cost_config.coeff = 0.1 # The collision coeff/weight. Default: 20*/
+    # trajopt_composite_profile.collision_cost_config.type = CollisionEvaluatorType_SINGLE_TIMESTEP # The evaluator type that will be used for collision checking. # SINGLE_TIMESTEP, DISCRETE_CONTINUOUS, CAST_CONTINUOUS. Default: DISCRETE_CONTINUOUS
+    trajopt_composite_profile.collision_cost_config.coeff = 10 #0.1 # The collision coeff/weight. Default: 20*/
 
     trajopt_composite_profile.collision_constraint_config.enabled = True # If true, a collision cost term will be added to the problem. Default: true
-    trajopt_composite_profile.collision_constraint_config.use_weighted_sum = False # Use the weighted sum for each link pair. This reduces the number equations added to the problem. If set to true, it is recommended to start with the coeff set to one. Default: false
-    trajopt_composite_profile.collision_constraint_config.safety_margin = 0.01 # 0.016 # Max distance in which collision costs will be evaluated. Default: 0.01
-    trajopt_composite_profile.collision_constraint_config.safety_margin_buffer = 0.00 # Distance beyond buffer_margin in which collision optimization will be evaluated. Default: 0.05
+    trajopt_composite_profile.collision_constraint_config.use_weighted_sum = True # Use the weighted sum for each link pair. This reduces the number equations added to the problem. If set to true, it is recommended to start with the coeff set to one. Default: false
+    trajopt_composite_profile.collision_constraint_config.safety_margin = 0.001 # 0.01 # 0.016 # Max distance in which collision costs will be evaluated. Default: 0.01
+    trajopt_composite_profile.collision_constraint_config.safety_margin_buffer = 0.001 # 0.051 # Distance beyond buffer_margin in which collision optimization will be evaluated. Default: 0.05
     trajopt_composite_profile.collision_constraint_config.type = CollisionEvaluatorType_DISCRETE_CONTINUOUS # The evaluator type that will be used for collision checking. # SINGLE_TIMESTEP, DISCRETE_CONTINUOUS, CAST_CONTINUOUS. Default: DISCRETE_CONTINUOUS
-    trajopt_composite_profile.collision_constraint_config.coeff = 1 # The collision coeff/weight. Default: 20
+    # trajopt_composite_profile.collision_constraint_config.type = CollisionEvaluatorType_SINGLE_TIMESTEP # The evaluator type that will be used for collision checking. # SINGLE_TIMESTEP, DISCRETE_CONTINUOUS, CAST_CONTINUOUS. Default: DISCRETE_CONTINUOUS
+    trajopt_composite_profile.collision_constraint_config.coeff = 50 #20 # The collision coeff/weight. Default: 20
 
     # The type of contact test to perform: FIRST, CLOSEST, ALL. Default: ALL
-    trajopt_composite_profile.contact_test_type = ContactTestType_ALL # ContactTestType_CLOSEST 
+    # trajopt_composite_profile.contact_test_type = ContactTestType_ALL # ContactTestType_CLOSEST 
+    # trajopt_composite_profile.contact_test_type = ContactTestType_ALL
 
     trajopt_composite_profile.smooth_velocities = True # If true, a joint velocity cost with a target of 0 will be applied for all timesteps Default: true
     # trajopt_composite_profile.velocity_coeff = np.array([10, 10, 1, 100, 100, 100, 1], dtype=np.float64) # This default to all ones, but allows you to weight different joints differently. Default: Eigen::VectorXd::Ones(num_joints)
 
-    trajopt_composite_profile.smooth_accelerations = False # If true, a joint acceleration cost with a target of 0 will be applied for all timesteps Default: false
+    trajopt_composite_profile.smooth_accelerations = True # If true, a joint acceleration cost with a target of 0 will be applied for all timesteps Default: false
     # trajopt_composite_profile.acceleration_coeff = np.array([1], dtype=np.float64) # This default to all ones, but allows you to weight different joints differently. Default: Eigen::VectorXd::Ones(num_joints)
 
     trajopt_composite_profile.smooth_jerks = False # If true, a joint jerk cost with a target of 0 will be applied for all timesteps Default: false
@@ -184,10 +197,10 @@ def add_TrajOptPlanProfile(profiles, name):
     trajopt_composite_profile.avoid_singularity = False #  If true, applies a cost to avoid kinematic singularities. Default: false
     trajopt_composite_profile.avoid_singularity_coeff = 5.0 # Optimization weight associated with kinematic singularity avoidance. Default: 5.0
 
-    trajopt_composite_profile.longest_valid_segment_fraction = 0.01 # Set the resolution at which state validity needs to be verified in order for a motion between two states to be considered valid in post checking of trajectory returned by trajopt. The resolution is equal to longest_valid_segment_fraction * state_space.getMaximumExtent(). Default: 0.01
+    trajopt_composite_profile.longest_valid_segment_fraction = 0.5 # Set the resolution at which state validity needs to be verified in order for a motion between two states to be considered valid in post checking of trajectory returned by trajopt. The resolution is equal to longest_valid_segment_fraction * state_space.getMaximumExtent(). Default: 0.01
     # Note: The planner takes the conservative of either longest_valid_segment_fraction or longest_valid_segment_length.
 
-    trajopt_composite_profile.longest_valid_segment_length = 0.1 # Set the resolution at which state validity needs to be verified in order for a motion between two states to be considered valid. If norm(state1 - state0) > longest_valid_segment_length. Default: 0.1
+    trajopt_composite_profile.longest_valid_segment_length = 0.05 # Set the resolution at which state validity needs to be verified in order for a motion between two states to be considered valid. If norm(state1 - state0) > longest_valid_segment_length. Default: 0.1
     # Note: This gets converted to longest_valid_segment_fraction. longest_valid_segment_fraction = longest_valid_segment_length / state_space.getMaximumExtent()
 
     # Arguments: (profile_dictionary, ns, profile_name, profile)
@@ -199,7 +212,34 @@ def add_TrajOptPlanProfile(profiles, name):
     ## Composite Profile END
     ####################
     
-
+    ####################
+    ## Solver Profile BEGIN 
+    
+    trajopt_solver_profile = TrajOptDefaultSolverProfile()
+    
+    # trajopt_solver_profile.convex_solver =  # The Convex solver to use. Default: sco::ModelType::OSQP
+    
+    # trajopt_solver_profile.convex_solver_config = # The convex solver config to use. sco::ModelConfig::Ptr, default: nullptr, which uses the default settings
+    # eg. from C++
+    # auto convex_solver_config = std::make_shared<sco::OSQPModelConfig>();
+    # convex_solver_config->settings.adaptive_rho = 0;
+    # trajopt_solver_profile->convex_solver_config = convex_solver_config;
+    
+    # trajopt_solver_profile.opt_info = # Optimization paramters. sco::BasicTrustRegionSQPParameters
+    # trajopt_solver_profile.opt_info.num_threads = 0 # If greater than one, multi threaded functions are called. Default: 0
+    
+    trajopt_solver_profile.opt_info.max_iter = 200 # The maximum number of iterations to run the optimization. Default: 40 or 50
+    # trajopt_solver_profile.opt_info.min_approx_improve = 1e-5 # If model improves less than this, exit and report convergence. Default: 1e-4
+    # trajopt_solver_profile.opt_info.min_trust_box_size = 1e-5 # If trust region gets any smaller, exit and report convergence. Default: 1e-4
+    
+    # trajopt_solver_profile.opt_info.max_qp_solver_failures = 3 # Max number of times the QP solver can fail before optimization is aborted. Default: 3, DON'T USE
+    
+    
+    ProfileDictionary_addProfile_TrajOptSolverProfile(profiles, TRAJOPT_DEFAULT_NAMESPACE, name, trajopt_solver_profile)
+    
+    ## Solver Profile END
+    ####################
+    
 def add_OMPLDefaultPlanProfile(profiles, name):
     """Add a OMPLDefaultPlanProfile to the ProfileDictionary
 
@@ -310,7 +350,7 @@ def add_OMPLDefaultPlanProfile(profiles, name):
     #* max_solutions (default: 10)
         The max number of solutions. If max solutions are hit it will exit even if other threads are running.
     """
-    ompl_plan_profile.max_solutions = 10 
+    ompl_plan_profile.max_solutions = 10 # 10
     
     """
     #* simplify (default: False)
@@ -356,7 +396,10 @@ def add_OMPLDefaultPlanProfile(profiles, name):
     """
     ompl_plan_profile.planners.clear()
     
-    range = 0.10 # the maximum distance the tree can extend towards a randomly selected sample in the configuration space during each iteration.
+    # range = 0.15 # the maximum distance the tree can extend towards a randomly selected sample in the configuration space during each iteration.
+    range = 0.15 # the maximum distance the tree can extend towards a randomly selected sample in the configuration space during each iteration.
+    # range = 0.05 # the maximum distance the tree can extend towards a randomly selected sample in the configuration space during each iteration.
+    # range = 0.025 # the maximum distance the tree can extend towards a randomly selected sample in the configuration space during each iteration.
     # Increasing the range may help in reaching the goal faster if the environment has fewer obstacles.
     # Decreasing the range can result in a more detailed path which might be beneficial in cluttered or highly constrained spaces.
     # A large range might cause the algorithm to miss narrow passages, as large steps could overshoot small viable corridors. 
@@ -375,43 +418,67 @@ def add_OMPLDefaultPlanProfile(profiles, name):
     
     
     """
-    #* collision_check_config
+    ##* collision_check_config
         The collision check configuration. (C++ type: tesseract_collision::CollisionCheckConfig)
-        
-        Properties:
-        - contact_manager_config: tesseract_collision::ContactManagerConfig, Used to configure the contact manager prior to a series of checks. 
-        
-        - contact_request: ContactRequest, used for this check. Default test type: ALL
-        
-        - type: CollisionEvaluatorType, Specifies the type of collision check to be performed.
-            This is a High level descriptor used in planners and utilities to specify what kind of collision check is desired.
-            
-            Options:
-            - CollisionEvaluatorType_NONE
-            - CollisionEvaluatorType_DISCRETE: Discrete contact manager using only steps specified (DEFAULT)
-            - CollisionEvaluatorType_LVS_DISCRETE: Discrete contact manager interpolating using longest valid segment
-            - CollisionEvaluatorType_CONTINUOUS: Continuous contact manager using only steps specified
-            - CollisionEvaluatorType_LVS_CONTINUOUS: Continuous contact manager interpolating using longest valid segment
-            
-        - longest_valid_segment_length: double, Longest valid segment to use if type supports lvs. Default: 0.005
-        
-        - check_program_mode: CollisionCheckProgramType, 
-            Specifies the mode used when collision checking program/trajectory. Default: ALL
-            
-            Options:
-            - CollisionCheckProgramType_ALL: Check all states
-            - CollisionCheckProgramType_ALL_EXCEPT_START: Check all states except the start state
-            - CollisionCheckProgramType_ALL_EXCEPT_END: Check all states except the end state
-            - CollisionCheckProgramType_START_ONLY: Check only the start state
-            - CollisionCheckProgramType_END_ONLY: Check only the end state
-            - CollisionCheckProgramType_INTERMEDIATE_ONLY: Check only the intermediate states        
     """
-    # ompl_plan_profile.collision_check_config.contact_manager_config = 
-    # ompl_plan_profile.collision_check_config.contact_request = 
-    ompl_plan_profile.collision_check_config.type = CollisionEvaluatorType_DISCRETE
-    ompl_plan_profile.collision_check_config.longest_valid_segment_length = 0.005
-    ompl_plan_profile.collision_check_config.check_program_mode = CollisionCheckProgramType_ALL
     
+    # ompl_plan_profile.collision_check_config.contact_manager_config = 
+    """
+    #* collision_check_config.contact_manager_config (C++ type: tesseract_collision::ContactManagerConfig)
+        Used to configure the contact manager prior to a series of checks.
+        
+        Set the collision margin for check. Objects with closer than the specified margin will be returned
+    """
+    # ompl_plan_profile.collision_check_config.contact_manager_config.margin_data = CollisionMarginData(0.0)
+    
+    """
+    #* collision_check_config.contact_request (C++ type: ContactRequest)
+        used for this check. Default test type: ALL
+        
+        Options:
+        - ContactTestType_ALL: Return all contacts for a pair of objects
+        - ContactTestType_FIRST: Return at first contact for any pair of objects
+        - ContactTestType_CLOSEST: Return the global minimum for a pair of objects
+        - ContactTestType_LIMITED: Return limited set of contacts for a pair of objects
+    """
+    # ompl_plan_profile.collision_check_config.contact_request = 
+    # ompl_plan_profile.collision_check_config.contact_request = ContactRequest(ContactTestType_ALL)
+    
+    """
+    #* collision_check_config.type (C++ type: CollisionEvaluatorType)
+        Specifies the type of collision check to be performed.
+        This is a High level descriptor used in planners and utilities to specify what kind of collision check is desired.
+        
+        Options:
+        - CollisionEvaluatorType_NONE
+        - CollisionEvaluatorType_DISCRETE: Discrete contact manager using only steps specified (DEFAULT)
+        - CollisionEvaluatorType_LVS_DISCRETE: Discrete contact manager interpolating using longest valid segment
+        - CollisionEvaluatorType_CONTINUOUS: Continuous contact manager using only steps specified
+        - CollisionEvaluatorType_LVS_CONTINUOUS: Continuous contact manager interpolating using longest valid segment
+    """
+    # ompl_plan_profile.collision_check_config.type = CollisionEvaluatorType_DISCRETE
+    # ompl_plan_profile.collision_check_config.type = CollisionEvaluatorType_NONE
+    
+    """
+    #* collision_check_config.longest_valid_segment_length
+        Longest valid segment to use if type supports lvs. Default: 0.005
+    """
+    # ompl_plan_profile.collision_check_config.longest_valid_segment_length = 0.010
+    
+    """
+    #* collision_check_config.check_program_mode
+        Specifies the mode used when collision checking program/trajectory. Default: ALL
+        
+        Options:
+        - CollisionCheckProgramType_ALL: Check all states
+        - CollisionCheckProgramType_ALL_EXCEPT_START: Check all states except the start state
+        - CollisionCheckProgramType_ALL_EXCEPT_END: Check all states except the end state
+        - CollisionCheckProgramType_START_ONLY: Check only the start state
+        - CollisionCheckProgramType_END_ONLY: Check only the end state
+        - CollisionCheckProgramType_INTERMEDIATE_ONLY: Check only the intermediate states
+    """
+    # ompl_plan_profile.collision_check_config.check_program_mode = CollisionCheckProgramType_ALL
+    # ompl_plan_profile.collision_check_config.check_program_mode = CollisionCheckProgramType_END_ONLY
     
     """
     #* state_sampler_allocator
@@ -479,3 +546,4 @@ def add_OMPLDefaultPlanProfile(profiles, name):
 
     ## Plan Profile END
     ####################
+    

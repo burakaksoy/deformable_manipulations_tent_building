@@ -130,11 +130,11 @@ from tesseract_robotics.tesseract_urdf import parseURDFString, \
 
 import tf.transformations as tf_trans
 
-from .utils.add_env_obstacles import add_environment_obstacles, \
+from tesseract_planner.utils.add_env_obstacles import add_environment_obstacles, \
                                              add_environment_obstacles_l_shape_corridor, \
                                              add_environment_obstacles_from_urdf
                                              
-from .utils.add_profiles import add_MinLengthProfile, \
+from tesseract_planner.utils.add_profiles import add_MinLengthProfile, \
                                         add_TrajOptPlanProfile, \
                                         add_OMPLDefaultPlanProfile
 
