@@ -403,7 +403,11 @@ def joint_values_to_planned_path_data(joint_values, frame_names, kin_group):
                 # AXIS-ANGLE ORIENTATION ERROR/DIFFERENCE DEFINITION
                 # Convert quaternion difference to rotation vector (axis-angle representation)
                 rotation_vector = quaternion_to_rotation_vec(quaternion_difference)
+                
                 rotation_angle = np.linalg.norm(rotation_vector)
+                
+                # Wrap the angle to [-pi, pi]
+                rotation_angle = np.arctan2(np.sin(rotation_angle), np.cos(rotation_angle))
 
                 if rotation_angle > 0:
                     # Normalize the rotation vector to get the rotation axis
@@ -444,6 +448,9 @@ def quaternion_to_rotation_vec(quaternion):
         Norm if the axis_angle is the angle of rotation.
     """
     angle = 2 * np.arccos(quaternion[3])
+    
+    # Wrap the angle to [-pi, pi]
+    angle = np.arctan2(np.sin(angle), np.cos(angle))
 
     # Handling small angles with an approximation
     small_angle_threshold = 1e-6

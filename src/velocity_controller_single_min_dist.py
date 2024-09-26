@@ -980,9 +980,8 @@ class VelocityControllerNode:
         # # Convert quaternion error to rotation vector (axis-angle representation)
         # angle = 2 * np.arccos(quaternion_error[3])
 
-        # # Adjust angle to be within the range [-π, π]
-        # if angle > np.pi:
-        #     angle -= 2 * np.pi
+        # # wrap the angle to [-pi, pi]
+        # angle = np.arctan2(np.sin(angle), np.cos(angle))
 
         # # Handling small angles with an approximation
         # small_angle_threshold = 1e-3

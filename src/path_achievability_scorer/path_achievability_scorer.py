@@ -539,6 +539,9 @@ class PathAchievabilityScorer:
             Norm if the axis_angle is the angle of rotation.
         """
         angle = 2 * np.arccos(quaternion[3])
+        
+        # Wrap the angle to [-pi, pi]
+        angle = np.arctan2(np.sin(angle), np.cos(angle))
 
         # Handling small angles with an approximation
         small_angle_threshold = 1e-6

@@ -2285,6 +2285,9 @@ class VelocityControllerNode:
             Norm if the axis_angle is the angle of rotation.
         """
         angle = 2 * np.arccos(quaternion[3])
+        
+        # Wrap the angle to [-pi, pi]
+        angle = np.arctan2(np.sin(angle), np.cos(angle))
 
         # Handling small angles with an approximation
         small_angle_threshold = 1e-6
@@ -2808,7 +2811,7 @@ class VelocityControllerNode:
 
             segment_lengths = np.diff(self.planned_path_cumulative_lengths_of_particles[particle]) # np.array n elements
             # segment_rotations = np.diff(self.planned_path_cumulative_rotations_of_particles[particle]) # np.array of n elements
-            segment_rotations = np.mod(np.diff(self.planned_path_cumulative_rotations_of_particles[particle]) + np.pi, 2 * np.pi) - np.pi
+            segment_rotations = np.mod(np.diff(self.planned_path_cumulative_rotations_of_particles[particle]) + np.pi, 2 * np.pi) - np.pi # wrap to [-pi, pi]
             
             segment_directions = self.planned_path_direction_vectors_of_particles[particle]  # list of n elements with each element a unit 3D vector
             segment_rotation_vectors = self.planned_path_rotation_vectors_of_particles[particle]  # list of n elements with each element a unit 3D vector
@@ -2845,7 +2848,7 @@ class VelocityControllerNode:
         """
         segment_lengths = np.diff(cumulative_lenghts)
         # segment_rotations = np.diff(cumulative_rotations)
-        segment_rotations = np.mod(np.diff(cumulative_rotations) + np.pi, 2 * np.pi) - np.pi
+        segment_rotations = np.mod(np.diff(cumulative_rotations) + np.pi, 2 * np.pi) - np.pi # wrap to [-pi, pi]
         
         linear_times = segment_lengths / max_linear_velocity
         angular_times = segment_rotations / max_angular_velocity
