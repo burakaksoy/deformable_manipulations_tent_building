@@ -201,13 +201,14 @@ from tesseract_planner.utils.add_profiles import (
 
 from deformable_simulator_scene_utilities import json_str_to_urdf, json_to_urdf
 
-from dlo_state_approximator import dlo_state_approximator
+from dlo_state_approximator import dlo_state_approximator, dlo_fwd_kin
 
 from dlo_urdf_creator import DloURDFCreator
 
 # -----------------------------------------------------------------------
 # OPTIONAL
 import matplotlib.pyplot as plt 
+import matplotlib.cm as cm # Colormaps
 
 # Set the default DPI for all images
 plt.rcParams['figure.dpi'] = 100  # e.g. 300 dpi
@@ -425,7 +426,8 @@ class TesseractPlanner(object):
                     environment_limits_xyz=[-1, 1, -1, 1, -1, 1],
                     joint_angle_limits_xyz_deg=[-90, 90, -180, 180, -10, 10],
                     approximation_error_threshold=0.02,
-                    return_all_data=False):
+                    return_all_data=False,
+                    plot_for_debugging=False):
         """
         Args:
             
@@ -538,40 +540,40 @@ class TesseractPlanner(object):
             dlo_simplification_time += stopwatch.elapsedSeconds()
             # -----------------------------------------------------------------------
 
-            # # -----------------------------------------------------------------------
-            # # OPTIONAL: Plot the approximated states
-            # ax = plt.figure().add_subplot(projection='3d')
+            # -----------------------------------------------------------------------
+            # OPTIONAL: Plot the approximated states
+            if plot_for_debugging:            
+                ax = plt.figure().add_subplot(projection='3d')
 
-            # # Add title with the number of segments
-            # ax.set_title("Initial and Target State Approximations \n w/ Number of Segments = " + str(simplified_dlo_num_segments), fontsize=30)
+                # Add title with the number of segments
+                ax.set_title("Initial and Target State Approximations \n w/ Number of Segments = " + str(simplified_dlo_num_segments), fontsize=30)
 
-            # ax.plot(initial_full_state[:,0], # x
-            #         initial_full_state[:,1], # y
-            #         initial_full_state[:,2], # z
-            #         'og', label='Initial: Original', markersize=6)
-            
-            # ax.plot(initial_approximated_state_pos[:,0], # x
-            #         initial_approximated_state_pos[:,1], # y
-            #         initial_approximated_state_pos[:,2], # z
-            #         '-g', label='Initial: Approx.', markersize=12, linewidth=3)
+                ax.plot(initial_full_state[:,0], # x
+                        initial_full_state[:,1], # y
+                        initial_full_state[:,2], # z
+                        'og', label='Initial: Original', markersize=6)
+                
+                ax.plot(initial_approximated_state_pos[:,0], # x
+                        initial_approximated_state_pos[:,1], # y
+                        initial_approximated_state_pos[:,2], # z
+                        '-g', label='Initial: Approx.', markersize=12, linewidth=3)
 
-            # ax.plot(target_full_state[:,0], # x
-            #         target_full_state[:,1], # y
-            #         target_full_state[:,2], # z
-            #         'or', label='Target: Original', markersize=6)
-            
-            # ax.plot(target_approximated_state_pos[:,0], # x
-            #         target_approximated_state_pos[:,1], # y
-            #         target_approximated_state_pos[:,2], # z
-            #         '-r', label='Target: Approx.', markersize=12, linewidth=3)
+                ax.plot(target_full_state[:,0], # x
+                        target_full_state[:,1], # y
+                        target_full_state[:,2], # z
+                        'or', label='Target: Original', markersize=6)
+                
+                ax.plot(target_approximated_state_pos[:,0], # x
+                        target_approximated_state_pos[:,1], # y
+                        target_approximated_state_pos[:,2], # z
+                        '-r', label='Target: Approx.', markersize=12, linewidth=3)
 
-            # ax.legend(fontsize=20)
-            # ax.tick_params(axis='both', which='major', labelsize=20)
-            # # ax.set_aspect('equal')
-            # set_axes_equal(ax)
-            # plt.show()
-
-            # # -----------------------------------------------------------------------
+                ax.legend(fontsize=20)
+                ax.tick_params(axis='both', which='major', labelsize=20)
+                # ax.set_aspect('equal')
+                set_axes_equal(ax)
+                plt.show()
+            # -----------------------------------------------------------------------
             
             # -----------------------------------------------------------------------
             # Check the approximation error thresholds
@@ -1268,79 +1270,92 @@ class TesseractPlanner(object):
                 # print("{}".format(traceback.format_exc()))
             # --------------------------------------------------------------------------------------------
             
-            # # --------------------------------------------------------------------------------------------
-            # # OPTIONAL: Plot the path points
-            # try:
-            #     ax = plt.figure().add_subplot(projection='3d')
+            # --------------------------------------------------------------------------------------------
+            # OPTIONAL: Plot the path points
+            if plot_for_debugging:
+                try:
+                    ax = plt.figure().add_subplot(projection='3d')
 
-            #     # Add title with the number of segments
-            #     ax.set_title("Generated Paths of Centroid and Holding Points\n w/ Number of Segments = " + str(simplified_dlo_num_segments), fontsize=30)
+                    # Add title with the number of segments
+                    ax.set_title("Generated Paths of Centroid and Holding Points\n w/ Number of Segments = " + str(simplified_dlo_num_segments), fontsize=30)
 
-            #     ax.plot(initial_full_state[:,0], # x
-            #             initial_full_state[:,1], # y
-            #             initial_full_state[:,2], # z
-            #             # 'og', label='Initial State: Original', markersize=10, fillstyle='none')
-            #             'Xg', label='Initial State: Original Centers', markersize=10,  mec = 'k', alpha=.5)
-                
-            #     ax.plot(initial_approximated_state_pos[:,0], # x
-            #             initial_approximated_state_pos[:,1], # y
-            #             initial_approximated_state_pos[:,2], # z
-            #             '-g', label='Initial State: Approximation Line', markersize=12, linewidth=8)
-            #             # '-g', label='Initial State: Approximation', markersize=12, linewidth=6, alpha=.5)
-
-            #     ax.plot(target_full_state[:,0], # x
-            #             target_full_state[:,1], # y
-            #             target_full_state[:,2], # z
-            #             # 'or', label='Target State: Original', markersize=10, fillstyle='none')
-            #             'Xr', label='Target State: Original Centers', markersize=10,  mec = 'k', alpha=.5)
-                
-            #     ax.plot(target_approximated_state_pos[:,0], # x
-            #             target_approximated_state_pos[:,1], # y
-            #             target_approximated_state_pos[:,2], # z
-            #             '-r', label='Target State: Approximation Line', markersize=12, linewidth=8)
-            #             # '-r', label='Target State: Approximation', markersize=12, linewidth=6, alpha=.5)
-                
-            #     # Plot the centroid path points before smoothing
-            #     ax.plot(ompl_path_points[:,0], # x
-            #             ompl_path_points[:,1], # y
-            #             ompl_path_points[:,2], # z
-            #             ':ok', label='Centroid Path (before smoothing)', markersize=2, linewidth=1)
-                
-            #     path_colors = ['b', 'm', 'c', 'y', 'k', 'g', 'r']
-                
-            #     # Plot the holding points path points before smoothing
-            #     i = 0
-            #     for id in full_dlo_holding_segment_ids:
-            #         ax.plot(ompl_path_points_of_particles[id][:,0], # x
-            #                 ompl_path_points_of_particles[id][:,1], # y
-            #                 ompl_path_points_of_particles[id][:,2], # z
-            #                 ':o'+path_colors[i], label='Point ' + str(id) + ' Path (before smoothing)', markersize=2, linewidth=1)
-            #         i += 1
+                    ax.plot(initial_full_state[:,0], # x
+                            initial_full_state[:,1], # y
+                            initial_full_state[:,2], # z
+                            # 'og', label='Initial State: Original', markersize=10, fillstyle='none')
+                            'Xg', label='Initial State: Original Centers', markersize=10,  mec = 'k', alpha=.5)
                     
-            #     # Plot the centroid path points after smoothing
-            #     ax.plot(trajopt_path_points[:,0], # x
-            #             trajopt_path_points[:,1], # y
-            #             trajopt_path_points[:,2], # z
-            #             '--^k', label='Centroid Path (after smoothing)', markersize=4, linewidth=2)
-                
-            #     # Plot the holding points path points after smoothing
-            #     i = 0
-            #     for id in full_dlo_holding_segment_ids:
-            #         ax.plot(trajopt_path_points_of_particles[id][:,0], # x
-            #                 trajopt_path_points_of_particles[id][:,1], # y
-            #                 trajopt_path_points_of_particles[id][:,2], # z
-            #                 '--^'+path_colors[i], label='Point ' + str(id) + ' Path (after smoothing)', markersize=4, linewidth=2)
-            #         i += 1
+                    ax.plot(initial_approximated_state_pos[:,0], # x
+                            initial_approximated_state_pos[:,1], # y
+                            initial_approximated_state_pos[:,2], # z
+                            '-g', label='Initial State: Approximation Line', markersize=12, linewidth=8)
+                            # '-g', label='Initial State: Approximation', markersize=12, linewidth=6, alpha=.5)
+
+                    ax.plot(target_full_state[:,0], # x
+                            target_full_state[:,1], # y
+                            target_full_state[:,2], # z
+                            # 'or', label='Target State: Original', markersize=10, fillstyle='none')
+                            'Xr', label='Target State: Original Centers', markersize=10,  mec = 'k', alpha=.5)
+                    
+                    ax.plot(target_approximated_state_pos[:,0], # x
+                            target_approximated_state_pos[:,1], # y
+                            target_approximated_state_pos[:,2], # z
+                            '-r', label='Target State: Approximation Line', markersize=12, linewidth=8)
+                            # '-r', label='Target State: Approximation', markersize=12, linewidth=6, alpha=.5)
+                    
+                    # Plot the centroid path points before smoothing
+                    ax.plot(ompl_path_points[:,0], # x
+                            ompl_path_points[:,1], # y
+                            ompl_path_points[:,2], # z
+                            ':ok', label='Centroid Path (before smoothing)', markersize=2, linewidth=1)
+                    
+                    path_colors = ['b', 'm', 'c', 'y', 'k', 'g', 'r']
+                    
+                    # Plot the holding points path points before smoothing
+                    i = 0
+                    for id in full_dlo_holding_segment_ids:
+                        ax.plot(ompl_path_points_of_particles[id][:,0], # x
+                                ompl_path_points_of_particles[id][:,1], # y
+                                ompl_path_points_of_particles[id][:,2], # z
+                                ':o'+path_colors[i], label='Point ' + str(id) + ' Path (before smoothing)', markersize=2, linewidth=1)
+                        i += 1
                         
-            #     ax.legend(fontsize=20)
-            #     ax.tick_params(axis='both', which='major', labelsize=20)
-            #     # ax.set_aspect('equal')
-            #     set_axes_equal(ax)
-            #     plt.show()
-            # except Exception:
-            #     print("Error plotting the path points")
-            #     # print("{}".format(traceback.format_exc()))
-            # # --------------------------------------------------------------------------------------------
+                    # Plot the centroid path points after smoothing
+                    ax.plot(trajopt_path_points[:,0], # x
+                            trajopt_path_points[:,1], # y
+                            trajopt_path_points[:,2], # z
+                            '--^k', label='Centroid Path (after smoothing)', markersize=4, linewidth=2)
+                    
+                    # Plot the holding points path points after smoothing
+                    i = 0
+                    for id in full_dlo_holding_segment_ids:
+                        ax.plot(trajopt_path_points_of_particles[id][:,0], # x
+                                trajopt_path_points_of_particles[id][:,1], # y
+                                trajopt_path_points_of_particles[id][:,2], # z
+                                '--^'+path_colors[i], label='Point ' + str(id) + ' Path (after smoothing)', markersize=4, linewidth=2)
+                        i += 1
+                        
+                    # Gradient from green (initial approximation) to red (target approximation)
+                    num_intermediate_lines = len(trajopt_path_approximated_dlo_joint_values)
+                    color_gradient = cm.RdYlGn(np.linspace(1, 0, num_intermediate_lines))  # Colormap from green to red
+
+                    # Plot the approximated DLO segments during the path using the joint values (after smoothing, ie. trajopt)
+                    for i, joint_values in enumerate(trajopt_path_approximated_dlo_joint_values):
+                        polyline = dlo_fwd_kin(joint_pos=joint_values, dlo_l=dlo_length, return_rot_matrices=False)  # intermediate approximated state
+                        ax.plot(polyline[:,0], # x
+                                polyline[:,1], # y
+                                polyline[:,2], # z
+                                '-', color=color_gradient[i], markersize=6, linewidth=4, alpha=.2)
+                            
+                    ax.legend(fontsize=20)
+                    ax.tick_params(axis='both', which='major', labelsize=20)
+                    # ax.set_aspect('equal')
+                    set_axes_equal(ax)
+                    plt.show()
+                except Exception:
+                    print("Error plotting the path points")
+                    # print("{}".format(traceback.format_exc()))
+            # --------------------------------------------------------------------------------------------
             
             # --------------------------------------------------------------------------------------------
             print("Planning with ", simplified_dlo_num_segments, " segments is completed.")    

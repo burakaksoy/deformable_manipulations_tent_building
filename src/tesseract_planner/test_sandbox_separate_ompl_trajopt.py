@@ -137,7 +137,8 @@ plan_data = tesseract_planner.plan(initial_full_state_dict,
                                     environment_limits_xyz,
                                     joint_angle_limits_xyz_deg,
                                     approximation_error_threshold,
-                                    return_all_data=True)
+                                    return_all_data=True,
+                                    plot_for_debugging=True)
 
 # Unpack the plan data
 (plan_data_ompl, 
