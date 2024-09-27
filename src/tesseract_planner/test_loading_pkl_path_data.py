@@ -69,6 +69,7 @@ with open(filename, 'rb') as inp:
     plan_data_trajopt = plan_data[1] 
     performance_data = plan_data[2]
     initial_n_target_states = plan_data[3]
+    # performance_data_extra = plan_data[4]
     
     (ompl_path, ompl_path_points, ompl_path_cumulative_lengths, ompl_path_cumulative_rotations,
     ompl_path_direction_vectors, ompl_path_rotation_vectors, ompl_path_of_particles,
@@ -87,6 +88,8 @@ with open(filename, 'rb') as inp:
     
     (initial_full_state, initial_approximated_state_pos, initial_approximated_state_joint_pos, 
     target_full_state, target_approximated_state_pos, target_approximated_state_joint_pos) = initial_n_target_states
+    
+    # (dlo_simplification_time, urdf_generation_time) = performance_data_extra
     
     # As an example print the performance data
     print("Experiment ID: ", experiment_id)

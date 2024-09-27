@@ -743,6 +743,7 @@ class PathAchievabilityScorer:
                 self.plan_data_trajopt = plan_data[1] 
                 self.performance_data = plan_data[2]
                 self.initial_n_target_states = plan_data[3]
+                # self.performance_data_extra = plan_data[4]
                 
                 # GUIDE:
                 # plan_data_ompl = (ompl_path, ompl_path_points, ompl_path_cumulative_lengths, ompl_path_cumulative_rotations,
@@ -759,6 +760,7 @@ class PathAchievabilityScorer:
                 #                     planning_time_ompl, planning_time_trajopt, total_planning_time, ompl_path_length, trajopt_path_length)
                 # initial_n_target_states = (initial_full_state, initial_approximated_state_pos, initial_approximated_state_joint_pos, 
                 #                         target_full_state, target_approximated_state_pos, target_approximated_state_joint_pos)
+                # performance_data_extra = (dlo_simplification_time, urdf_generation_time)
                 
                 planning_success = self.performance_data[3]
 
