@@ -203,7 +203,7 @@ path_planning_tesseract_enabled: True # default: False # For Tesseract Path plan
 path_planning_pre_saved_paths_enabled: True # default: False # For Pre-saved Paths
 
 # Is repanning_allowed. If True, replanning is allowed when the controller is converged withouth success (i.e. got stuck)
-replanning_allowed: False # default: True 
+replanning_allowed: True # default: True 
 # Maximum number of replanning attempts
 max_replanning_attempts: 3 # default: 3
 
@@ -262,14 +262,7 @@ tesseract_resource_path: "~/catkin_ws_deformable/src/"
 ##            Therefore, it may be useful to specify the maximum number of links allowed for the automatic creation.
 
 tesseract_tent_pole_urdf: "" # If not specified, dlo_urdf_creator is used to create the URDF automatically
-
 # tesseract_tent_pole_urdf: "package://deformable_description/urdf/pole_1_links_6DOF/pole_1_links.urdf"
-
-# Maximum number of links allowed for the automatic creation of the URDF
-# If not specified, or specified as a non positive number, the number of segments in the tent pole simulation is used.
-# If specified number is more than the number of segments in the tent pole simulation, 
-# the number of segments in the tent pole simulation is used with a warning.
-automatic_tent_pole_max_links: 10 
 
 ## SPECIFY THE SRDF FILE FOR THE TENT POLE
 ## Explanation: 
@@ -292,6 +285,24 @@ tesseract_tent_pole_manipulator_working_frame: "base_link" # The name of the wor
 ## SPECIFY IF THE DEFAULT TESSERACT VIEWER IS USED
 # If True, the default tesseract viewer is also used to visualize the planning scene through http://localhost:8000/
 tesseract_use_default_viewer: True # default: False 
+
+# Maximum number of links allowed for the automatic creation of the URDF
+# If not specified, or specified as a non positive number, the number of segments in the tent pole simulation is used.
+# If specified number is more than the number of segments in the tent pole simulation, 
+# the number of segments in the tent pole simulation is used with a warning.
+automatic_tent_pole_max_links: 10 
+
+# Minimum number of links allowed for the automatic creation of the URDF
+automatic_tent_pole_min_links: 2 
+
+dlo_approximation_error_threshold: 0.02 # m per original simulation segment
+
+# The limits of the environment in the x, y, and z directions for the initial end of the DLO.
+environment_limits_xyz: [-0.5, 0.5, -0.5, 0.5, 0, 0.6] # [min_x, max_x, min_y, max_y, min_z, max_z] in meters
+
+# The limits of the revolute joint angles in the x, y, and z directions in degrees in the approximation model
+joint_angle_limits_xyz_deg: [-45, 45, -45, 45, -20, 20] # [min_x, max_x, min_y, max_y, min_z, max_z] in degrees
+
 ## ------------------------------------------------------------------------------------------------------
 
 ## ------------------------------------------------------------------------------------------------------

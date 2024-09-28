@@ -60,6 +60,7 @@ class VelocityControllerNode:
     def __init__(self):
         # Set a flag for node initialization status
         self.initialized = False
+        rospy.logwarn("VelocityControllerNode: Initializing, Please wait...")
         
         self.enabled = False  # Flag to enable/disable controller
 
@@ -393,16 +394,21 @@ class VelocityControllerNode:
         self.num_replanning_attempts = 0
         self.is_replanning_needed = False
 
-        if self.path_planning_tesseract_enabled and not self.path_planning_pre_saved_paths_enabled:
+        # if self.path_planning_tesseract_enabled and not self.path_planning_pre_saved_paths_enabled:
+        if self.path_planning_tesseract_enabled:
             
             # Get deformable object simulator scene json file path from the ROS parameter server
             self.rb_scene_config_path = None
+            self.dlo_l  = None # For plan request
+            self.dlo_r = None # For plan request
             while (not self.rb_scene_config_path):
                 try:
                     self.rb_scene_config_path = rospy.get_param("/rb_scene_config_path")
+                    self.dlo_l = rospy.get_param("/dlo_l") # For plan request
+                    self.dlo_r = rospy.get_param("/dlo_r") # For plan request
                 except:
                     rospy.logwarn("Deformable object simulator scene json file path is not provided!")
-                    time.sleep(0.5)
+                    time.sleep(2)
 
             # Get the tesseract resource path from the ROS parameter server
             self.tesseract_resource_path = rospy.get_param("~tesseract_resource_path") 
@@ -419,15 +425,21 @@ class VelocityControllerNode:
             
             # Create tessaract planner object
             self.tesseract_planner = TesseractPlanner(self.rb_scene_config_path,
-                                                      self.tesseract_resource_path,
-                                                      self.tesseract_tent_pole_urdf,
-                                                      self.tesseract_tent_pole_srdf,
-                                                      self.tesseract_tent_pole_tcp_frame,
-                                                      self.tesseract_tent_pole_manipulator_group,
-                                                      self.tesseract_tent_pole_manipulator_working_frame,
-                                                      self.tesseract_use_default_viewer)
+                                                        self.tesseract_resource_path,
+                                                        self.tesseract_tent_pole_urdf,
+                                                        self.tesseract_tent_pole_srdf,
+                                                        self.tesseract_tent_pole_tcp_frame,
+                                                        self.tesseract_tent_pole_manipulator_group,
+                                                        self.tesseract_tent_pole_manipulator_working_frame,
+                                                        self.tesseract_use_default_viewer)
             
-        
+            ## Plan request parameters
+            self.automatic_tent_pole_max_links = rospy.get_param("~automatic_tent_pole_max_links", 10)
+            self.automatic_tent_pole_min_links = rospy.get_param("~automatic_tent_pole_min_links", 1)
+            self.dlo_approximation_error_threshold = rospy.get_param("~dlo_approximation_error_threshold", 0.02)
+            self.environment_limits_xyz = rospy.get_param("~environment_limits_xyz", [-1, 1, -1, 1, -1, 1])
+            self.joint_angle_limits_xyz_deg = rospy.get_param("~joint_angle_limits_xyz_deg", [-90, 90, -180, 180, -40, 40])
+            
         # Create variables to hold the planned path 
         self.reset_planned_path_variables()
 
@@ -2562,8 +2574,17 @@ class VelocityControllerNode:
                             self.planned_path_cumulative_rotations_of_particles,
                             self.planned_path_direction_vectors_of_particles,
                             self.planned_path_rotation_vectors_of_particles) = self.tesseract_planner.plan(self.initial_full_state_dict,
-                                                                                                        self.target_full_state_dict + [self.calculate_centroid_pose_of_target_poses()],
-                                                                                                        self.custom_static_particles)
+                                                                                                            self.target_full_state_dict,
+                                                                                                            self.dlo_l,
+                                                                                                            self.dlo_r,
+                                                                                                            self.custom_static_particles,
+                                                                                                            self.automatic_tent_pole_max_links,
+                                                                                                            self.automatic_tent_pole_min_links,
+                                                                                                            self.environment_limits_xyz,
+                                                                                                            self.joint_angle_limits_xyz_deg,
+                                                                                                            self.dlo_approximation_error_threshold,
+                                                                                                            return_all_data=False,
+                                                                                                            plot_for_debugging=False)
                         ## ----------------------------------------------------------------------------------------------
                         if (self.planned_path) and (not self.planned_path_velocity_profile_of_particles):
                             """
