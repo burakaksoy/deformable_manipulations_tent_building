@@ -669,11 +669,6 @@ class TesseractPlanner(object):
 
             print("--------------------------------------------------------------------")
             
-            # Print a message that says the the approximation with the simplified dlo num segments is valid within the thresholds
-            print("The approximation with ", simplified_dlo_num_segments, " segments is valid within the thresholds.")
-            print(f"DLO SIMPLIFICATION TOOK {dlo_simplification_time} SECONDS IN TOTAL.")
-            print("Creating the URDF for the robot with the DloURDFCreator")
-
             # Parameters for the DLO URDF creator
             model_name="pole"
             # base_link_name="base_link"
@@ -818,21 +813,54 @@ class TesseractPlanner(object):
             if self.viewer_enabled:
                 # viewer.update_environment(self.env, [0,0,0])
                 self.viewer.update_joint_positions(joint_names, goal_joint_positions)
+            # -----------------------------------------------------------------------    
+                
+                
+            # -----------------------------------------------------------------------
+            # Check the goal state for collisions
+            
+            # Get the discrete contact manager. This must be called again after the environment is updated
+            manager = self.env.getDiscreteContactManager()
+            
+            # manager.setActiveCollisionObjects(self.env.getActiveLinkNames())
+            manager.setCollisionMarginData(CollisionMarginData(0.0)) # Does not replace the environment's collision margin data, so it is safe to use
+            
+            # # Print the max collision margin of the contact manager 
+            # print("Max collision margin of the contact manager:", 
+            #         manager.getCollisionMarginData().getMaxCollisionMargin())
+            
+            # Perform collision check
+            result = ContactResultMap()
+            manager.contactTest(result, ContactRequest(ContactTestType_CLOSEST))
+            result_vector = ContactResultVector()
+            result.flattenMoveResults(result_vector)
+
+            # Print the number of contacts
+            if len(result_vector) > 0:
+                print("Number of contacts: ", len(result_vector))
+                print("Distance of the closest contact: ", result_vector[0].distance)
+                
+                if result_vector[0].distance < -0.005:
+                    # If the penetration depth is greater than 0.005, then the goal state is not valid
+                    print("The initial state is in collision. Skipping the current simplified_dlo_num_segments.")
+                    
+                    continue
+                else:
+                    # Otherwise as a quick fix, we will move the goal state up by collision depth along the normal of the contact
+                    # This is a quick fix and may not be the best solution
+                    print("The goal state is in collision by a small margin. Moving the goal state up by the penetration depth.")
+                    # print("Normal of the contact: ", result_vector[0].normal.flatten())
+                    
+                    goal_joint_positions[0:3] += result_vector[0].normal.flatten() * (result_vector[0].distance-0.001)
+                    
+                    
             # -----------------------------------------------------------------------
 
             # input("Press enter to confirm the goal state")
-            
 
             # -----------------------------------------------------------------------
             # Set INITIAL STATE of the robot in the environment
-            
             # This state will be obtained from the dlo simulator and passed to the planner the controller
-            # initial_joint_positions = np.zeros(len(joint_names)) # 2*simplified_dlo_num_segments+3
-            # initial_joint_positions[0] = -0.2 # x
-            # initial_joint_positions[1] = 0.5 # y
-            # initial_joint_positions[2] = 0.5 # z
-            # initial_joint_positions[3] = np.pi/2 # orientation x
-            # # Let the rest of the state be zeros
             
             initial_joint_positions = initial_approximated_state_joint_pos.flatten()
 
@@ -843,16 +871,57 @@ class TesseractPlanner(object):
                 # viewer.update_environment(self.env, [0,0,0])
                 self.viewer.update_joint_positions(joint_names, initial_joint_positions)
             # -----------------------------------------------------------------------
+                
+            # -----------------------------------------------------------------------
+            # Check the initial state for collisions
+                
+            # Get the discrete contact manager. This must be called again after the environment is updated
+            manager = self.env.getDiscreteContactManager()
+            
+            # manager.setActiveCollisionObjects(self.env.getActiveLinkNames())
+            manager.setCollisionMarginData(CollisionMarginData(0.0))
+            
+            # # Print the max collision margin of the contact manager 
+            # print("Max collision margin of the contact manager:", 
+            #         manager.getCollisionMarginData().getMaxCollisionMargin())
+            
+            # Perform collision check
+            result = ContactResultMap()
+            manager.contactTest(result, ContactRequest(ContactTestType_CLOSEST))
+            result_vector = ContactResultVector()
+            result.flattenMoveResults(result_vector)
+
+            # Print the number of contacts
+            if len(result_vector) > 0:
+                print("Number of contacts: ", len(result_vector))
+                print("Distance of the closest contact: ", result_vector[0].distance)
+                
+                if result_vector[0].distance < -0.005:
+                    # If the penetration depth is greater than 0.005, then the goal state is not valid
+                    print("The initial state is in collision. Skipping the current simplified_dlo_num_segments.")
+                    continue
+                else:
+                    # Otherwise as a quick fix, we will move the goal state up by collision depth along the normal of the contact
+                    # This is a quick fix and may not be the best solution
+                    print("The initial state is in collision by a small margin. Moving the initial state up by the penetration depth.")
+                    # print("Normal of the contact: ", result_vector[0].normal.flatten())
+                    
+                    initial_joint_positions[0:3] += result_vector[0].normal.flatten() * (result_vector[0].distance-0.001)
+            # -----------------------------------------------------------------------
 
             # input("Press enter to confirm the Start state and initiate the planning")
 
-            # TODO: ADD DISTANCE TO COLLISION CHECKING FOR BOTH THE INITIAL AND GOAL STATES
+            # -----------------------------------------------------------------------
+
+            # Print a message that says the the approximation with the simplified dlo num segments is valid within the thresholds
+            print("The approximation with ", simplified_dlo_num_segments, " segments is valid within the thresholds.")
+            print(f"DLO SIMPLIFICATION TOOK {dlo_simplification_time} SECONDS IN TOTAL.")
+            print("Creating the URDF for the robot with the DloURDFCreator")
 
             # We will now start the planning from the initial state to the goal state!!!    
 
             # -----------------------------------------------------------------------
             # Create a list of StateWaypointPoly
-
             state_waypoints = []
 
             # Add the initial state waypoint
@@ -1402,7 +1471,11 @@ class TesseractPlanner(object):
             if return_all_data:
                 return plan_data            
             else:
-                return plan_data_trajopt
+                return (trajopt_path, trajopt_path_points, trajopt_path_cumulative_lengths, trajopt_path_cumulative_rotations,
+                        trajopt_path_direction_vectors, trajopt_path_rotation_vectors, trajopt_path_of_particles,
+                        trajopt_path_points_of_particles, trajopt_path_cumulative_lengths_of_particles,
+                        trajopt_path_cumulative_rotations_of_particles, trajopt_path_direction_vectors_of_particles,
+                        trajopt_path_rotation_vectors_of_particles)
     
     # -----------------------------------------------------------------------
     def load_collision_scene(self, json_file_path):
