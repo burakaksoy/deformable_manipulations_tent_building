@@ -838,12 +838,17 @@ class TesseractPlanner(object):
             # Print the number of contacts
             if len(result_vector) > 0:
                 print("Number of contacts: ", len(result_vector))
-                print("Distance of the closest contact: ", result_vector[0].distance)
+                print("Distances of the contacts: ")
+                # print all distances
+                for contact in result_vector:
+                    print("Distance: ", contact.distance)
                 
-                if result_vector[0].distance < -0.005:
+                if len(result_vector) > 1:
+                    print("There are more than 1 contacts. Skipping the current simplified_dlo_num_segments.")
+                    continue
+                elif result_vector[0].distance < -0.005:
                     # If the penetration depth is greater than 0.005, then the goal state is not valid
                     print("The initial state is in collision. Skipping the current simplified_dlo_num_segments.")
-                    
                     continue
                 else:
                     # Otherwise as a quick fix, we will move the goal state up by collision depth along the normal of the contact
@@ -894,9 +899,15 @@ class TesseractPlanner(object):
             # Print the number of contacts
             if len(result_vector) > 0:
                 print("Number of contacts: ", len(result_vector))
-                print("Distance of the closest contact: ", result_vector[0].distance)
+                print("Distances of the contacts: ")
+                # print all distances
+                for contact in result_vector:
+                    print("Distance: ", contact.distance)
                 
-                if result_vector[0].distance < -0.005:
+                if len(result_vector) > 1:
+                    print("There are more than 1 contacts. Skipping the current simplified_dlo_num_segments.")
+                    continue
+                elif result_vector[0].distance < -0.005:
                     # If the penetration depth is greater than 0.005, then the goal state is not valid
                     print("The initial state is in collision. Skipping the current simplified_dlo_num_segments.")
                     continue

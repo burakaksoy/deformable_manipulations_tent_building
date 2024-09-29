@@ -73,9 +73,9 @@ tip_particles: [0,39]
 # target_poses: [[[-0.02,  0.15, 0.30], [90, 0, -70]],
 #                [[-0.02, -0.15, 0.30], [90, 0,  70]]]
 
-# # # For Mingrui Yu Scene 0 (TASK 1) - DLO 5
-# target_poses: [[[-0.02,  0.15, 0.30], [90, 0, -70]],
-#                [[-0.02, -0.15, 0.30], [90, 0,  70]]]
+# # For Mingrui Yu Scene 0 (TASK 1) - DLO 5
+target_poses: [[[-0.02,  0.15, 0.30], [90, 0, -70]],
+               [[-0.02, -0.15, 0.30], [90, 0,  70]]]
 
 
 # # # For Mingrui Yu Scene 2 (TASK 2) - DLO 1
@@ -95,9 +95,9 @@ tip_particles: [0,39]
 # target_poses: [[[+0.05,  -0.17, 0.165], [ 70, -10, -150]],
 #                [[-0.05,  -0.17, 0.165], [110, -20, -30]]]
 
-# # For Mingrui Yu Scene 6 (TASK 3) - DLO 4
-target_poses: [[[+0.04,  0.219, 0.1], [90, 0, 0]],
-               [[+0.04, -0.269, 0.1], [90, 0, 0]]]
+# # # For Mingrui Yu Scene 6 (TASK 3) - DLO 4
+# target_poses: [[[+0.04,  0.219, 0.1], [90, 0, 0]],
+#                [[+0.04, -0.269, 0.1], [90, 0, 0]]]
 
 # # # For Mingrui Yu Scene 6 (TASK 3) - DLO 5
 # target_poses: [[[+0.04,  0.219, 0.1], [90, 0, 0]],
@@ -112,7 +112,7 @@ target_poses: [[[+0.04,  0.219, 0.1], [90, 0, 0]],
 # as a csv file in this directory
 state_saving_directory: "~/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/"
 
-## Initial State File for the Tent Pole
+## INITIAL State File for the Tent Pole
 ## ----------------------------------------------------------------------------------------
 # The initial state file is used to load the initial poses of the tent pole
 # If not specified, the initial poses are expected to manually set using the set_n_save_initial_state service
@@ -128,7 +128,7 @@ state_saving_directory: "~/catkin_ws_deformable/src/deformable_manipulations_ten
 # Scene 0 (TASK 1)
 # initial_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_0_dlo_1_initial_states.csv"
 # initial_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_0_dlo_4_initial_states.csv"
-# initial_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_0_dlo_5_initial_states.csv"
+initial_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_0_dlo_5_initial_states.csv"
 
 # Scene 2 (TASK 2)
 # initial_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_2_dlo_1_initial_states.csv"
@@ -137,31 +137,36 @@ state_saving_directory: "~/catkin_ws_deformable/src/deformable_manipulations_ten
 
 # Scene 6 (TASK 3)
 # initial_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_6_dlo_1_initial_states.csv"
-initial_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_6_dlo_4_initial_states.csv"
+# initial_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_6_dlo_4_initial_states.csv"
 # initial_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_6_dlo_5_initial_states.csv"
 ## ----------------------------------------------------------------------------------------
 
-## Target State File for the Tent Pole
+## TARGET State File for the Tent Pole
 ## ----------------------------------------------------------------------------------------
 # The target state file is used to load the target poses of the tent pole
 # If not specified, the target poses are expected to manually set using the set_n_save_target_state service
 # target_state_file: "" 
 
+# MINGRUI YU SIMULATION SCENES STATES
 # target_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_1_target_states.csv"
 # target_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_2_target_states.csv"
 # target_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_3_target_states.csv"
 # target_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_4_target_states.csv"
 
+# MINGRUI YU REAL EXPERIMENT SCENES STATES
+# Scene 0 (TASK 1)
 # target_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_0_dlo_1_target_states.csv"
 # target_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_0_dlo_4_target_states.csv"
-# target_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_0_dlo_5_target_states.csv"
+target_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_0_dlo_5_target_states.csv"
 
+# Scene 2 (TASK 2)
 # target_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_2_dlo_1_target_states.csv"
 # target_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_2_dlo_4_target_states.csv"
 # target_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_2_dlo_5_target_states.csv"
 
+# Scene 6 (TASK 3)
 # target_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_6_dlo_1_target_states.csv"
-target_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_6_dlo_4_target_states.csv"
+# target_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_6_dlo_4_target_states.csv"
 # target_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_6_dlo_5_target_states.csv"
 ## ----------------------------------------------------------------------------------------
 
@@ -205,7 +210,7 @@ path_planning_pre_saved_paths_enabled: True # default: False # For Pre-saved Pat
 # Is repanning_allowed. If True, replanning is allowed when the controller is converged withouth success (i.e. got stuck)
 replanning_allowed: True # default: True 
 # Maximum number of replanning attempts
-max_replanning_attempts: 3 # default: 3
+max_replanning_attempts: 4 # default: 3
 
 # Path tracking controller gains [x,y,z, Rx,Ry,Rz]
 # kp_path_tracking: [0.0,0.0,0.0, 0.0,0.0,0.0]
@@ -290,7 +295,7 @@ tesseract_use_default_viewer: True # default: False
 # If not specified, or specified as a non positive number, the number of segments in the tent pole simulation is used.
 # If specified number is more than the number of segments in the tent pole simulation, 
 # the number of segments in the tent pole simulation is used with a warning.
-automatic_tent_pole_max_links: 10 
+automatic_tent_pole_max_links: 20 
 
 # Minimum number of links allowed for the automatic creation of the URDF
 automatic_tent_pole_min_links: 2 
@@ -298,7 +303,7 @@ automatic_tent_pole_min_links: 2
 dlo_approximation_error_threshold: 0.02 # m per original simulation segment
 
 # The limits of the environment in the x, y, and z directions for the initial end of the DLO.
-environment_limits_xyz: [-0.5, 0.5, -0.5, 0.5, 0, 0.6] # [min_x, max_x, min_y, max_y, min_z, max_z] in meters
+environment_limits_xyz: [-0.5, 0.5, -0.5, 0.5, 0, 1.0] # [min_x, max_x, min_y, max_y, min_z, max_z] in meters
 
 # The limits of the revolute joint angles in the x, y, and z directions in degrees in the approximation model
 joint_angle_limits_xyz_deg: [-45, 45, -45, 45, -20, 20] # [min_x, max_x, min_y, max_y, min_z, max_z] in degrees
@@ -308,18 +313,25 @@ joint_angle_limits_xyz_deg: [-45, 45, -45, 45, -20, 20] # [min_x, max_x, min_y, 
 ## ------------------------------------------------------------------------------------------------------
 ## Parameters for the Experiments with pre-saved paths
 
-# Scene of the experiment, we use Mingrui Yu's scenes (For Simulation "1","2","3","4", For Real Experiments "0","2","6")
-experiments_scene_id: "6" 
+# Scene of the experiment, we use Mingrui Yu's scenes 
+# For Simulation "1","2","3","4", 
+# experiments_scene_id: "1"
+
+# For Real Experiments ("0" for TASK 1, "2" for TASK 2, "6" for TASK 3)
+experiments_scene_id: "0" # TASK 1
+# experiments_scene_id: "2" # TASK 2
+# experiments_scene_id: "6" # TASK 3
+
 # Dlo type of the experiment (For simulation assign to None or Comment out, For Real Experiments assign "1", "4", "5")
-experiments_dlo_type: "4" 
+experiments_dlo_type: "5" 
 
 # experiments_range: The pre-saved experiments has a range, e.g 1-100, in the directory make sure the paths exist given this range
 # This can be specigied as list of experiment numbers as well, e.g. [1,2,3,4,5,6,7,8,9,10]
 # Note that:
 # - If only one value is given or more than two values are given, the range is assumed to be a list of experiments
 # - If two values are given, the range is assumed to be a range of experiments, inclusive of both the start and end values
-# experiments_range: [1,100]
-experiments_range: [101] 
+experiments_range: [1,20]
+# experiments_range: [101] 
 
 # Given the directory below we assume there exists sub folders with names "scene_<experiments_scene_id>"
 # experiments_saved_paths_directory: "~/catkin_ws_deformable/src/deformable_manipulations_tent_building/src/tesseract_planner/generated_plans_i9_10885h"

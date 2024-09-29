@@ -24,13 +24,13 @@ dlo_zero_stretch_stiffness: 1.0e+14
 # dlo_young_modulus: 10.0e+6 # E, elasticity modulus (unit: Pa?)
 # dlo_torsion_modulus: 1.0e+8 # G, Shear modulus in classical phsysics. (unit: Pa?)
 
-# mingruiyu DLO 4 - stiffness values
-dlo_young_modulus: 3.0e+6 # E, elasticity modulus (unit: Pa?)
-dlo_torsion_modulus: 1.0e+8 # G, Shear modulus in classical phsysics. (unit: Pa?)
-
-# # mingruiyu DLO 5 - stiffness values
-# dlo_young_modulus: 1.0e+6 # E, elasticity modulus (unit: Pa?)
+# # mingruiyu DLO 4 - stiffness values
+# dlo_young_modulus: 3.0e+6 # E, elasticity modulus (unit: Pa?)
 # dlo_torsion_modulus: 1.0e+8 # G, Shear modulus in classical phsysics. (unit: Pa?)
+
+# mingruiyu DLO 5 - stiffness values
+dlo_young_modulus: 1.0e+6 # E, elasticity modulus (unit: Pa?)
+dlo_torsion_modulus: 1.0e+8 # G, Shear modulus in classical phsysics. (unit: Pa?)
 # ---------------------------------------------
 
 set_dlo_young_modulus_service_name: "set_dlo_young_modulus"
@@ -82,20 +82,20 @@ global_damp_coeff_w: 1.1e-0 # 0.9e-1 # 0.9e-2 # 0.9e-3 # 0.0 # 0.9e-3 # 2.1e-4;
 
 # ---------------------------------------------
 # For Real Robot Experiments
-# # mingruiyu scene 0
-# dlo_translation: [0.1, 0, 0.3] 
-# dlo_rotationAxis: [0, 0, 1] # [1, 0, 0]
-# dlo_rotationAngle: 0.0 # Radians
+# mingruiyu scene 0 (TASK 1)
+dlo_translation: [0.1, 0, 0.3] 
+dlo_rotationAxis: [0, 0, 1] # [1, 0, 0]
+dlo_rotationAngle: 0.0 # Radians
 
-# # mingruiyu scene 2
+# # mingruiyu scene 2 (TASK 2)
 # dlo_translation: [0.0, 0, 0.3] 
 # dlo_rotationAxis: [0, 0, 1] # [1, 0, 0]
 # dlo_rotationAngle: -1.5708 # Radians
 
-# mingruiyu scene 6
-dlo_translation: [-0.04, -0.025, 0.1] 
-dlo_rotationAxis: [0, 0, 1] # [1, 0, 0]
-dlo_rotationAngle: 0.0 # Radians
+# # mingruiyu scene 6 (TASK 3)
+# dlo_translation: [-0.04, -0.025, 0.1] 
+# dlo_rotationAxis: [0, 0, 1] # [1, 0, 0]
+# dlo_rotationAngle: 0.0 # Radians
 # ---------------------------------------------
 
 
@@ -152,9 +152,9 @@ min_dist_to_rb_pub_rate: 50.0 # Hz, frequency to publish minimum distances to th
 # rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/scene_mingruiyu_4.json # TASK 4
 
 # Scenes for Mingrui Yu comparisons (Real Robot Experiments)
-# rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/scene_mingruiyu_0.json # TASK 1
+rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/scene_mingruiyu_0.json # TASK 1
 # rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/scene_mingruiyu_2.json # TASK 2
-rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/scene_mingruiyu_6.json # TASK 3
+# rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/scene_mingruiyu_6.json # TASK 3
 
 
 # DLO VISUALIZATION RELATED PARAMETERS
