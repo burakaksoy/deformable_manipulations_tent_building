@@ -1488,7 +1488,7 @@ class TesseractPlanner(object):
 
         return dlo_state
     
-    def check_and_try_remove_collision_state(self,joint_names, joint_positions, coll_depth_to_try_remove=0.005):
+    def check_and_try_remove_collision_state(self,joint_names, joint_positions, coll_depth_to_try_remove=0.007):
         new_joint_positions = joint_positions
         
         result_vector = self.check_for_collisions(joint_names, joint_positions)
