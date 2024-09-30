@@ -802,11 +802,23 @@ class TesseractPlanner(object):
             # -----------------------------------------------------------------------
 
             # -----------------------------------------------------------------------
-            # Set GOAL STATE of the robot in the environment
-            # This state will be obtained from the dlo simulator and passed to the planner the controller
-            
+            # Check the goal state for collisions
             goal_joint_positions = target_approximated_state_joint_pos.flatten()
-
+            
+            is_collision_free, new_joint_pos = self.check_and_try_remove_collision_state(joint_names, goal_joint_positions)
+            
+            if not is_collision_free:
+                print("The goal state is in collision. Skipping the current simplified_dlo_num_segments.")
+                continue
+            else:
+                print("The goal state is collision free.")
+                goal_joint_positions = new_joint_pos                    
+            # -----------------------------------------------------------------------
+            
+            # -----------------------------------------------------------------------
+            # Set GOAL STATE of the robot in the environment
+            # This state is obtained from the dlo simulator and passed to the planner the controller
+            
             # Set the initial state of the robot in the environment
             self.env.setState(joint_names, goal_joint_positions)
 
@@ -814,61 +826,27 @@ class TesseractPlanner(object):
                 # viewer.update_environment(self.env, [0,0,0])
                 self.viewer.update_joint_positions(joint_names, goal_joint_positions)
             # -----------------------------------------------------------------------    
-                
-                
-            # -----------------------------------------------------------------------
-            # Check the goal state for collisions
-            
-            # Get the discrete contact manager. This must be called again after the environment is updated
-            manager = self.env.getDiscreteContactManager()
-            
-            # manager.setActiveCollisionObjects(self.env.getActiveLinkNames())
-            manager.setCollisionMarginData(CollisionMarginData(0.0)) # Does not replace the environment's collision margin data, so it is safe to use
-            
-            # # Print the max collision margin of the contact manager 
-            # print("Max collision margin of the contact manager:", 
-            #         manager.getCollisionMarginData().getMaxCollisionMargin())
-            
-            # Perform collision check
-            result = ContactResultMap()
-            manager.contactTest(result, ContactRequest(ContactTestType_CLOSEST))
-            result_vector = ContactResultVector()
-            result.flattenMoveResults(result_vector)
-
-            # Print the number of contacts
-            if len(result_vector) > 0:
-                print("Number of contacts: ", len(result_vector))
-                print("Distances of the contacts: ")
-                # print all distances
-                for contact in result_vector:
-                    print("Distance: ", contact.distance)
-                
-                if len(result_vector) > 1:
-                    print("There are more than 1 contacts. Skipping the current simplified_dlo_num_segments.")
-                    continue
-                elif result_vector[0].distance < -0.005:
-                    # If the penetration depth is greater than 0.005, then the goal state is not valid
-                    print("The initial state is in collision. Skipping the current simplified_dlo_num_segments.")
-                    continue
-                else:
-                    # Otherwise as a quick fix, we will move the goal state up by collision depth along the normal of the contact
-                    # This is a quick fix and may not be the best solution
-                    print("The goal state is in collision by a small margin. Moving the goal state up by the penetration depth.")
-                    # print("Normal of the contact: ", result_vector[0].normal.flatten())
                     
-                    goal_joint_positions[0:3] += result_vector[0].normal.flatten() * (result_vector[0].distance-0.001)
-                    
-                    
-            # -----------------------------------------------------------------------
-
             # input("Press enter to confirm the goal state")
 
             # -----------------------------------------------------------------------
-            # Set INITIAL STATE of the robot in the environment
-            # This state will be obtained from the dlo simulator and passed to the planner the controller
-            
+            # Check the initial state for collisions
             initial_joint_positions = initial_approximated_state_joint_pos.flatten()
 
+            is_collision_free, new_joint_pos = self.check_and_try_remove_collision_state(joint_names, initial_joint_positions)
+            
+            if not is_collision_free:
+                print("The initial state is in collision. Skipping the current simplified_dlo_num_segments.")
+                continue
+            else:
+                print("The initial state is collision free.")
+                initial_joint_positions = new_joint_pos
+            # -----------------------------------------------------------------------
+            
+            # -----------------------------------------------------------------------
+            # Set INITIAL STATE of the robot in the environment
+            # This state is obtained from the dlo simulator and passed to the planner the controller
+            
             # Set the initial state of the robot in the environment
             self.env.setState(joint_names, initial_joint_positions)
 
@@ -877,49 +855,6 @@ class TesseractPlanner(object):
                 self.viewer.update_joint_positions(joint_names, initial_joint_positions)
             # -----------------------------------------------------------------------
                 
-            # -----------------------------------------------------------------------
-            # Check the initial state for collisions
-                
-            # Get the discrete contact manager. This must be called again after the environment is updated
-            manager = self.env.getDiscreteContactManager()
-            
-            # manager.setActiveCollisionObjects(self.env.getActiveLinkNames())
-            manager.setCollisionMarginData(CollisionMarginData(0.0))
-            
-            # # Print the max collision margin of the contact manager 
-            # print("Max collision margin of the contact manager:", 
-            #         manager.getCollisionMarginData().getMaxCollisionMargin())
-            
-            # Perform collision check
-            result = ContactResultMap()
-            manager.contactTest(result, ContactRequest(ContactTestType_CLOSEST))
-            result_vector = ContactResultVector()
-            result.flattenMoveResults(result_vector)
-
-            # Print the number of contacts
-            if len(result_vector) > 0:
-                print("Number of contacts: ", len(result_vector))
-                print("Distances of the contacts: ")
-                # print all distances
-                for contact in result_vector:
-                    print("Distance: ", contact.distance)
-                
-                if len(result_vector) > 1:
-                    print("There are more than 1 contacts. Skipping the current simplified_dlo_num_segments.")
-                    continue
-                elif result_vector[0].distance < -0.005:
-                    # If the penetration depth is greater than 0.005, then the goal state is not valid
-                    print("The initial state is in collision. Skipping the current simplified_dlo_num_segments.")
-                    continue
-                else:
-                    # Otherwise as a quick fix, we will move the goal state up by collision depth along the normal of the contact
-                    # This is a quick fix and may not be the best solution
-                    print("The initial state is in collision by a small margin. Moving the initial state up by the penetration depth.")
-                    # print("Normal of the contact: ", result_vector[0].normal.flatten())
-                    
-                    initial_joint_positions[0:3] += result_vector[0].normal.flatten() * (result_vector[0].distance-0.001)
-            # -----------------------------------------------------------------------
-
             # input("Press enter to confirm the Start state and initiate the planning")
 
             # -----------------------------------------------------------------------
@@ -1552,6 +1487,78 @@ class TesseractPlanner(object):
         dlo_state = np.array([p_x, p_y, p_z, o_x, o_y, o_z, o_w]).T # shape: (n, 7)
 
         return dlo_state
+    
+    def check_and_try_remove_collision_state(self,joint_names, joint_positions, coll_depth_to_try_remove=0.005):
+        new_joint_positions = joint_positions
+        
+        result_vector = self.check_for_collisions(joint_names, joint_positions)
+
+        # Print the number of contacts
+        if len(result_vector) > 0:
+            print("Number of contacts: ", len(result_vector))
+            print("Distances of the contacts: ")
+            
+            # print all distances and check if the state is in deep collision
+            for contact in result_vector:
+                print("Distance: ", contact.distance)
+                if contact.distance < -coll_depth_to_try_remove:
+                    # If the penetration depth is greater than the threshold, then the goal state is not valid
+                    print("The state is in deep collision.")
+                    # return is_collision_free, new_joint_positions
+                    return False, new_joint_positions
+                
+            # Otherwise as a quick fix, we will move the goal state up by collision depth along the normal of the contact
+            # This is a quick fix and may not be the best solution
+            print("The goal state is in collision by a small margin. Moving the goal state up by the penetration depth.")
+            
+            for contact in result_vector:
+                # print("Normal of the contact: ", result_vector[0].normal.flatten())
+                new_joint_positions[0:3] += contact.normal.flatten() * (contact.distance*1.02)
+                
+                # Check if the new state is collision free
+                inner_result_vector = self.check_for_collisions(joint_names, new_joint_positions)
+                if len(inner_result_vector) == 0:
+                    print("Collision is removal is successful.")
+                    # return is_collision_free, new_joint_positions
+                    return True, new_joint_positions
+                else:
+                    # continue to the next contact
+                    continue
+            
+            # If the new state is still in collision, then the goal state is not valid
+            print("The state is still in collision after moving up by the penetration depth of each contact.")
+            return False, new_joint_positions
+        else:
+            # return is_collision_free, new_joint_positions
+            return True, new_joint_positions
+        
+    def check_for_collisions(self, joint_names, joint_positions):
+        # Get the state solver. This must be called again after environment is updated
+        solver = self.env.getStateSolver()
+        
+        # Get the discrete contact manager. This must be called again after the environment is updated
+        manager = self.env.getDiscreteContactManager()
+        
+        manager.setActiveCollisionObjects(self.env.getActiveLinkNames())
+        
+        manager.setCollisionMarginData(CollisionMarginData(0.0)) # Does not replace the environment's collision margin data, so it is safe to use
+        
+        # # Print the max collision margin of the contact manager 
+        # print("Max collision margin of the contact manager:", 
+        #         manager.getCollisionMarginData().getMaxCollisionMargin())
+        
+        # Set the transform of the active collision objects from SceneState
+        solver.setState(joint_names, joint_positions)
+        scene_state = solver.getState()
+        manager.setCollisionObjectsTransform(scene_state.link_transforms)
+        
+        # Perform collision check
+        result = ContactResultMap()
+        manager.contactTest(result, ContactRequest(ContactTestType_CLOSEST))
+        result_vector = ContactResultVector()
+        result.flattenMoveResults(result_vector)
+        
+        return result_vector
     # -----------------------------------------------------------------------
     
     # -----------------------------------------------------------------------
