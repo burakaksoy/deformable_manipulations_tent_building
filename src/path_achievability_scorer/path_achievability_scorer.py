@@ -173,11 +173,11 @@ class PathAchievabilityScorer:
     def score_path_from_pickle_file(self, path_pickle_file, scene_id = None, dlo_type = None, experiment_number= None):
         
         # Set the scene ID and experiment number if provided for plotting purposes
-        if scene_id:
+        if scene_id is not None:
             self.scene_id = scene_id
-        if dlo_type:
+        if dlo_type is not None:
             self.dlo_type = dlo_type
-        if experiment_number:
+        if experiment_number is not None:
             self.experiment_number = experiment_number
         
         # Reset the previous path variables
@@ -1525,11 +1525,11 @@ def main_all_paths():
     # User inputs
     # scene_ids = [1,2,3,4]
     # scene_ids = [0,2,6]
-    scene_ids = [2]
+    scene_ids = [0]
     
     # DLO Types, None for the default
     # dlo_types = None
-    dlo_types = [5]
+    dlo_types = [1]
     # dlo_types = [1,4,5]
     
     # experiments = range(1, 101)  # Experiments from 1 to 100
