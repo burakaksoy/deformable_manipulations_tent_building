@@ -6,6 +6,7 @@ import time
 import sys
 import csv
 from pathlib import Path
+import itertools
 
 try:
     import cPickle as pickle
@@ -82,6 +83,7 @@ class PathAchievabilityScorer:
         
         # OPTIONAL: Set the scene ID and experiment number
         self.scene_id = None
+        self.dlo_type = None
         self.experiment_number = None 
         
         self.update_dlo_state_lock = threading.Lock()
@@ -95,16 +97,16 @@ class PathAchievabilityScorer:
         self.v_max = rospy.get_param("~max_linear_velocity", 0.3) # m/s
         self.omega_max = rospy.get_param("~max_angular_velocity", 0.450) # rad/s
         
-        # self.a_max = rospy.get_param("~max_linear_acceleration", 0.5) # m/s^2
-        # self.alpha_max = rospy.get_param("~max_angular_acceleration", 0.75) # rad/s^2
+        self.a_max = rospy.get_param("~max_linear_acceleration", 0.5) # m/s^2
+        self.alpha_max = rospy.get_param("~max_angular_acceleration", 0.75) # rad/s^2
         # self.a_max = rospy.get_param("~max_linear_acceleration", 1.0) # m/s^2
         # self.alpha_max = rospy.get_param("~max_angular_acceleration", 1.5) # rad/s^2
         # self.a_max = rospy.get_param("~max_linear_acceleration", 2.0) # m/s^2
         # self.alpha_max = rospy.get_param("~max_angular_acceleration", 3.0) # rad/s^2
         # self.a_max = rospy.get_param("~max_linear_acceleration", 4.0) # m/s^2
         # self.alpha_max = rospy.get_param("~max_angular_acceleration", 6.0) # rad/s^2
-        self.a_max = rospy.get_param("~max_linear_acceleration", 10.0) # m/s^2
-        self.alpha_max = rospy.get_param("~max_angular_acceleration", 15.0) # rad/s^2
+        # self.a_max = rospy.get_param("~max_linear_acceleration", 10.0) # m/s^2
+        # self.alpha_max = rospy.get_param("~max_angular_acceleration", 15.0) # rad/s^2
         
         self.custom_static_particles = None
         self.odom_topic_prefix = None
@@ -168,11 +170,13 @@ class PathAchievabilityScorer:
         self.initialized = True
         rospy.loginfo("Path scorer is initialized.")
     
-    def score_path_from_pickle_file(self, path_pickle_file, scene_id = None, experiment_number= None):
+    def score_path_from_pickle_file(self, path_pickle_file, scene_id = None, dlo_type = None, experiment_number= None):
         
         # Set the scene ID and experiment number if provided for plotting purposes
         if scene_id:
             self.scene_id = scene_id
+        if dlo_type:
+            self.dlo_type = dlo_type
         if experiment_number:
             self.experiment_number = experiment_number
         
@@ -297,10 +301,11 @@ class PathAchievabilityScorer:
             self.update_current_path_target_poses(self.planned_path_current_target_index)
             
             # Apply the control to the particles
+            # self.send_to_target_poses_basic()            
             self.send_to_target_poses(speedup=1.0)
             
             # # Wait for the particles to reach the target pose
-            # rospy.sleep(self.wp_wait_time) # seconds
+            rospy.sleep(self.wp_wait_time) # seconds
 
         return scores, scores_min_distances
     
@@ -372,7 +377,7 @@ class PathAchievabilityScorer:
         # based on a trapezoidal velocity profile described with
         # given self.a_max, self.v_max, self.alpha_max, self.omega_max
         
-        rate = rospy.Rate(500)  # Control frequency
+        rate = rospy.Rate(100)  # Control frequency
 
         # Initialize variables
         max_time = 0
@@ -425,6 +430,11 @@ class PathAchievabilityScorer:
                 acc_time = t_ori_acc
                 
             # print(velocity_profiles[particle])
+            
+        # # Print each particle's rotation angle as rad 2 deg
+        # for particle, profile in velocity_profiles.items():
+        #     print(f"Particle {particle} Rotation Angle: ({np.degrees(profile['d_o'])} deg)")
+        # print("-------------------------------------------------")
             
         # Re-iterate to update the total time needed for each particle
         # and to update the velocity profiles
@@ -996,7 +1006,10 @@ class PathAchievabilityScorer:
             ax.figure.set_size_inches(32, 18)
             
             if self.scene_id is not None and self.experiment_number is not None:
-                fig_title = f"Pose Comparisons\nScene {self.scene_id}, Experiment {self.experiment_number}, Waypoint {self.planned_path_current_target_index}"
+                if self.dlo_type is None:
+                    fig_title = f"Pose Comparisons\nScene {self.scene_id}, Experiment {self.experiment_number}, Waypoint {self.planned_path_current_target_index}"
+                else:
+                    fig_title = f"Pose Comparisons\nScene {self.scene_id}, DLO Type: {self.dlo_type}, Experiment {self.experiment_number}, Waypoint {self.planned_path_current_target_index}"
             else:
                 fig_title = f"Pose Comparisons\nWaypoint {self.planned_path_current_target_index}"
                 
@@ -1043,10 +1056,6 @@ class PathAchievabilityScorer:
                                                         animation_file=None,
                                                         perpendicular_angle=False):
         try:
-            import numpy as np
-            import matplotlib.pyplot as plt
-            from matplotlib import animation
-
             fig = plt.figure()
             ax = fig.add_subplot(projection='3d')
             # Set figure size
@@ -1106,7 +1115,10 @@ class PathAchievabilityScorer:
                 approx_line_plot.set_3d_properties(polyline[:, 2])
                 
                 # Update the title to reflect the scene, experiment ID, and current waypoint number
-                fig_title = f"Scene {self.scene_id}, Experiment {self.experiment_number}, Waypoint {frame_idx}"
+                if self.dlo_type is None:
+                    fig_title = f"Scene {self.scene_id}, Experiment {self.experiment_number}, Waypoint {frame_idx}"
+                else:
+                    fig_title = f"Scene {self.scene_id}, DLO Type: {self.dlo_type}, Experiment {self.experiment_number}, Waypoint {frame_idx}"
                 ax.set_title(fig_title, fontsize=30)
                 
                 # Update the axes limits to fit the current frame's data and set equal scaling
@@ -1145,9 +1157,26 @@ class PathAchievabilityScorer:
             # Automatically generate the filename if none is provided
             if save_as_animation:
                 if animation_file is None:
+                    # Process the file name
+                    if self.dlo_type is None:
+                        scene_dir = f"scene_{self.scene_id}"
+                    else:
+                        scene_dir = f"scene_{self.scene_id}_dlo_{self.dlo_type}"
+                        
                     formatted_experiment_id = f"{self.experiment_number:03d}"
-                    animation_file = f"pose_comparison_scene_{self.scene_id}_experiment_{formatted_experiment_id}.mp4"
-                
+                    if self.dlo_type is None:
+                        file_name = f"pose_comparison_scene_{self.scene_id}_experiment_{formatted_experiment_id}.mp4"
+                    else:
+                        file_name = f"pose_comparison_scene_{self.scene_id}_dlo_{self.dlo_type}_experiment_{formatted_experiment_id}.mp4"
+                    
+                    # Create a folder to store the pose comparison animation files
+                    animations_dir = os.path.expanduser(os.path.join("./results", scene_dir, "pose_comparison_animations"))
+                    if not os.path.exists(animations_dir):
+                        os.makedirs(animations_dir)
+                        print(f"Created a folder to store the animations: {animations_dir}")
+                        
+                    animation_file = os.path.expanduser(os.path.join(animations_dir, file_name))
+                    
                 ani.save(animation_file, writer='ffmpeg', fps=5)
                 print(f"Animation saved as {animation_file}")
             else:
@@ -1156,7 +1185,7 @@ class PathAchievabilityScorer:
         except Exception as e:
             print(f"Error plotting the path points: {e}")
 
-def plot_scores(scores, scores_min_distances, scene_id=None, experiment_number=None, saved_paths_dir='.', show_plot=False):
+def plot_scores(scores, scores_min_distances, scene_id=None, dlo_type=None, experiment_number=None, show_plot=False):
     """Plot the scores of the path with respect to the waypoints, also highlight the peak error,
     the peak error change points, and the minimum distances, and save the plot image.
 
@@ -1165,7 +1194,6 @@ def plot_scores(scores, scores_min_distances, scene_id=None, experiment_number=N
         scores_min_distances (Tuple[List[float], float, int]): Tuple containing minimum distances data.
         scene_id (optional): ID of the scene.
         experiment_number (optional): Number of the experiment.
-        saved_paths_dir (str, optional): Base directory to save the plot image. Defaults to current directory.
     """
 
     # Unpack scores_min_distances
@@ -1192,7 +1220,10 @@ def plot_scores(scores, scores_min_distances, scene_id=None, experiment_number=N
         # Figure title
         fig_title = "Path Achievability Scores"
         if scene_id is not None and experiment_number is not None:
-            fig_title = f"Scene {scene_id} Experiment {experiment_number} {fig_title}"
+            if dlo_type is None:
+                fig_title = f"Scene {scene_id} Experiment {experiment_number} {fig_title}"
+            else:
+                fig_title = f"Scene {scene_id}, DLO {dlo_type}, Experiment {experiment_number} {fig_title}"
         fig.suptitle(fig_title, fontsize=40)
 
         # ------------------------------ Error --------------------------------
@@ -1253,7 +1284,11 @@ def plot_scores(scores, scores_min_distances, scene_id=None, experiment_number=N
         # Figure title
         fig_title = "Path Achievability Scores"
         if scene_id is not None and experiment_number is not None:
-            fig_title = f"Scene {scene_id} Experiment {experiment_number} {fig_title}"
+            if dlo_type is None:
+                fig_title = f"Scene {scene_id} Experiment {experiment_number} {fig_title}"
+            else:
+                fig_title = f"Scene {scene_id}, DLO {dlo_type}, Experiment {experiment_number} {fig_title}"
+                
         fig.suptitle(fig_title, fontsize=40)
 
         # ------------------------------ Error --------------------------------
@@ -1303,17 +1338,24 @@ def plot_scores(scores, scores_min_distances, scene_id=None, experiment_number=N
     # --- Save the plot ---
     # Process the file name and directory
     if scene_id is not None and experiment_number is not None:
-        scene_dir = f"scene_{scene_id}"
+        if dlo_type is None:
+            scene_dir = f"scene_{scene_id}"
+        else:
+            scene_dir = f"scene_{scene_id}_dlo_{dlo_type}"
         formatted_experiment_id = f"{experiment_number:03d}"
         
         # Create the plots directory
-        plots_dir = os.path.expanduser(os.path.join(saved_paths_dir, scene_dir, "plots"))
+        plots_dir = os.path.expanduser(os.path.join("./results", scene_dir, "plots"))
+        
         if not os.path.exists(plots_dir):
             os.makedirs(plots_dir)
             print(f"Created a folder to store the plots: {plots_dir}")
         
         # Create the plot file name
-        plot_file = os.path.join(plots_dir, f"scene_{scene_id}_experiment_{formatted_experiment_id}_achievability_plot.png")
+        if dlo_type is None:
+            plot_file = os.path.join(plots_dir, f"scene_{scene_id}_experiment_{formatted_experiment_id}_achievability_plot.png")
+        else:
+            plot_file = os.path.join(plots_dir, f"scene_{scene_id}_dlo_{dlo_type}_experiment_{formatted_experiment_id}_achievability_plot.png")
         
         # Save the figure
         plt.savefig(plot_file)
@@ -1325,13 +1367,12 @@ def plot_scores(scores, scores_min_distances, scene_id=None, experiment_number=N
     if show_plot:
         plt.show()
 
-def save_scores(scene_id, experiment_number, saved_paths_dir, scores, scores_min_distances):
+def save_scores(scene_id, dlo_type, experiment_number, scores, scores_min_distances):
     """Save the scores to a CSV file.
 
     Args:
         scene_id (int): Scene ID
         experiment_number (int): Experiment Number
-        saved_paths_dir (str): Directory to save the scores.
         scores (Tuple): Tuple of scores.
         scores_min_distances (Tuple): Tuple containing minimum distances data.
     """
@@ -1339,13 +1380,29 @@ def save_scores(scene_id, experiment_number, saved_paths_dir, scores, scores_min
 
     if scores is not None:
         # Process the file name
-        scene_dir = f"scene_{scene_id}"
-        file_name = f"scene_{scene_id}_path_achievability_scores.csv"  # e.g., "scene_1_path_achievability_scores.csv"
+        if dlo_type is None:
+            scene_dir = f"scene_{scene_id}"
+        else:
+            scene_dir = f"scene_{scene_id}_dlo_{dlo_type}"
+            
+        if dlo_type is None:
+            file_name = f"scene_{scene_id}_path_achievability_scores.csv"  # e.g., "scene_1_path_achievability_scores.csv"
+        else:
+            file_name = f"scene_{scene_id}_dlo_{dlo_type}_path_achievability_scores.csv"
         
-        scores_csv_file = os.path.expanduser(os.path.join(saved_paths_dir, scene_dir, file_name))
+
+        # Create a folder to store the pose comparison animation files
+        results_dir = os.path.expanduser(os.path.join("./results", scene_dir))
+        if not os.path.exists(results_dir):
+            os.makedirs(results_dir)
+            print(f"Created a folder to store the scores: {results_dir}")
+            
+        scores_csv_file = os.path.expanduser(os.path.join(results_dir, file_name))
+
+        
         
         # Create a folder to store the scores as pickle files
-        scores_pickle_dir = os.path.expanduser(os.path.join(saved_paths_dir, scene_dir, "scores"))
+        scores_pickle_dir = os.path.expanduser(os.path.join(results_dir, "scores"))
         if not os.path.exists(scores_pickle_dir):
             os.makedirs(scores_pickle_dir)
             print(f"Created a folder to store the scores: {scores_pickle_dir}")
@@ -1353,7 +1410,11 @@ def save_scores(scene_id, experiment_number, saved_paths_dir, scores, scores_min
         # Save the scores as a pickle file
         # Ensure experiment_id is always three digits long with leading zeros
         formatted_experiment_id = f"{experiment_number:03d}"
-        scores_pickle_file = os.path.join(scores_pickle_dir, f"scene_{scene_id}_experiment_{formatted_experiment_id}_achievability_scores.pkl")
+        
+        if dlo_type is None:
+            scores_pickle_file = os.path.join(scores_pickle_dir, f"scene_{scene_id}_experiment_{formatted_experiment_id}_achievability_scores.pkl")
+        else:
+            scores_pickle_file = os.path.join(scores_pickle_dir, f"scene_{scene_id}_dlo_{dlo_type}_experiment_{formatted_experiment_id}_achievability_scores.pkl")
         
         scores_all = (scores, scores_min_distances)
         
@@ -1455,96 +1516,6 @@ def save_scores(scene_id, experiment_number, saved_paths_dir, scores, scores_min
 
 
 # ------------------------------ Main Function ------------------------------
-
-def main_single_path():
-    rospy.init_node('path_achievability_scorer_node', anonymous=False)
-    
-    scorer = PathAchievabilityScorer()
-    
-    # User inputs
-    scene_id = 3
-    experiment_number = 1
-    saved_paths_dir = "~/catkin_ws_deformable/src/deformable_manipulations_tent_building/src/tesseract_planner/generated_plans_i9_10885h"
-    # saved_paths_dir = "~/catkin_ws_deformable/src/deformable_manipulations_tent_building/src/tesseract_planner/generated_plans_i9_10885h_10_segments"
-    
-    # Process the file name
-    scene_dir = f"scene_{scene_id}"
-    formatted_experiment_id = f"{experiment_number:03d}"
-    file_name = f"scene_{scene_id}_experiment_{formatted_experiment_id}_data.pkl"  # e.g. "scene_1_experiment_001_data.pkl"
-    path_pickle_file = os.path.expanduser(os.path.join(saved_paths_dir, scene_dir, file_name))
-    rospy.loginfo("Path (Pickle) File to be scored: " + path_pickle_file)
-    
-    # Score the path
-    scores, scores_min_distances = scorer.score_path_from_pickle_file(path_pickle_file=path_pickle_file, 
-                                                scene_id=scene_id, experiment_number=experiment_number)
-    
-    # Print and plot the scores
-    if scores is not None:
-        # Unpack the scores
-        (errs,
-        peak_err,
-        peak_err_waypoint_idx,
-        avr_err,
-        
-        err_changes,
-        peak_err_change,
-        peak_err_change_idx,
-        avr_err_change,
-        
-        smoothed_errs,
-        smoothed_peak_err,
-        smoothed_peak_err_waypoint_idx,
-        smoothed_avr_err,
-        
-        err_changes_on_smoothed,
-        peak_err_change_on_smoothed,
-        peak_err_change_idx_on_smoothed,
-        avr_err_change_on_smoothed,
-        
-        scoring_duration_per_waypoint) = scores # SCORE UNITS ARE IN MILLIMETERS!!
-                
-        (min_distances,
-        min_distance_path,
-        min_distance_path_idx) = scores_min_distances # SCORE UNITS ARE IN MILLIMETERS!!
-        
-        # Print the scores
-        rospy.loginfo(f"Peak Error: {peak_err} at waypoint index {peak_err_waypoint_idx}")
-        rospy.loginfo(f"Average Error: {avr_err}")
-        rospy.loginfo(f"Peak Error Change: {peak_err_change} at waypoint index {peak_err_change_idx}")
-        rospy.loginfo(f"Average Error Change: {avr_err_change}")
-        
-        # Print the smoothed scores
-        rospy.loginfo(f"Smoothed Peak Error: {smoothed_peak_err} at waypoint index {smoothed_peak_err_waypoint_idx}")
-        rospy.loginfo(f"Smoothed Average Error: {smoothed_avr_err}")
-        rospy.loginfo(f"Smoothed Peak Error Change: {peak_err_change_on_smoothed} at waypoint index {peak_err_change_idx_on_smoothed}")
-        rospy.loginfo(f"Smoothed Average Error Change: {avr_err_change_on_smoothed}")
-        
-        rospy.loginfo(f"Average scoring time per waypoint: {scoring_duration_per_waypoint} seconds.")
-        
-        rospy.loginfo(f"Overall minimum distance to obstacles on the path: {min_distances} mm at waypoint index {min_distance_path_idx}")
-        
-        # Plot the scores
-        
-        # Plot ALL scores
-        # plot_scores(scores, scores_min_distances, scene_id, experiment_number, saved_paths_dir, show_plot=True) 
-        
-        # Plot only the raw scores (First 8 elements, and the last element is the scoring duration)
-        # plot_scores(scores[:8] + (scores[-1],), scores_min_distances, scene_id, experiment_number, saved_paths_dir, show_plot=True) 
-        
-        # Plot only the smoothed scores (Last 9 elements)
-        plot_scores(scores[-9:], scores_min_distances, scene_id, experiment_number, saved_paths_dir, show_plot=True) 
-        
-        # Once all iterations are done, call the function to generate the animation
-        scorer.plot_dlo_sim_state_vs_rigid_link_apprx_comparisons(scorer.frames, 
-                                                                save_as_animation=True, 
-                                                                animation_file=None)
-    else:
-        rospy.logwarn("Scores are None")
-
-    # Save the scores to a csv file
-    save_scores(scene_id, experiment_number, saved_paths_dir, scores, scores_min_distances)
-
-    rospy.spin()
     
 def main_all_paths():
     rospy.init_node('path_achievability_scorer_node', anonymous=False)
@@ -1552,28 +1523,49 @@ def main_all_paths():
     scorer = PathAchievabilityScorer()
 
     # User inputs
-    # scenes = [1, 2, 3, 4]
-    # experiments = range(1, 101)  # Experiments from 1 to 100
+    # scene_ids = [1,2,3,4]
+    # scene_ids = [0,2,6]
+    scene_ids = [2]
     
-    scenes = [2]
-    experiments = range(1, 101)  # Experiments from 1 to 100
+    # DLO Types, None for the default
+    # dlo_types = None
+    dlo_types = [5]
+    # dlo_types = [1,4,5]
+    
+    # experiments = range(1, 101)  # Experiments from 1 to 100
+    experiments = range(1, 21)  # Experiments from 1 to 20
+    # experiments = range(1, 21)  # Experiments from 1 to 20
     
     # saved_paths_dir = "~/catkin_ws_deformable/src/deformable_manipulations_tent_building/src/tesseract_planner/generated_plans_i9_10885h"
-    saved_paths_dir = "~/catkin_ws_deformable/src/deformable_manipulations_tent_building/src/tesseract_planner/generated_plans_i9_10885h_10_segments"
+    # saved_paths_dir = "~/catkin_ws_deformable/src/deformable_manipulations_tent_building/src/tesseract_planner/generated_plans_i9_10885h_10_segments"
+    saved_paths_dir = "~/catkin_ws_deformable/src/deformable_manipulations_tent_building/src/tesseract_planner/generated_plans_real_demo"
 
-    for scene_id in scenes:
+    # If dlo_types is None, set it to [None]
+    if dlo_types is None:
+        dlo_types = [None]
+
+    for scene_id, dlo_type in itertools.product(scene_ids, dlo_types):
         for experiment_number in experiments:
             try:
-                # Process the file name
-                scene_dir = f"scene_{scene_id}"
+                # Process the file name                
+                if dlo_type is None:
+                    scene_dir = f"scene_{scene_id}"
+                else:
+                    scene_dir = f"scene_{scene_id}_dlo_{dlo_type}"
+    
                 formatted_experiment_id = f"{experiment_number:03d}"
-                file_name = f"scene_{scene_id}_experiment_{formatted_experiment_id}_data.pkl"  # e.g. "scene_1_experiment_001_data.pkl"
+                
+                if dlo_type is None:
+                    file_name = f"scene_{scene_id}_experiment_{formatted_experiment_id}_data.pkl" # e.g. "scene_1_experiment_001_data.pkl"
+                else:
+                    file_name = f"scene_{scene_id}_dlo_{dlo_type}_experiment_{formatted_experiment_id}_data.pkl"
+                    
                 path_pickle_file = os.path.expanduser(os.path.join(saved_paths_dir, scene_dir, file_name))
                 rospy.loginfo("Path (Pickle) File to be scored: " + path_pickle_file)
                 
                 # Score the path
                 scores, scores_min_distances = scorer.score_path_from_pickle_file(path_pickle_file=path_pickle_file, 
-                                                            scene_id=scene_id, experiment_number=experiment_number)
+                                                            scene_id=scene_id, dlo_type=dlo_type,experiment_number=experiment_number)
                 
                 # Print and plot the scores
                 if scores is not None:
@@ -1623,13 +1615,13 @@ def main_all_paths():
                     # Plot the scores
                     
                     # Plot ALL scores
-                    # plot_scores(scores, scores_min_distances, scene_id, experiment_number, saved_paths_dir, show_plot=True) 
+                    # plot_scores(scores, scores_min_distances, scene_id, dlo_type, experiment_number, show_plot=True) 
                     
                     # Plot only the raw scores (First 8 elements, and the last element is the scoring duration)
-                    # plot_scores(scores[:8] + (scores[-1],), scores_min_distances, scene_id, experiment_number, saved_paths_dir, show_plot=True) 
+                    # plot_scores(scores[:8] + (scores[-1],), scores_min_distances, scene_id, dlo_type, experiment_number,  show_plot=True) 
                     
                     # Plot only the smoothed scores (Last 9 elements)
-                    plot_scores(scores[-9:], scores_min_distances, scene_id, experiment_number, saved_paths_dir, show_plot=False) 
+                    plot_scores(scores[-9:], scores_min_distances, scene_id, dlo_type, experiment_number, show_plot=False) 
                     
                     # Once all iterations are done, call the function to generate the animation
                     scorer.plot_dlo_sim_state_vs_rigid_link_apprx_comparisons(scorer.frames, 
@@ -1639,7 +1631,7 @@ def main_all_paths():
                     rospy.logwarn("Scores are None")
 
                 # Save the scores to a csv file
-                save_scores(scene_id, experiment_number, saved_paths_dir, scores, scores_min_distances)
+                save_scores(scene_id, dlo_type, experiment_number, scores, scores_min_distances)
 
             
             except Exception as e:
@@ -1649,5 +1641,4 @@ def main_all_paths():
     rospy.spin()
     
 if __name__ == "__main__":
-    # main_single_path()
     main_all_paths()
