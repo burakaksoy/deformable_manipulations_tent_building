@@ -1525,7 +1525,7 @@ def main_all_paths():
     # User inputs
     # scene_ids = [1,2,3,4]
     # scene_ids = [0,2,6]
-    scene_ids = [0]
+    scene_ids = [6]
     
     # DLO Types, None for the default
     # dlo_types = None

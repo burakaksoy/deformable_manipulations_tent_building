@@ -4,22 +4,40 @@ import numpy as np
 import pickle
 import re
 from scipy.stats import pearsonr, spearmanr
+import itertools
 
-# Define scenes and scenarios
-scenes = [1, 2, 3, 4]
-scenarios = ['Auto', '10_segments']
+# Define scenes, scenarios, and DLO types
+# scenes = [1, 2, 3, 4] 
+scenes = [0, 2, 6]  
+
+# scenarios = ['Auto', '10_segments']
+scenarios = ['Auto']
+
+dlo_types = [1, 4, 5]  # DLO Types, None for the default
+
+# If dlo_types is None or empty, set it to [None]
+if not dlo_types:
+    dlo_types = [None]
 
 # Define directories for each scenario
+# scenario_dirs = {
+#     'Auto': {
+#         'csv_saved_scores_dir': '../tesseract_planner/generated_plans_i9_10885h',
+#         'pickle_saved_scores_dir': './scores_i9_10885h'
+#     },
+#     '10_segments': {
+#         'csv_saved_scores_dir': '../tesseract_planner/generated_plans_i9_10885h_10_segments',
+#         'pickle_saved_scores_dir': './scores_i9_10885h_10_segments'
+#     }
+# }
+
 scenario_dirs = {
     'Auto': {
-        'csv_saved_scores_dir': '../tesseract_planner/generated_plans_i9_10885h',
-        'pickle_saved_scores_dir': './scores_i9_10885h'
-    },
-    '10_segments': {
-        'csv_saved_scores_dir': '../tesseract_planner/generated_plans_i9_10885h_10_segments',
-        'pickle_saved_scores_dir': './scores_i9_10885h_10_segments'
+        'csv_saved_scores_dir': '../tesseract_planner/generated_plans_real_demo',
+        'pickle_saved_scores_dir': './scores_mingrui_yu_real_scenes'
     }
 }
+
 
 # Mapping from metric internal names to desired titles
 metric_titles = {
@@ -35,8 +53,11 @@ metric_titles = {
 }
 
 # Function to load execution min distances from CSV
-def load_execution_min_distances(csv_saved_scores_dir, scene_id):
-    csv_file = os.path.join(csv_saved_scores_dir, f"scene_{scene_id}", f"scene_{scene_id}_experiment_execution_results.csv")
+def load_execution_min_distances(csv_saved_scores_dir, scene_id, dlo_type):
+    if dlo_type is None:
+        csv_file = os.path.join(csv_saved_scores_dir, f"scene_{scene_id}", f"scene_{scene_id}_experiment_execution_results.csv")
+    else:
+        csv_file = os.path.join(csv_saved_scores_dir, f"scene_{scene_id}_dlo_{dlo_type}", f"scene_{scene_id}_dlo_{dlo_type}_experiment_execution_results.csv")
     if not os.path.exists(csv_file):
         print(f"CSV file {csv_file} does not exist.")
         return None
@@ -55,9 +76,12 @@ def load_execution_min_distances(csv_saved_scores_dir, scene_id):
     return df_clean[['min_distance', 'success']]
 
 # Function to load error metrics from pickle files
-def load_error_metrics(pickle_saved_scores_dir, scene_id):
+def load_error_metrics(pickle_saved_scores_dir, scene_id, dlo_type):
     experiments_data = {}  # Key: experiment_number, value: data
-    scene_dir = os.path.join(pickle_saved_scores_dir, f'scene_{scene_id}')
+    if dlo_type is None:
+        scene_dir = os.path.join(pickle_saved_scores_dir, f'scene_{scene_id}')
+    else:
+        scene_dir = os.path.join(pickle_saved_scores_dir, f'scene_{scene_id}_dlo_{dlo_type}')
     scores_dir = os.path.join(scene_dir, 'scores')
     if not os.path.exists(scores_dir):
         print(f"Scores directory {scores_dir} does not exist.")
@@ -66,7 +90,11 @@ def load_error_metrics(pickle_saved_scores_dir, scene_id):
     pickle_files = [f for f in os.listdir(scores_dir) if f.endswith('_achievability_scores.pkl')]
     for pkl_file in pickle_files:
         # Extract experiment_number from filename
-        match = re.match(f'scene_{scene_id}_experiment_(\\d+)_achievability_scores.pkl', pkl_file)
+        if dlo_type is None:
+            pattern = f'scene_{scene_id}_experiment_(\\d+)_achievability_scores.pkl'
+        else:
+            pattern = f'scene_{scene_id}_dlo_{dlo_type}_experiment_(\\d+)_achievability_scores.pkl'
+        match = re.match(pattern, pkl_file)
         if match:
             experiment_number = int(match.group(1))
             pkl_path = os.path.join(scores_dir, pkl_file)
@@ -132,20 +160,21 @@ def load_error_metrics(pickle_saved_scores_dir, scene_id):
     df_metrics.set_index('experiment_number', inplace=True)
     return df_metrics
 
-# For each scene and scenario, process the data
-for scene_id in scenes:
+# For each scene, DLO type, and scenario, process the data
+for scene_id, dlo_type in itertools.product(scenes, dlo_types):
     for scenario in scenarios:
-        print(f"\nProcessing Scene {scene_id}, Scenario {scenario}")
+        dlo_type_str = f"DLO Type {dlo_type}" if dlo_type is not None else "Default DLO"
+        print(f"\nProcessing Scene {scene_id}, {dlo_type_str}, Scenario {scenario}")
         csv_saved_scores_dir = scenario_dirs[scenario]['csv_saved_scores_dir']
         pickle_saved_scores_dir = scenario_dirs[scenario]['pickle_saved_scores_dir']
 
         # Load execution min distances
-        df_min_distance = load_execution_min_distances(csv_saved_scores_dir, scene_id)
+        df_min_distance = load_execution_min_distances(csv_saved_scores_dir, scene_id, dlo_type)
         if df_min_distance is None:
             continue
 
         # Load error metrics
-        df_metrics = load_error_metrics(pickle_saved_scores_dir, scene_id)
+        df_metrics = load_error_metrics(pickle_saved_scores_dir, scene_id, dlo_type)
         if df_metrics is None:
             continue
 
@@ -154,7 +183,7 @@ for scene_id in scenes:
         df_metrics.index = df_metrics.index.astype(int)
         df = df_min_distance.join(df_metrics, how='inner')
         if df.empty:
-            print(f"No matching experiments for Scene {scene_id}, Scenario {scenario}")
+            print(f"No matching experiments for Scene {scene_id}, {dlo_type_str}, Scenario {scenario}")
             continue
 
         # Compute correlation coefficients
@@ -162,8 +191,8 @@ for scene_id in scenes:
 
         # Metrics to compute correlation with
         metrics = ['smoothed_peak_err', 'smoothed_avr_err', 'median_smoothed_err',
-                   'peak_err_change_on_smoothed', 'avr_err_change_on_smoothed', 'median_err_change_on_smoothed',
-                   'min_distance_value', 'mean_min_distances', 'median_min_distances']
+                    'peak_err_change_on_smoothed', 'avr_err_change_on_smoothed', 'median_err_change_on_smoothed',
+                    'min_distance_value', 'mean_min_distances', 'median_min_distances']
 
         # For each metric, compute Pearson and Spearman correlation with min_distance
         results = []
@@ -221,11 +250,11 @@ for scene_id in scenes:
         # Output the results in original format
         if results:
             results_df = pd.DataFrame(results)
-            print(f"Correlation results for Scene {scene_id}, Scenario {scenario}:")
+            print(f"Correlation results for Scene {scene_id}, {dlo_type_str}, Scenario {scenario}:")
             print(results_df)
             print("\n")
         else:
-            print(f"No results for Scene {scene_id}, Scenario {scenario}")
+            print(f"No results for Scene {scene_id}, {dlo_type_str}, Scenario {scenario}")
 
         # Now, output the results with metric titles and formatted numbers
         if results:
@@ -234,7 +263,7 @@ for scene_id in scenes:
             results_df_formatted['Metric'] = results_df_formatted['Metric'].map(metric_titles).fillna(results_df_formatted['Metric'])
             # Round correlation values to two decimal places
             results_df_formatted[['Pearson Correlation', 'Pearson p-value',
-                                  'Spearman Correlation', 'Spearman p-value']] = results_df_formatted[[
+                                    'Spearman Correlation', 'Spearman p-value']] = results_df_formatted[[
                 'Pearson Correlation', 'Pearson p-value',
                 'Spearman Correlation', 'Spearman p-value']].round(2)
             # Print formatted results

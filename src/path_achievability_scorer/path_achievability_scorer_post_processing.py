@@ -5,8 +5,9 @@ from matplotlib.lines import Line2D
 
 import numpy as np
 import re
+import itertools
 
-def plot_scene_experiments(scene_id, saved_scores_dir):
+def plot_scene_experiments(scene_id, dlo_type, saved_scores_dir):
     """
     Plots all experiments data and statistics for a given scene.
 
@@ -20,8 +21,12 @@ def plot_scene_experiments(scene_id, saved_scores_dir):
     avr_err_changes_on_smoothed = []
     min_distance_values = []
     
+    if dlo_type is None:
+        scene_dir = os.path.join(saved_scores_dir, f'scene_{scene_id}')
+    else:
+        scene_dir = os.path.join(saved_scores_dir, f'scene_{scene_id}_dlo_{dlo_type}')
+        
     # Directory containing the scores
-    scene_dir = os.path.join(saved_scores_dir, f'scene_{scene_id}')
     scores_dir = os.path.join(scene_dir, 'scores')
     
     # Get list of pickle files
@@ -29,7 +34,11 @@ def plot_scene_experiments(scene_id, saved_scores_dir):
     
     for pkl_file in pickle_files:
         # Extract experiment_number from filename
-        match = re.match(f'scene_{scene_id}_experiment_(\\d+)_achievability_scores.pkl', pkl_file)
+        if dlo_type is None:
+            match = re.match(f'scene_{scene_id}_experiment_(\\d+)_achievability_scores.pkl', pkl_file)
+        else:
+            match = re.match(f'scene_{scene_id}_dlo_{dlo_type}_experiment_(\\d+)_achievability_scores.pkl', pkl_file)
+            
         if match:
             experiment_number = int(match.group(1))
             pkl_path = os.path.join(scores_dir, pkl_file)
@@ -118,7 +127,11 @@ def plot_scene_experiments(scene_id, saved_scores_dir):
     # fig, axs = plt.subplots(3, 2, figsize=(32, 32))
     fig, axs = plt.subplots(3, 2, figsize=(32, 32), gridspec_kw={'width_ratios': [1, 2]})
     
-    fig_title = f"Scene {scene_id} Experiments Path Analysis"
+    if dlo_type is None:
+        fig_title = f"Scene {scene_id} Experiments Path Analysis"
+    else:
+        fig_title = f"Scene {scene_id} DLO {dlo_type} Experiments Path Analysis"
+        
     # Adjust top margin to prevent title overlap
     plt.subplots_adjust(top=0.92)
     fig.suptitle(fig_title, fontsize=40, y=0.98)
@@ -410,7 +423,11 @@ def plot_scene_experiments(scene_id, saved_scores_dir):
 
     # Save the figure
     plots_dir = '.' # Current directory
-    plot_file = os.path.join(plots_dir, f'scene_{scene_id}_experiments_path_analysis.png')
+    
+    if dlo_type is None:
+        plot_file = os.path.join(plots_dir, f'scene_{scene_id}_experiments_path_analysis.png')
+    else:
+        plot_file = os.path.join(plots_dir, f'scene_{scene_id}_dlo_{dlo_type}_experiments_path_analysis.png')
     
     # Also add "_10_segments" to the file name if saved_scores_dir contains "10_segments"
     if '10_segments' in saved_scores_dir:
@@ -426,12 +443,22 @@ def plot_scene_experiments(scene_id, saved_scores_dir):
 
 # ------------------------------------------------------------------------
 
-scenes = [1, 2, 3, 4]
+# scene_ids = [1, 2, 3, 4]
+scene_ids = [0,2,6]
 
-saved_scores_dir = './scores_i9_10885h'
-for scene_id in scenes:
-    plot_scene_experiments(scene_id, saved_scores_dir)
+# DLO Types, None for the default
+# dlo_types = None
+# dlo_types = [1]
+dlo_types = [1,4,5]
 
-saved_scores_dir = './scores_i9_10885h_10_segments'
-for scene_id in scenes:
-    plot_scene_experiments(scene_id, saved_scores_dir)
+# saved_scores_dir = './scores_i9_10885h'
+# saved_scores_dir = './scores_i9_10885h_10_segments'
+saved_scores_dir = './scores_mingrui_yu_real_scenes'
+
+
+# If dlo_types is None, set it to [None]
+if dlo_types is None:
+    dlo_types = [None]
+
+for scene_id, dlo_type in itertools.product(scene_ids, dlo_types):
+    plot_scene_experiments(scene_id, dlo_type, saved_scores_dir)

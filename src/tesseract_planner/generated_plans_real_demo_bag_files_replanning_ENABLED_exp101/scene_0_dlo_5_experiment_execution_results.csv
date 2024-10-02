@@ -1,2 +1,0 @@
-experiment_id,ft_on,collision_on,success,min_distance,rate,duration,stress_avoidance_performance_avr,stress_avoidance_performance_ever_zero,start_time,final_task_error,is_replanning_needed,num_replanning_attempts,executed_path_length
-101,1,1,1,0.0005111789024787205,39.90878556848947,235.161252499,0.9872673319222309,0,2024-09-28-18-11-36,9.014935182825195e-05,1,1,0.9458775707478649

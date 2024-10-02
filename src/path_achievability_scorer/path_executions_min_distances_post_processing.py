@@ -3,11 +3,16 @@ import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 import numpy as np
 import pandas as pd
+import itertools
 
-def plot_min_distances(scene_id, saved_scores_dir, d_obstacle_offset):
+def plot_min_distances(scene_id, dlo_type, saved_scores_dir, d_obstacle_offset):
 
     # Load the data
-    csv_file = os.path.join(saved_scores_dir, f"scene_{scene_id}", f"scene_{scene_id}_experiment_execution_results.csv")
+    if dlo_type is None:
+        csv_file = os.path.join(saved_scores_dir, f"scene_{scene_id}", f"scene_{scene_id}_experiment_execution_results.csv")
+    else:
+        csv_file = os.path.join(saved_scores_dir, f"scene_{scene_id}_dlo_{dlo_type}", f"scene_{scene_id}_dlo_{dlo_type}_experiment_execution_results.csv")
+    
     # Specify 'Nan' and 'NaN' as missing values
     df = pd.read_csv(csv_file, na_values=['Nan', 'NaN'])
 
@@ -31,7 +36,11 @@ def plot_min_distances(scene_id, saved_scores_dir, d_obstacle_offset):
     # Create the figure
     fig, ax = plt.subplots(figsize=(20, 10))  # Adjust size as needed
 
-    fig_title = f"Scene {scene_id} Executions Minimum Distances"
+    if dlo_type is None:
+        fig_title = f"Scene {scene_id} Executions Minimum Distances"
+    else:
+        fig_title = f"Scene {scene_id} DLO {dlo_type} Executions Minimum Distances"
+    
     ax.set_title(fig_title, fontsize=35)
     ax.set_xlabel("Experiment Number", fontsize=30)
     ax.set_ylabel("Minimum Distance to Obstacles (mm)", fontsize=30)
@@ -76,7 +85,10 @@ def plot_min_distances(scene_id, saved_scores_dir, d_obstacle_offset):
 
     # Save the figure
     plots_dir = '.'  # Current directory
-    plot_file = os.path.join(plots_dir, f'scene_{scene_id}_execution_min_distances.png')
+    if dlo_type is None:
+        plot_file = os.path.join(plots_dir, f'scene_{scene_id}_execution_min_distances.png')
+    else:
+        plot_file = os.path.join(plots_dir, f'scene_{scene_id}_dlo_{dlo_type}_execution_min_distances.png')
 
     # Also add "_10_segments" to the file name if saved_scores_dir contains "10_segments"
     if '10_segments' in saved_scores_dir:
@@ -88,14 +100,23 @@ def plot_min_distances(scene_id, saved_scores_dir, d_obstacle_offset):
 
 # ------------------------------------------------------------------------
 d_obstacle_offset = 2  # mm
-scenes = [1, 2, 3, 4]
+# scene_ids = [1, 2, 3, 4]
+scene_ids = [0,2,6]
+
+# DLO Types, None for the default
+# dlo_types = None
+# dlo_types = [1]
+dlo_types = [1,4,5]
 
 # Set the directory containing the CSV files
-saved_scores_dir = '../tesseract_planner/generated_plans_i9_10885h'
-for scene_id in scenes:
-    plot_min_distances(scene_id, saved_scores_dir, d_obstacle_offset)
+# saved_scores_dir = '../tesseract_planner/generated_plans_i9_10885h'
+# saved_scores_dir = '../tesseract_planner/generated_plans_i9_10885h_10_segments' # For the 10_segments data, uncomment
+saved_scores_dir = '../tesseract_planner/generated_plans_real_demo'
 
-# For the 10_segments data, uncomment the line below
-saved_scores_dir = '../tesseract_planner/generated_plans_i9_10885h_10_segments'
-for scene_id in scenes:
-    plot_min_distances(scene_id, saved_scores_dir, d_obstacle_offset)
+
+# If dlo_types is None, set it to [None]
+if dlo_types is None:
+    dlo_types = [None]
+
+for scene_id, dlo_type in itertools.product(scene_ids, dlo_types):
+    plot_min_distances(scene_id, dlo_type, saved_scores_dir, d_obstacle_offset)
