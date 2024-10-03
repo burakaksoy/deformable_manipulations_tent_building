@@ -40,6 +40,8 @@ get_dlo_torsion_modulus_service_name: "get_dlo_torsion_modulus"
 change_dlo_young_modulus_topic_name: "change_dlo_young_modulus"
 change_dlo_torsion_modulus_topic_name: "change_dlo_torsion_modulus"
 
+enable_collision_handling_service_name: "enable_collision_handling"
+
 is_collision_handling_enabled: true # default: true
 contact_tolerance: 0.01 # 0.005 # m, It's like offset around the obstacle object for aabb checking. default: 0.1
 contact_sdf_domain_offset: 0.1 # 0.05 # m, defines the minimum distance to a rigid body that will start contact checking and reporting minimum distance readings
@@ -58,7 +60,7 @@ global_damp_coeff_w: 1.1e-0 # 0.9e-1 # 0.9e-2 # 0.9e-3 # 0.0 # 0.9e-3 # 2.1e-4;
 # initial_height: 0.0 # initial dlo height from ground (m) (Deprecated, use dlo_translation instead)
 
 # ---------------------------------------------
-# For Simulated Experiments
+# For MINGRUI YU SIMULATED Experiments
 # # mingruiyu scene 1
 # dlo_translation: [0.25, 0, 0.1] 
 # dlo_rotationAxis: [0, 0, 1] # [1, 0, 0]
@@ -81,7 +83,7 @@ global_damp_coeff_w: 1.1e-0 # 0.9e-1 # 0.9e-2 # 0.9e-3 # 0.0 # 0.9e-3 # 2.1e-4;
 # ---------------------------------------------
 
 # ---------------------------------------------
-# For Real Robot Experiments
+# For MINGRUI YU REAL Robot Experiments
 # # mingruiyu scene 0 (TASK 1)
 # dlo_translation: [0.1, 0, 0.3] 
 # dlo_rotationAxis: [0, 0, 1] # [1, 0, 0]
@@ -92,8 +94,13 @@ dlo_translation: [0.0, 0, 0.3]
 dlo_rotationAxis: [0, 0, 1] # [1, 0, 0]
 dlo_rotationAngle: -1.5708 # Radians
 
-# # mingruiyu scene 6 (TASK 3)
+# # # mingruiyu scene 6 (TASK 3)
 # dlo_translation: [-0.04, -0.025, 0.1] 
+# dlo_rotationAxis: [0, 0, 1] # [1, 0, 0]
+# dlo_rotationAngle: 0.0 # Radians
+
+# # # mingruiyu scene 7 (TASK 4)
+# dlo_translation: [0.1, 0, 0.3] 
 # dlo_rotationAxis: [0, 0, 1] # [1, 0, 0]
 # dlo_rotationAngle: 0.0 # Radians
 # ---------------------------------------------
@@ -145,16 +152,17 @@ min_dist_to_rb_pub_rate: 50.0 # Hz, frequency to publish minimum distances to th
 # rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/l_shape_corridor_width_1.1.json
 # rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/l_shape_corridor_width_1.2.json
 
-# Scenes for Mingrui Yu comparisons (Simulated Experiments)
+# Scenes for Mingrui Yu comparisons (SIMULATED Experiments)
 # rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/scene_mingruiyu_1.json # TASK 1
 # rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/scene_mingruiyu_2.json # TASK 2
 # rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/scene_mingruiyu_3.json # TASK 3
 # rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/scene_mingruiyu_4.json # TASK 4
 
-# Scenes for Mingrui Yu comparisons (Real Robot Experiments)
+# Scenes for Mingrui Yu comparisons (REAL Robot Experiments)
 # rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/scene_mingruiyu_0.json # TASK 1
 rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/scene_mingruiyu_2.json # TASK 2
 # rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/scene_mingruiyu_6.json # TASK 3
+# rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/scene_mingruiyu_7.json # TASK 4
 
 
 # DLO VISUALIZATION RELATED PARAMETERS

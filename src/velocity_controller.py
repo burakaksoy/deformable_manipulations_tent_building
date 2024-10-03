@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import sys
+import os
 import rospy
 import numpy as np
 import time
@@ -89,6 +90,11 @@ class VelocityControllerNode:
         # Create service servers to set and save the inital and target states of the particles
         self.set_n_save_initial_state_server = rospy.Service('~set_n_save_initial_state', SetBool, self.set_n_save_initial_state)
         self.set_n_save_target_state_server = rospy.Service('~set_n_save_target_state', SetBool, self.set_n_save_target_state)
+        
+        # Get the saving directory for the executions log (rosbags, plans, etc.)
+        self.executions_log_directory = rospy.get_param("~executions_log_directory", "")
+        
+        self.reverse_after_execution = rospy.get_param("~reverse_after_execution", False)
         
         # Get the saving directory for the initial and target states of the particles
         self.state_saving_directory = rospy.get_param("~state_saving_directory", "")
@@ -394,7 +400,6 @@ class VelocityControllerNode:
         self.num_replanning_attempts = 0
         self.is_replanning_needed = False
 
-        # if self.path_planning_tesseract_enabled and not self.path_planning_pre_saved_paths_enabled:
         if self.path_planning_tesseract_enabled:
             
             # Get deformable object simulator scene json file path from the ROS parameter server
@@ -520,11 +525,18 @@ class VelocityControllerNode:
         self.set_enable_experiments_server = rospy.Service('~set_enable_experiments', SetBool, self.set_enable_experiments)
         
         # Create the experiments manager object
-        self.experiments_manager = PresavedPathsExperimentsManager(self, 
-                                                                   self.experiments_scene_id, 
-                                                                   self.experiments_range, 
-                                                                   self.experiments_saved_paths_directory,
-                                                                   self.experiments_dlo_type)
+        if self.path_planning_pre_saved_paths_enabled:
+            self.experiments_manager = PresavedPathsExperimentsManager(self, 
+                                                                    self.experiments_scene_id, 
+                                                                    self.experiments_range, 
+                                                                    self.experiments_saved_paths_directory,
+                                                                    self.experiments_dlo_type)
+        else:
+            self.experiments_manager = PresavedPathsExperimentsManager(self,
+                                                                    None, 
+                                                                    None,
+                                                                    None,
+                                                                    None)
         
         ## ----------------------------------------------------------------------------------------
 
@@ -589,12 +601,17 @@ class VelocityControllerNode:
             state_type (str): The type of the state to be saved. It can be either "initial" or "target". 
                               If any other string is given, it will be considered as "unknown".
         """
+            
+        saving_dir = os.path.expanduser(self.state_saving_directory)
+        if not os.path.exists(saving_dir):
+            os.makedirs(saving_dir)
+            rospy.loginfo("The directory is created: {}".format(saving_dir))
 
         # Save the states of the particles to a file
         # The file name will be like: 2024-12-31-17-41-34_initial_states.csv
         # or 2024-12-31-17-41-34_target_states.csv
         file_name = self.get_system_timestamp() + "_" + state_type + "_states.csv"
-        file_path = self.state_saving_directory + file_name
+        file_path = os.path.join(saving_dir, file_name)
 
         if self.current_full_state:
             try:
@@ -626,6 +643,22 @@ class VelocityControllerNode:
         else:
             rospy.logerr("The current full state of the particles is not available yet!")
             return False
+    
+    def log_initial_n_target_full_states(self):
+        saving_dir = os.path.expanduser(self.executions_log_directory)
+        if not os.path.exists(saving_dir):
+            os.makedirs(saving_dir)
+            rospy.loginfo("The directory is created: {}".format(saving_dir))
+        
+        file_name = self.controller_enabled_time_str + "_initial_states.csv"
+        file_path = os.path.join(saving_dir, file_name)
+        
+        self.save_state_dict_to_csv(self.initial_full_state_dict, file_path)
+        
+        file_name = self.controller_enabled_time_str + "_target_states.csv"
+        file_path = os.path.join(saving_dir, file_name)
+        
+        self.save_state_dict_to_csv(self.target_full_state_dict, file_path)
         
     def parse_state_as_dict(self, states_msg):
         # Parse SegmentStateArray from dlo_simulator_stiff_rods.msg as a dictionary
@@ -724,7 +757,7 @@ class VelocityControllerNode:
         return self.calculate_state_rmse_error(current_state_dict, self.target_full_state_dict)
     
     def set_enable_controller(self, request):
-        self.controller_enabler(request.data, cause="manual")
+        self.controller_enabler(enable=request.data, cause="manual")
         return SetBoolResponse(True, 'Successfully set enabled state to {}'.format(request.data))
     
     def controller_enabler(self, enable, cause="manual"):
@@ -768,6 +801,11 @@ class VelocityControllerNode:
             
             self.pos_err_convergence_checker.reset() # reset the position error convergence checker
             self.ori_err_convergence_checker.reset() # reset the orientation error convergence checker
+            
+            if cause == "manual":
+                self.experiments_manager.start_rosbag_recording_manual(self.controller_enabled_time_str, 
+                                                                       self.executions_log_directory)
+            
             rospy.loginfo("-------------- Controller is enabled --------------")
         else:
             self.controller_disabled_time = rospy.Time.now()
@@ -826,9 +864,32 @@ class VelocityControllerNode:
             # Reset the planned path variables
             self.reset_planned_path_variables()
             
-            self.experiments_manager.end_experiment(cause=cause, execution_results=execution_results)
+            # Save the execution results to a csv file
+            if self.path_planning_pre_saved_paths_enabled:
+                self.experiments_manager.end_experiment(cause=cause, execution_results=execution_results)
+            else:
+                self.experiments_manager.stop_rosbag_recording()
+                
+                # Calculate the executed path length
+                exec_path_length, _ = self.experiments_manager.calculate_executed_path_length()
+                rospy.loginfo("Executed path length: %f" % exec_path_length)
+                
+                # Append path length to execution_results
+                if execution_results is not None:
+                    execution_results.append(str(exec_path_length))
+                    
+                    # Save results to csv file
+                    self.experiments_manager.save_experiment_results_manual(execution_results, self.controller_enabled_time_str, self.executions_log_directory)
+                else:
+                    self.experiments_manager.save_experiment_results_manual(execution_results, self.controller_enabled_time_str, self.executions_log_directory)
+                
+                if self.reverse_after_execution:
+                    # Reverse the executed path
+                    self.experiments_manager.reverse_executed_path(speed_multiplier=5.0)
+                    
+                    # Re-apply the initial state
+                    self.experiments_manager.apply_initial_state()
 
-        
         # Publish the status message
         self.info_pub_controller_status.publish(status_msg)
         
@@ -2561,30 +2622,83 @@ class VelocityControllerNode:
                             """
                             Calculate the tesseract planned path
                             """
-                                                                        
-                            (self.planned_path,
-                            self.planned_path_points,
-                            self.planned_path_cumulative_lengths,
-                            self.planned_path_cumulative_rotations,
-                            self.planned_path_direction_vectors,
-                            self.planned_path_rotation_vectors,
-                            self.planned_path_of_particles,
-                            self.planned_path_points_of_particles,
-                            self.planned_path_cumulative_lengths_of_particles,
-                            self.planned_path_cumulative_rotations_of_particles,
-                            self.planned_path_direction_vectors_of_particles,
-                            self.planned_path_rotation_vectors_of_particles) = self.tesseract_planner.plan(self.initial_full_state_dict,
-                                                                                                            self.target_full_state_dict,
-                                                                                                            self.dlo_l,
-                                                                                                            self.dlo_r,
-                                                                                                            self.custom_static_particles,
-                                                                                                            self.automatic_tent_pole_max_links,
-                                                                                                            self.automatic_tent_pole_min_links,
-                                                                                                            self.environment_limits_xyz,
-                                                                                                            self.joint_angle_limits_xyz_deg,
-                                                                                                            self.dlo_approximation_error_threshold,
-                                                                                                            return_all_data=False,
-                                                                                                            plot_for_debugging=False)
+                            
+                            # If the user did not provide an initial state file, update the initial state as the current state
+                            if not self.initial_state_file:
+                                rospy.logwarn("Initial state file is not provided. Updating the initial state as the current state.")
+                                # Update the initial state as the current state 
+                                self.full_states_setter_n_saver(state_type="initial", save=True)
+                                
+                            # Check if the initial and target states are set
+                            if self.initial_full_state_dict is None:
+                                rospy.logwarn("Please set the Initial state using the 'set_n_save_initial_state' service.")
+                            
+                            elif self.target_full_state_dict is None:
+                                rospy.logwarn("Please set the Target state using the 'set_n_save_target_state' service.")
+                                
+                            else:
+                                # Log both the initial and target states for the current execution
+                                self.log_initial_n_target_full_states()
+                                
+                                try:
+                                    plan_data = self.tesseract_planner.plan(self.initial_full_state_dict,
+                                                                            self.target_full_state_dict,
+                                                                            self.dlo_l,
+                                                                            self.dlo_r,
+                                                                            self.custom_static_particles,
+                                                                            self.automatic_tent_pole_max_links,
+                                                                            self.automatic_tent_pole_min_links,
+                                                                            self.environment_limits_xyz,
+                                                                            self.joint_angle_limits_xyz_deg,
+                                                                            self.dlo_approximation_error_threshold,
+                                                                            return_all_data=True,
+                                                                            plot_for_debugging=False)
+                                    
+                                    # Unpack the plan data
+                                    (plan_data_ompl, 
+                                    plan_data_trajopt, 
+                                    performance_data, 
+                                    initial_n_target_states,
+                                    performance_data_extra) = plan_data
+                                    
+                                    planning_success = performance_data[3]
+                                    
+                                    if planning_success:
+                                        # Set the planned path variables for the execution
+                                        (self.planned_path,
+                                        self.planned_path_points,
+                                        self.planned_path_cumulative_lengths,
+                                        self.planned_path_cumulative_rotations,
+                                        self.planned_path_direction_vectors,
+                                        self.planned_path_rotation_vectors,
+                                        self.planned_path_of_particles,
+                                        self.planned_path_points_of_particles,
+                                        self.planned_path_cumulative_lengths_of_particles,
+                                        self.planned_path_cumulative_rotations_of_particles,
+                                        self.planned_path_direction_vectors_of_particles,
+                                        self.planned_path_rotation_vectors_of_particles, 
+                                        planned_path_approximated_dlo_joint_values) = plan_data_trajopt
+                                    
+                                    # Save and log the performance data and plan data
+                                    self.tesseract_planner.save_performance_results(performance_data=performance_data,
+                                                                                    performance_data_extra=performance_data_extra,
+                                                                                    experiment_id=self.controller_enabled_time_str,
+                                                                                    mingruiyu_scene_id=None,
+                                                                                    dlo_type=None,
+                                                                                    saving_folder_name=self.executions_log_directory,
+                                                                                    is_to_current_file_dir=False)
+                                    
+                                    # Save the planned path data
+                                    self.tesseract_planner.save_generated_paths(plan_data=plan_data,
+                                                                                experiment_id=self.controller_enabled_time_str,
+                                                                                mingruiyu_scene_id=None,
+                                                                                dlo_type=None,
+                                                                                saving_folder_name=self.executions_log_directory,
+                                                                                is_to_current_file_dir=False)
+                                except Exception as e:
+                                    rospy.logerr("An error occurred while planning the path using Tesseract: " + str(e))
+                                    rospy.logerr("{}".format(traceback.format_exc()))
+                                                    
                         ## ----------------------------------------------------------------------------------------------
                         if (self.planned_path) and (not self.planned_path_velocity_profile_of_particles):
                             """
@@ -2957,7 +3071,7 @@ class VelocityControllerNode:
             else:
                 rospy.logwarn("Experiments are not enabled. Enable the path_planning_pre_saved_paths_enabled parameter")
         else:
-            self.controller_enabler(False, cause="manual")
+            self.controller_enabler(enable=False, cause="manual")
             rospy.loginfo("Experiments disabled by " + cause + ".")
                     
     ## ----------------------------------------------------------------------------------------

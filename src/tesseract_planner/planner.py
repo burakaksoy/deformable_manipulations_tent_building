@@ -484,12 +484,12 @@ class TesseractPlanner(object):
 
 
         simplified_dlo_num_segments = min_simplified_dlo_num_segments - 1
-        planning_success = 1
         is_num_segments_validated = False
         dlo_simplification_time = 0.0
 
         while (simplified_dlo_num_segments <= max_simplified_dlo_num_segments
             and not is_num_segments_validated):
+            planning_success = 1
             simplified_dlo_num_segments += 1
             # -----------------------------------------------------------------------
             print("--------------------------------------------------------------------")
@@ -984,6 +984,8 @@ class TesseractPlanner(object):
             if len(results) < 2:
                 planning_success = 0
                 print("OMPL: Path length is less than 2. Planning failed!!")
+                print("Try the next simplified_dlo_num_segments.")
+                continue
             # --------------------------------------------------------------------------------------------
 
             # --------------------------------------------------------------------------------------------
@@ -1006,12 +1008,14 @@ class TesseractPlanner(object):
                     # print(f"Joint Efforts: {wp.getEffort().flatten()}")
                     # print("-------------------------------------------------------------")
             except Exception:
+                planning_success = 0
                 ## Assertions failed, fall back to the fallback plan
                 print("Error getting the results of the global plan")
                 print("{}".format(traceback.format_exc()))
-                print("Using the fallback plan")
-                # results = results_fallback # TODO
-                planning_success = 0
+                # print("Using the fallback plan")
+                # # results = results_fallback # TODO
+                print("Try the next simplified_dlo_num_segments.")
+                continue
             # --------------------------------------------------------------------------------------------
             
             # --------------------------------------------------------------------------------------------
@@ -1066,6 +1070,8 @@ class TesseractPlanner(object):
             except Exception:
                 print("Error processing the results of the OMPL planner")
                 # print("{}".format(traceback.format_exc()))
+                print("Try the next simplified_dlo_num_segments.")
+                continue
             # --------------------------------------------------------------------------------------------
                 
             # input("Press enter to continue to the TrajOpt planner for smoothing")
@@ -1111,9 +1117,11 @@ class TesseractPlanner(object):
                     joint_waypoints.append(jwp)
                     
             except Exception:
+                planning_success = 0
                 print("Error preparing the OMPL results for the TrajOpt plan")
                 print("{}".format(traceback.format_exc()))
-                planning_success = 0
+                print("Try the next simplified_dlo_num_segments.")
+                continue
                 
             # Set move instructions from the joint waypoints
             move_instructions = []
@@ -1193,14 +1201,18 @@ class TesseractPlanner(object):
                 results_as_any_poly = future.context.data_storage.getData(task_output_key)
                 results = AnyPoly_as_CompositeInstruction(results_as_any_poly)
             except Exception:
+                planning_success = 0
                 ## Assertions failed, fall back to the fallback plan
                 print("Error getting the results of the TRAJOPT plan")
                 print("{}".format(traceback.format_exc()))
-                planning_success = 0
+                print("Try the next simplified_dlo_num_segments.")
+                continue
                 
             if len(results) < 2:
                 planning_success = 0
                 print("TrajOpt: Path length is less than 2. Planning failed!!")
+                print("Try the next simplified_dlo_num_segments.")
+                continue
             # --------------------------------------------------------------------------------------------
 
             # --------------------------------------------------------------------------------------------
@@ -1223,12 +1235,14 @@ class TesseractPlanner(object):
                     # print(f"Joint Efforts: {wp.getEffort().flatten()}")
                     # print("-------------------------------------------------------------")
             except Exception:
+                planning_success = 0
                 ## Assertions failed, fall back to the fallback plan
                 print("Error getting the results of the global plan")
                 print("{}".format(traceback.format_exc()))
-                print("Using the fallback plan")
+                # print("Using the fallback plan")
                 # results = results_fallback # TODO
-                planning_success = 0
+                print("Try the next simplified_dlo_num_segments.")
+                continue
             # --------------------------------------------------------------------------------------------
             
             # --------------------------------------------------------------------------------------------
@@ -1283,6 +1297,8 @@ class TesseractPlanner(object):
             except Exception:
                 print("Error processing the results of the TrajOpt planner")
                 # print("{}".format(traceback.format_exc()))
+                print("Try the next simplified_dlo_num_segments.")
+                continue
             # --------------------------------------------------------------------------------------------
             
             # --------------------------------------------------------------------------------------------
@@ -1861,7 +1877,8 @@ class TesseractPlanner(object):
                                 experiment_id, 
                                 mingruiyu_scene_id, 
                                 dlo_type, 
-                                saving_folder_name):
+                                saving_folder_name,
+                                is_to_current_file_dir=True):
         """
         Saves the performance results to a CSV file.
 
@@ -1897,21 +1914,27 @@ class TesseractPlanner(object):
         print("- Trajopt Path Length: ", trajopt_path_length)
         print("")
 
-        # File path and name:
-        current_file_dir = os.path.dirname(os.path.abspath(__file__))
+        if is_to_current_file_dir:
+            # File path and name:
+            current_file_dir = os.path.dirname(os.path.abspath(__file__))
 
-        # Create a folder for the results
-        results_folder = os.path.join(current_file_dir, saving_folder_name)
+            # Create a folder for the results
+            results_folder = os.path.join(current_file_dir, saving_folder_name)
+        else:
+            results_folder = os.path.expanduser(saving_folder_name)
 
         if not os.path.exists(results_folder):
             os.makedirs(results_folder)
             print(f"Directory '{results_folder}' created.")
 
         # File name for the results
-        if dlo_type is None:
-            perf_results_csv_file = f"scene_{mingruiyu_scene_id}_experiment_results.csv"
+        if mingruiyu_scene_id is None:
+            perf_results_csv_file = f"planning_results.csv"
         else:
-            perf_results_csv_file = f"scene_{mingruiyu_scene_id}_dlo_{dlo_type}_experiment_results.csv"
+            if dlo_type is None:
+                perf_results_csv_file = f"scene_{mingruiyu_scene_id}_experiment_results.csv"
+            else:
+                perf_results_csv_file = f"scene_{mingruiyu_scene_id}_dlo_{dlo_type}_experiment_results.csv"
 
         # If the file does not exist, create it and write the header
         if not os.path.exists(os.path.join(results_folder, perf_results_csv_file)):
@@ -1949,7 +1972,8 @@ class TesseractPlanner(object):
                             experiment_id, 
                             mingruiyu_scene_id, 
                             dlo_type, 
-                            saving_folder_name):
+                            saving_folder_name,
+                            is_to_current_file_dir=True):
         """
         Saves the generated paths to a pickle file.
 
@@ -1962,21 +1986,35 @@ class TesseractPlanner(object):
 
         """
         # File path and name:
-        current_file_dir = os.path.dirname(os.path.abspath(__file__))
+        if is_to_current_file_dir:
+            current_file_dir = os.path.dirname(os.path.abspath(__file__))
 
-        # Create a folder for the results
-        results_folder = os.path.join(current_file_dir, saving_folder_name)
+            # Create a folder for the results
+            results_folder = os.path.join(current_file_dir, saving_folder_name)
+        else:
+            results_folder = os.path.expanduser(saving_folder_name)
 
         if not os.path.exists(results_folder):
             os.makedirs(results_folder)
             print(f"Directory '{results_folder}' created.")
 
         # File name for the results
-        formatted_experiment_id = f"{experiment_id:03d}"
-        if dlo_type is None:
-            perf_results_pkl_file = f"scene_{mingruiyu_scene_id}_experiment_{formatted_experiment_id}_data.pkl"
-        else:
-            perf_results_pkl_file = f"scene_{mingruiyu_scene_id}_dlo_{dlo_type}_experiment_{formatted_experiment_id}_data.pkl"
+        if mingruiyu_scene_id is None:
+            perf_results_pkl_file = f"{experiment_id}_planning_data.pkl"    
+            
+            # While the file exists add a suffix to the file name
+            i = 0
+            while os.path.exists(os.path.join(results_folder, perf_results_pkl_file)):
+                i += 1
+                perf_results_pkl_file = f"{experiment_id}_planning_data_{i}.pkl"
+                
+        else: 
+            formatted_experiment_id = f"{experiment_id:03d}"
+            if dlo_type is None:
+                perf_results_pkl_file = f"scene_{mingruiyu_scene_id}_experiment_{formatted_experiment_id}_data.pkl"
+            else:
+                perf_results_pkl_file = f"scene_{mingruiyu_scene_id}_dlo_{dlo_type}_experiment_{formatted_experiment_id}_data.pkl"
+                
 
         # Save the plan data to the pickle file
         with open(os.path.join(results_folder, perf_results_pkl_file), 'wb') as outp:  # Overwrites any existing file.

@@ -67,7 +67,7 @@ class PresavedPathsExperimentsManager(object):
             self.start_rosbag_recording(experiment_number)
             
             # Call the controller_enabler(true)
-            self.velocity_controller_node.controller_enabler(True)
+            self.velocity_controller_node.controller_enabler(enable=True, cause="automatic")
         else:
             rospy.logwarn("Planning was not successful. Skipping the execution of the experiment.")
             
@@ -192,7 +192,66 @@ class PresavedPathsExperimentsManager(object):
         else:
             file_name = f"scene_{self.scene_id}_dlo_{self.dlo_type}_experiment_{formatted_experiment_id}.bag"  # e.g. "scene_1_dlo_1_experiment_001.bag"
         
-        self.rosbag_file = os.path.expanduser(os.path.join(self.saved_paths_dir, scene_dir, file_name))
+        saving_dir = os.path.expanduser(os.path.join(self.saved_paths_dir, scene_dir))
+        
+        if not os.path.exists(saving_dir):
+            os.makedirs(saving_dir)
+            print(f"Directory '{saving_dir}' created.")
+        
+        self.rosbag_file = os.path.join(saving_dir, file_name)
+        
+        # Topics to record
+        topics = ["/dlo_markers", "/dlo_state", "/min_dist_markers", 
+                    "/min_dist_to_rigid_bodies", "/rigid_body_markers", 
+                    "/spacenav/twist", "/rosout", "/rosout_agg"]
+        
+        # All velocity controller specific topics
+        vel_controller_topics = ["-e \"/tent_building_velocity_controller.*\""]
+        topics.extend(vel_controller_topics)
+        
+        # All odom particles topics
+        self.odom_topics = [f"/odom_particle_{i}" for i in self.velocity_controller_node.custom_static_particles]
+        # e.g. ["/odom_particle_1", "/odom_particle_2"]
+        topics.extend(self.odom_topics)
+        
+        # Convert to a single string with spaces
+        topics_str = " ".join(topics)
+        
+        # Compress flag
+        compress_str = "--bz2" if compress else ""
+        
+        # Create the rosbag command
+        rosbag_command = f"rosbag record --output-name={self.rosbag_file} {compress_str} {topics_str}"
+        
+        # ROSbag recorder object
+        self.rosbag_recorder = RosbagControlledRecorder(rosbag_command)
+        
+        # Start recording
+        self.rosbag_recorder.start_recording_srv()
+        
+        # Wait for a few seconds to make sure the recording has started
+        time_to_wait = 2
+        rospy.loginfo(f"Waiting for {time_to_wait} seconds for the rosbag recording to start completely..")
+        time.sleep(time_to_wait)
+        return
+    
+    def start_rosbag_recording_manual(self, experiment_number, saving_dir, compress=True):
+        rospy.loginfo("Starting rosbag recording for manual execution")
+        
+        if self.rosbag_recorder is not None:
+            rospy.logwarn("Rosbag recorder is already running. Stopping the current recording and starting a new one.")
+            self.stop_rosbag_recording()
+        
+        # Create the rosbag file name         
+        file_name = f"{experiment_number}_experiment_execution.bag"  # e.g. "1_experiment_execution.bag"
+        
+        saving_dir = os.path.expanduser(saving_dir)
+        
+        if not os.path.exists(saving_dir):
+            os.makedirs(saving_dir)
+            print(f"Directory '{saving_dir}' created.")
+        
+        self.rosbag_file = os.path.expanduser(os.path.join(saving_dir, file_name))
         
         # Topics to record
         topics = ["/dlo_markers", "/dlo_state", "/min_dist_markers", 
@@ -329,8 +388,14 @@ class PresavedPathsExperimentsManager(object):
             file_name = f"scene_{self.scene_id}_experiment_execution_results.csv"  # e.g. "scene_1_experiment_execution_results.csv"
         else:
             file_name = f"scene_{self.scene_id}_dlo_{self.dlo_type}_experiment_execution_results.csv" # e.g. "scene_1_dlo_1_experiment_execution_results.csv"
+            
+        saving_dir = os.path.expanduser(os.path.join(self.saved_paths_dir, scene_dir))
         
-        self.csv_file = os.path.expanduser(os.path.join(self.saved_paths_dir, scene_dir, file_name))
+        if not os.path.exists(saving_dir):
+            os.makedirs(saving_dir)
+            print(f"Directory '{saving_dir}' created.")
+        
+        self.csv_file = os.path.join(saving_dir, file_name)
         
         row_title = ["experiment_id", "ft_on", "collision_on", "success", 
                      "min_distance", "rate", "duration", "stress_avoidance_performance_avr", 
@@ -352,6 +417,43 @@ class PresavedPathsExperimentsManager(object):
                 writer.writerow([str(int(experiment_id))] + execution_results)
             else:
                 writer.writerow([str(int(experiment_id))] + ["Nan" for _ in range(len(row_title)-1)])
+                rospy.logwarn("No execution results to save, writing 'Nan' values.")                
+            rospy.loginfo(f"Results appended to the CSV file: '{self.csv_file}'.")
+            
+    def save_experiment_results_manual(self,execution_results, experiment_id, saving_dir):
+        rospy.loginfo("Saving experiment results")
+        
+        # Create the results csv file name
+        file_name = f"experiment_execution_results.csv"
+        
+        saving_dir = os.path.expanduser(saving_dir)
+        
+        if not os.path.exists(saving_dir):
+            os.makedirs(saving_dir)
+            print(f"Directory '{saving_dir}' created.")
+        
+        self.csv_file = os.path.join(saving_dir, file_name)
+        
+        row_title = ["experiment_id", "ft_on", "collision_on", "success", 
+                     "min_distance", "rate", "duration", "stress_avoidance_performance_avr", 
+                     "stress_avoidance_performance_ever_zero", "start_time", "final_task_error", 
+                     "is_replanning_needed", "num_replanning_attempts",
+                     "executed_path_length"]
+        
+        # If the file does not exist, create it and write the header
+        if not os.path.exists(self.csv_file):
+            with open(self.csv_file, 'w', newline='') as file:
+                writer = csv.writer(file)
+                writer.writerow(row_title)
+                rospy.loginfo(f"File '{self.csv_file}' created and header written.")
+                
+        # Append the results to the csv file
+        with open(self.csv_file, 'a', newline='') as file:
+            writer = csv.writer(file)
+            if execution_results is not None:
+                writer.writerow([str(experiment_id)] + execution_results)
+            else:
+                writer.writerow([str(experiment_id)] + ["Nan" for _ in range(len(row_title)-1)])
                 rospy.logwarn("No execution results to save, writing 'Nan' values.")                
             rospy.loginfo(f"Results appended to the CSV file: '{self.csv_file}'.")
             

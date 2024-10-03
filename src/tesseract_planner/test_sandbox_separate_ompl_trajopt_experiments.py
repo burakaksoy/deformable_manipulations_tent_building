@@ -19,14 +19,16 @@ tesseract_resource_path = "~/catkin_ws_deformable/src/"
 
 # Scene for the experiments
 # scene_ids = [1, 2, 3, 4]
-scene_ids = [0,2,6]
+# scene_ids = [0,2,6]
+scene_ids = [7]
 
 # DLO Types, None for the default
 # dlo_types = None
-dlo_types = [1,4,5]
+# dlo_types = [1,4,5]
+dlo_types = [5]
 
 # Number of experiments to run
-num_experiments = 100
+num_experiments = 3
 
 tesseract_tent_pole_srdf = "/home/burak/catkin_ws_deformable/src/deformable_description/urdf/pole_automatic/pole_automatic.srdf" # TODO: Must be passed
 
@@ -34,7 +36,7 @@ tesseract_tent_pole_tcp_frame = "tool0"  # specified in the vel controller yaml 
 tesseract_tent_pole_manipulator_group = "manipulator" # defined in the srdf file and specified in the vel controller yaml file
 tesseract_tent_pole_manipulator_working_frame = "base_link" # defined in the srdf file and specified in the vel controller yaml file
 
-viewer_enabled = False
+viewer_enabled = True
 
 # If dlo_types is None, set it to [None]
 if dlo_types is None:
@@ -99,7 +101,7 @@ for mingruiyu_scene_id, dlo_type in itertools.product(scene_ids, dlo_types):
     full_dlo_holding_segment_ids = [0,39] # Example # TODO: Must be passed
 
     # 4.
-    max_simplified_dlo_num_segments = 10 # Example (If given) # TODO: Must be passed
+    max_simplified_dlo_num_segments = 21 # Example (If given) # TODO: Must be passed
     min_simplified_dlo_num_segments = 2 # Example (If given) # TODO: Must be passed
 
     # 5.
@@ -194,6 +196,9 @@ for mingruiyu_scene_id, dlo_type in itertools.product(scene_ids, dlo_types):
                                                 dlo_type, 
                                                 saving_folder_name)
         # --------------------------------------------------------------------------------------------
+        
+        if viewer_enabled:
+            input("Press enter to continue to the next experiment..")
         
         print("--------------------------------------------------------------------")
         

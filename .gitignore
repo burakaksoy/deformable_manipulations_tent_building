@@ -56,3 +56,8 @@ src/CMakeLists.txt
 *.csdf
 *.bag
 *.bag.active
+
+logs/*
+
+*_initial_states.csv
+*_target_states.csv
