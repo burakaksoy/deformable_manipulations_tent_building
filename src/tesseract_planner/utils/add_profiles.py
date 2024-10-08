@@ -92,8 +92,20 @@ def add_TrajOptPlanProfile(profiles, name, num_joints):
 
     trajopt_plan_profile = TrajOptDefaultPlanProfile()
     
-
+    """
+    #* cartesian_coeff
+        Weights for gradient descent 
+        with which the optimization will try to satisfy Cartesian position constraints 
+        for each dimension of the space (x, y, z, rx, ry, rz).
+        The larger the weights, the more focus will be put on reducing errors for the quantities associated with those weights.
+        Usually all are set to the same value, so the optimization tries to satisfy all elements of the space with equal strength.
+        When a value is set to zero, it effectively allows the optimization to ignore errors in that dimension. 
+        For example, if the weights are [10, 10, 10, 10, 10, 0], then the optimization will unconstrain the rotation about rz.
+        Similarly a weight vector of [0, 0, 0, 10, 10, 10] will allow the position to float freely while meeting orientation constraints.
+    """
     # trajopt_plan_profile.cartesian_coeff = np.array([1, 1, 1, 1, 1, 1], dtype=np.float64)
+    
+    
     # trajopt_plan_profile.joint_coeff = np.array([10, 10, 1, 100, 100, 100, 1], dtype=np.float64)
     # trajopt_plan_profile.joint_coeff = np.array([1000, 1000, 0, 100, 100, 100, 0], dtype=np.float64)
     # trajopt_plan_profile.joint_coeff = np.array([0,0,0,0,0,0,0], dtype=np.float64)
@@ -108,6 +120,29 @@ def add_TrajOptPlanProfile(profiles, name, num_joints):
     #     joint_coeff[8::3] = 100 # rz of the internal joints
     trajopt_plan_profile.joint_coeff = joint_coeff
 
+    """
+    #* constraint_error_functions
+        Error function that is set as a constraint for each timestep.
+        *
+        * This is a vector of std::tuple<Error Function, Error Function Jacobian, Constraint Type, Coeff>, the error
+        * function, constraint type, and coeff is required, but the jacobian is optional (nullptr).
+        *
+        * Error Function:
+        *   arg: VectorXd will be all of the joint values for one timestep.
+        *   return: VectorXd of violations for each joint. Anything != 0 will be a violation
+        *
+        * Error Function Jacobian:
+        *   arg: VectorXd will be all of the joint values for one timestep.
+        *   return: Eigen::MatrixXd that represents the change in the error function with respect to joint values
+        *
+        * Error Constraint Type
+        *
+        * Coefficients/Weights
+        *
+        */
+        std::vector<std::tuple<sco::VectorOfVector::func, sco::MatrixOfVector::func, sco::ConstraintType, Eigen::VectorXd>>
+            constraint_error_functions;
+    """
     # trajopt_plan_profile.constraint_error_functions # ???
 
     # trajopt_plan_profile.term_type # ???
@@ -130,7 +165,7 @@ def add_TrajOptPlanProfile(profiles, name, num_joints):
     trajopt_composite_profile.collision_cost_config.enabled = True # If true, a collision cost term will be added to the problem. Default: true*/
     trajopt_composite_profile.collision_cost_config.use_weighted_sum = True # Use the weighted sum for each link pair. This reduces the number equations added to the problem. If set to true, it is recommended to start with the coeff set to one Default: false*/
     trajopt_composite_profile.collision_cost_config.safety_margin = 0.015 # 0.005 # 0.025 # 0.0150 # 2.5cm #  Max distance in which collision costs will be evaluated. Default: 0.025*/
-    trajopt_composite_profile.collision_cost_config.safety_margin_buffer = 0.0 # 0.01 # Distance beyond buffer_margin in which collision optimization will be evaluated. This is set to 0 by default (effectively disabled) for collision costs.
+    trajopt_composite_profile.collision_cost_config.safety_margin_buffer = 0.0 # 0.01 # Distance beyond safety_margin in which collision optimization will be evaluated. This is set to 0 by default (effectively disabled) for collision costs.
     trajopt_composite_profile.collision_cost_config.type = CollisionEvaluatorType_DISCRETE_CONTINUOUS # The evaluator type that will be used for collision checking. # SINGLE_TIMESTEP, DISCRETE_CONTINUOUS, CAST_CONTINUOUS. Default: DISCRETE_CONTINUOUS
     # trajopt_composite_profile.collision_cost_config.type = CollisionEvaluatorType_SINGLE_TIMESTEP # The evaluator type that will be used for collision checking. # SINGLE_TIMESTEP, DISCRETE_CONTINUOUS, CAST_CONTINUOUS. Default: DISCRETE_CONTINUOUS
     trajopt_composite_profile.collision_cost_config.coeff = 10 #0.1 # The collision coeff/weight. Default: 20*/
@@ -138,7 +173,7 @@ def add_TrajOptPlanProfile(profiles, name, num_joints):
     trajopt_composite_profile.collision_constraint_config.enabled = True # If true, a collision cost term will be added to the problem. Default: true
     trajopt_composite_profile.collision_constraint_config.use_weighted_sum = True # Use the weighted sum for each link pair. This reduces the number equations added to the problem. If set to true, it is recommended to start with the coeff set to one. Default: false
     trajopt_composite_profile.collision_constraint_config.safety_margin = 0.001 # 0.01 # 0.016 # Max distance in which collision costs will be evaluated. Default: 0.01
-    trajopt_composite_profile.collision_constraint_config.safety_margin_buffer = 0.001 # 0.051 # Distance beyond buffer_margin in which collision optimization will be evaluated. Default: 0.05
+    trajopt_composite_profile.collision_constraint_config.safety_margin_buffer = 0.001 # 0.051 # Distance beyond safety_margin in which collision optimization will be evaluated. Default: 0.05
     trajopt_composite_profile.collision_constraint_config.type = CollisionEvaluatorType_DISCRETE_CONTINUOUS # The evaluator type that will be used for collision checking. # SINGLE_TIMESTEP, DISCRETE_CONTINUOUS, CAST_CONTINUOUS. Default: DISCRETE_CONTINUOUS
     # trajopt_composite_profile.collision_constraint_config.type = CollisionEvaluatorType_SINGLE_TIMESTEP # The evaluator type that will be used for collision checking. # SINGLE_TIMESTEP, DISCRETE_CONTINUOUS, CAST_CONTINUOUS. Default: DISCRETE_CONTINUOUS
     trajopt_composite_profile.collision_constraint_config.coeff = 50 #20 # The collision coeff/weight. Default: 20

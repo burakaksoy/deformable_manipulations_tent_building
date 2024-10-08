@@ -89,10 +89,10 @@ global_damp_coeff_w: 1.1e-0 # 0.9e-1 # 0.9e-2 # 0.9e-3 # 0.0 # 0.9e-3 # 2.1e-4;
 # dlo_rotationAxis: [0, 0, 1] # [1, 0, 0]
 # dlo_rotationAngle: 0.0 # Radians
 
-# mingruiyu scene 2 (TASK 2)
-dlo_translation: [0.0, 0, 0.3] 
-dlo_rotationAxis: [0, 0, 1] # [1, 0, 0]
-dlo_rotationAngle: -1.5708 # Radians
+# # mingruiyu scene 2 (TASK 2)
+# dlo_translation: [0.0, 0, 0.3] 
+# dlo_rotationAxis: [0, 0, 1] # [1, 0, 0]
+# dlo_rotationAngle: -1.5708 # Radians
 
 # # # mingruiyu scene 6 (TASK 3)
 # dlo_translation: [-0.04, -0.025, 0.1] 
@@ -100,6 +100,21 @@ dlo_rotationAngle: -1.5708 # Radians
 # dlo_rotationAngle: 0.0 # Radians
 
 # # # mingruiyu scene 7 (TASK 4)
+# dlo_translation: [0.1, 0, 0.15] 
+# dlo_rotationAxis: [0, 0, 1] # [1, 0, 0]
+# dlo_rotationAngle: 0.0 # Radians
+
+# # # mingruiyu scene 7 (TASK 4) - 2
+# dlo_translation: [0.1, 0, 0.3] 
+# dlo_rotationAxis: [0, 0, 1] # [1, 0, 0]
+# dlo_rotationAngle: 0.0 # Radians
+
+# # mingruiyu scene 7 Narrow (TASK 4)
+dlo_translation: [0.1, 0, 0.15] 
+dlo_rotationAxis: [0, 0, 1] # [1, 0, 0]
+dlo_rotationAngle: 0.0 # Radians
+
+# # # mingruiyu scene 7 Narrow (TASK 4) - 2
 # dlo_translation: [0.1, 0, 0.3] 
 # dlo_rotationAxis: [0, 0, 1] # [1, 0, 0]
 # dlo_rotationAngle: 0.0 # Radians
@@ -160,9 +175,10 @@ min_dist_to_rb_pub_rate: 50.0 # Hz, frequency to publish minimum distances to th
 
 # Scenes for Mingrui Yu comparisons (REAL Robot Experiments)
 # rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/scene_mingruiyu_0.json # TASK 1
-rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/scene_mingruiyu_2.json # TASK 2
+# rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/scene_mingruiyu_2.json # TASK 2
 # rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/scene_mingruiyu_6.json # TASK 3
 # rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/scene_mingruiyu_7.json # TASK 4
+rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/scene_mingruiyu_7_narrow.json # TASK 4
 
 
 # DLO VISUALIZATION RELATED PARAMETERS

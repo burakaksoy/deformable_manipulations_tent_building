@@ -1334,28 +1334,28 @@ class TesseractPlanner(object):
                             '-r', label='Target State: Approximation Line', markersize=12, linewidth=8)
                             # '-r', label='Target State: Approximation', markersize=12, linewidth=6, alpha=.5)
                     
-                    # Plot the centroid path points before smoothing
-                    ax.plot(ompl_path_points[:,0], # x
-                            ompl_path_points[:,1], # y
-                            ompl_path_points[:,2], # z
-                            ':ok', label='Centroid Path (before smoothing)', markersize=2, linewidth=1)
+                    # # Plot the centroid path points before smoothing
+                    # ax.plot(ompl_path_points[:,0], # x
+                    #         ompl_path_points[:,1], # y
+                    #         ompl_path_points[:,2], # z
+                    #         ':ok', label='Centroid Path (before smoothing)', markersize=2, linewidth=1)
                     
                     path_colors = ['b', 'm', 'c', 'y', 'k', 'g', 'r']
                     
-                    # Plot the holding points path points before smoothing
-                    i = 0
-                    for id in full_dlo_holding_segment_ids:
-                        ax.plot(ompl_path_points_of_particles[id][:,0], # x
-                                ompl_path_points_of_particles[id][:,1], # y
-                                ompl_path_points_of_particles[id][:,2], # z
-                                ':o'+path_colors[i], label='Point ' + str(id) + ' Path (before smoothing)', markersize=2, linewidth=1)
-                        i += 1
+                    # # Plot the holding points path points before smoothing
+                    # i = 0
+                    # for id in full_dlo_holding_segment_ids:
+                    #     ax.plot(ompl_path_points_of_particles[id][:,0], # x
+                    #             ompl_path_points_of_particles[id][:,1], # y
+                    #             ompl_path_points_of_particles[id][:,2], # z
+                    #             ':o'+path_colors[i], label='Point ' + str(id) + ' Path (before smoothing)', markersize=2, linewidth=1)
+                    #     i += 1
                         
-                    # Plot the centroid path points after smoothing
-                    ax.plot(trajopt_path_points[:,0], # x
-                            trajopt_path_points[:,1], # y
-                            trajopt_path_points[:,2], # z
-                            '--^k', label='Centroid Path (after smoothing)', markersize=4, linewidth=2)
+                    # # Plot the centroid path points after smoothing
+                    # ax.plot(trajopt_path_points[:,0], # x
+                    #         trajopt_path_points[:,1], # y
+                    #         trajopt_path_points[:,2], # z
+                    #         '--^k', label='Centroid Path (after smoothing)', markersize=4, linewidth=2)
                     
                     # Plot the holding points path points after smoothing
                     i = 0

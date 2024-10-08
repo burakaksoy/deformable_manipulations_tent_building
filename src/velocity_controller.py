@@ -580,14 +580,14 @@ class VelocityControllerNode:
 
     # Implement the set_n_save_initial_state and set_n_save_target_state services
     def set_n_save_initial_state(self, request=None):
-        result = self.full_states_setter_n_saver("initial")
+        result = self.full_states_setter_n_saver("initial", save=True)
         if result:
             return SetBoolResponse(True, 'Successfully set the initial state of the particles.')
         else:
             return SetBoolResponse(False, 'Failed to set the initial state of the particles.')
 
     def set_n_save_target_state(self, request=None):
-        result = self.full_states_setter_n_saver("target")
+        result = self.full_states_setter_n_saver("target", save=True)
         if result:
             return SetBoolResponse(True, 'Successfully set the initial state of the particles.')
         else:
@@ -2627,7 +2627,7 @@ class VelocityControllerNode:
                             if not self.initial_state_file:
                                 rospy.logwarn("Initial state file is not provided. Updating the initial state as the current state.")
                                 # Update the initial state as the current state 
-                                self.full_states_setter_n_saver(state_type="initial", save=True)
+                                self.full_states_setter_n_saver(state_type="initial", save=False)
                                 
                             # Check if the initial and target states are set
                             if self.initial_full_state_dict is None:
