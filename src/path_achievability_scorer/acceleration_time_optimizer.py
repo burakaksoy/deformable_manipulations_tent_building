@@ -1,5 +1,18 @@
 import cvxpy as cp
 
+"""
+Author: Burak Aksoy
+
+This code provides an example of how to use CVXPY to solve a simple optimization problem 
+with a class-based approach. 
+Class-based approach is useful when you want to solve the same optimization problem EFFICIENTLY
+with different parameter values.
+
+For more insights on the effectiveness of the class-based approach,
+refer to the following link:
+https://github.com/cvxpy/cvxpy/issues/762
+"""
+
 class AccelerationTimeOptimizer:
     def __init__(self):
         # Define the optimization variable
