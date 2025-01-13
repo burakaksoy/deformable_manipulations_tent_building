@@ -761,9 +761,9 @@ class VelocityControllerNode:
         return SetBoolResponse(True, 'Successfully set enabled state to {}'.format(request.data))
     
     def controller_enabler(self, enable, cause="manual"):
-        self.enabled = enable
-
-        if not self.enabled:
+        if not enable:
+            self.enabled = False
+            
             # Stop the particles
             self.odom_publishers_publish_zero_velocities()
 
@@ -777,6 +777,7 @@ class VelocityControllerNode:
         if enable:
             self.controller_enabled_time = rospy.Time.now()
             self.controller_enabled_time_str = self.get_system_timestamp()
+            
             status_msg.total_duration = -1.0  # -1.0 means the controller is still enabled
             status_msg.rate = -1.0  # -1.0 means the controller is still enabled
             
@@ -806,6 +807,7 @@ class VelocityControllerNode:
                 self.experiments_manager.start_rosbag_recording_manual(self.controller_enabled_time_str, 
                                                                        self.executions_log_directory)
             
+            self.enabled = True
             rospy.loginfo("-------------- Controller is enabled --------------")
         else:
             self.controller_disabled_time = rospy.Time.now()
@@ -835,7 +837,7 @@ class VelocityControllerNode:
             # Create start time string with YYYY-MM-DD-Hour-Minute-Seconds format for example 2024-12-31-17-41-34
             start_time_str = self.controller_enabled_time_str
             # Calculate the final task error as RMSE between the current and target states
-            final_task_error_str = str(self.calculate_final_task_error())
+            final_task_error_str = str(self.calculate_final_task_error()) if (self.target_full_state_dict is not None) else "0.0"
             is_replanning_needed_str = "1" if self.is_replanning_needed else "0"
             num_replanning_attempts_str = str(int(self.num_replanning_attempts))
 
@@ -1402,13 +1404,16 @@ class VelocityControllerNode:
         h_ft_normalized = np.zeros(6*len(self.custom_static_particles)) # CBF normalized values for performance monitoring
         alpha_h_ft = np.zeros(6*len(self.custom_static_particles)) # alpha for the forces and torques
         sign_ft = np.zeros(6*len(self.custom_static_particles)) # sign for the forces and torques
+        ft = np.zeros(6*len(self.custom_static_particles)) # forces and torques
 
         # Calculate the stress avoidance constraints for each custom static particle
         for idx_particle, particle in enumerate(self.custom_static_particles):
-            h_ft[6*idx_particle:6*(idx_particle+1)] = self.wrench_max - self.w_stress_offset - np.abs(self.particle_wrenches[particle]) # h_ft = wrench_max - wrench_offset - |wrench|
-            h_ft_normalized[6*idx_particle:6*(idx_particle+1)] = (h_ft[6*idx_particle:6*(idx_particle+1)]+self.w_stress_offset)/self.wrench_max
+            # h_ft[6*idx_particle:6*(idx_particle+1)] = self.wrench_max - self.w_stress_offset - np.abs(self.particle_wrenches[particle]) # h_ft = wrench_max - wrench_offset - |wrench| (OLD)
+            h_ft[6*idx_particle:6*(idx_particle+1)] = (self.wrench_max - self.w_stress_offset)**2 - (self.particle_wrenches[particle])**2 # h_ft = (wrench_max - wrench_offset)^2 - (wrench)^2 (NEW)
+            h_ft_normalized[6*idx_particle:6*(idx_particle+1)] = (self.wrench_max - np.abs(self.particle_wrenches[particle]))/self.wrench_max
             alpha_h_ft[6*idx_particle:6*(idx_particle+1)] = self.alpha_robot_stress(h_ft[6*idx_particle:6*(idx_particle+1)])
             sign_ft[6*idx_particle:6*(idx_particle+1)] = np.sign(self.particle_wrenches[particle])
+            ft[6*idx_particle:6*(idx_particle+1)] = self.particle_wrenches[particle]
 
         # Calculate stress avoidance performance monitoring values
         stress_avoidance_performance = self.calculate_and_publish_stress_avoidance_performance(h_ft_normalized)
@@ -1437,7 +1442,8 @@ class VelocityControllerNode:
             # with the matrix multiplication of the Jacobian with the control input
             # to obtain the forces and torques.
             # Add stress avoidance to the constraints
-            constraints += [cp.multiply(-sign_ft, (J_ft @ u)) >= -alpha_h_ft]
+            # constraints += [cp.multiply(-sign_ft, (J_ft @ u)) >= -alpha_h_ft] # (OLD)
+            constraints += [cp.multiply(-2*ft, (J_ft @ u)) >= -alpha_h_ft] # (NEW)
         ## ---------------------------------------------------
             
         # ## ---------------------------------------------------
@@ -1945,7 +1951,8 @@ class VelocityControllerNode:
 
                 # Check if the change in error norms are below the thresholds for a long time
                 if (((rospy.Time.now() - self.time_last_error_change_is_valid).to_sec() > self.convergence_wait_timeout) and
-                    is_pos_err_converged and is_ori_err_converged):
+                    is_pos_err_converged and is_ori_err_converged and
+                    (self.nominal_control_enabled or self.path_tracking_control_enabled)): 
                     # We will either Disable the controller or replan the path depending on some conditions:
                     
                     ## 1. Check for the arrival to the target pose of the particles 
@@ -2538,10 +2545,15 @@ class VelocityControllerNode:
         """
         Calculates the value of extended_class_K function \alpha(h) for ROBOT STRESS.
         Returns 6x1 alpha_h vector.
-        Note that h is 6x1 vector and adjusted to be less than or equal to the wrench_max (h_ft = wrench_max - |wrench|).
+        Note that h is 6x1 vector and adjusted to be less than or equal to the wrench_max (h_ft = (wrench_max - wrench_offset)^2 - (wrench)^2).
+        (self.wrench_max - self.w_stress_offset)**2 - (self.particle_wrenches[particle])**2 
+        
         Piecewise Linear function is used when h is less than 0,
         when h is greater or equal to 0 a nonlinear function is used.
+        
         See: https://www.desmos.com/calculator/hc6lc7nzkk for the function visualizations
+        NEW: https://www.desmos.com/calculator/mwiakn4s5j (FORCE)
+        NEW: https://www.desmos.com/calculator/tnflamxjvx (TORQUE)
         """
         # Initialize alpha_h with zeros
         alpha_h = np.zeros(h.shape)
@@ -2549,20 +2561,50 @@ class VelocityControllerNode:
         # Boolean masks for the conditions
         condition_positive_or_zero = h >= 0
         condition_negative = h < 0
-        condition_close_to_limit = (self.wrench_max - h) < 1e-6  # Add an epsilon threshold to avoid division by zero
-
+        condition_close_to_limit = ((self.wrench_max - self.w_stress_offset)**2 - h) < 1e-6  # Add an epsilon threshold to avoid division by zero
+        
         # Default values for when h is close to wrench_max
         alpha_h[condition_close_to_limit] = float('inf')  # Assign a default value or handle appropriately
-
+        
         # Calculate for h values greater or equal to 0, excluding values close to the limit
         valid_condition_positive_or_zero = condition_positive_or_zero & ~condition_close_to_limit
-        alpha_h[valid_condition_positive_or_zero] = (self.c1_alpha_ft[valid_condition_positive_or_zero] * h[valid_condition_positive_or_zero]) / \
-                                                    (self.wrench_max[valid_condition_positive_or_zero] - h[valid_condition_positive_or_zero]) ** self.c2_alpha_ft[valid_condition_positive_or_zero]
+        alpha_h[valid_condition_positive_or_zero] = (self.c1_alpha_ft[valid_condition_positive_or_zero] * h[valid_condition_positive_or_zero] ) / \
+                                                    ( (self.wrench_max[valid_condition_positive_or_zero] - self.w_stress_offset[valid_condition_positive_or_zero])**2 -  h[valid_condition_positive_or_zero] ) ** self.c2_alpha_ft[valid_condition_positive_or_zero]
 
         # Calculate for h values less than 0
         alpha_h[condition_negative] = self.c3_alpha_ft[condition_negative] * h[condition_negative]
 
         return alpha_h
+
+    # def alpha_robot_stress(self, h):
+    #     """
+    #     Calculates the value of extended_class_K function \alpha(h) for ROBOT STRESS.
+    #     Returns 6x1 alpha_h vector.
+    #     Note that h is 6x1 vector and adjusted to be less than or equal to the wrench_max (h_ft = wrench_max - |wrench|).
+    #     Piecewise Linear function is used when h is less than 0,
+    #     when h is greater or equal to 0 a nonlinear function is used.
+    #     See: https://www.desmos.com/calculator/hc6lc7nzkk for the function visualizations
+    #     """
+    #     # Initialize alpha_h with zeros
+    #     alpha_h = np.zeros(h.shape)
+
+    #     # Boolean masks for the conditions
+    #     condition_positive_or_zero = h >= 0
+    #     condition_negative = h < 0
+    #     condition_close_to_limit = (self.wrench_max - h) < 1e-6  # Add an epsilon threshold to avoid division by zero
+
+    #     # Default values for when h is close to wrench_max
+    #     alpha_h[condition_close_to_limit] = float('inf')  # Assign a default value or handle appropriately
+
+    #     # Calculate for h values greater or equal to 0, excluding values close to the limit
+    #     valid_condition_positive_or_zero = condition_positive_or_zero & ~condition_close_to_limit
+    #     alpha_h[valid_condition_positive_or_zero] = (self.c1_alpha_ft[valid_condition_positive_or_zero] * h[valid_condition_positive_or_zero]) / \
+    #                                                 (self.wrench_max[valid_condition_positive_or_zero] - h[valid_condition_positive_or_zero]) ** self.c2_alpha_ft[valid_condition_positive_or_zero]
+
+    #     # Calculate for h values less than 0
+    #     alpha_h[condition_negative] = self.c3_alpha_ft[condition_negative] * h[condition_negative]
+
+    #     return alpha_h
     
     ## ----------------------------------------------------------------------------------------
     ## --------------------------- PATH PLANNING AND TRACKING ---------------------------------
