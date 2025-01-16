@@ -426,6 +426,7 @@ class TesseractPlanner(object):
                     environment_limits_xyz=[-1, 1, -1, 1, -1, 1],
                     joint_angle_limits_xyz_deg=[-90, 90, -180, 180, -10, 10],
                     approximation_error_threshold=0.02,
+                    coll_depth_to_try_remove=0.007,
                     return_all_data=False,
                     plot_for_debugging=False):
         """
@@ -805,7 +806,9 @@ class TesseractPlanner(object):
             # Check the goal state for collisions
             goal_joint_positions = target_approximated_state_joint_pos.flatten()
             
-            is_collision_free, new_joint_pos = self.check_and_try_remove_collision_state(joint_names, goal_joint_positions)
+            is_collision_free, new_joint_pos = self.check_and_try_remove_collision_state(joint_names, 
+                                                                                        goal_joint_positions,
+                                                                                        coll_depth_to_try_remove)
             
             if not is_collision_free:
                 print("The goal state is in collision. Skipping the current simplified_dlo_num_segments.")
@@ -833,7 +836,9 @@ class TesseractPlanner(object):
             # Check the initial state for collisions
             initial_joint_positions = initial_approximated_state_joint_pos.flatten()
 
-            is_collision_free, new_joint_pos = self.check_and_try_remove_collision_state(joint_names, initial_joint_positions)
+            is_collision_free, new_joint_pos = self.check_and_try_remove_collision_state(joint_names, 
+                                                                                        initial_joint_positions,
+                                                                                        coll_depth_to_try_remove)
             
             if not is_collision_free:
                 print("The initial state is in collision. Skipping the current simplified_dlo_num_segments.")

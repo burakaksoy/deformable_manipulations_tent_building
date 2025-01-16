@@ -345,6 +345,10 @@ automatic_tent_pole_min_links: 2
 
 dlo_approximation_error_threshold: 0.02 # m per original simulation segment
 
+# coll_depth_to_try_remove: In case of the automatic creation of the URDF is in collision with the environment, the URDF is modified to avoid the collision maximum by this value:
+coll_depth_to_try_remove: 0.1 # m # FOR TENT BUILDING SCENES (REAL)
+# coll_depth_to_try_remove: 0.007 # m # FOR MINGRUI YU SCENES
+
 # The limits of the environment in the x, y, and z directions for the initial end of the DLO.
 environment_limits_xyz: [-0.5, 0.5, -0.5, 0.5, 0, 1.0] # [min_x, max_x, min_y, max_y, min_z, max_z] in meters
 

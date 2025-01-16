@@ -144,6 +144,7 @@ for mingruiyu_scene_id, dlo_type in itertools.product(scene_ids, dlo_types):
         #                                                                         environment_limits_xyz,
         #                                                                         joint_angle_limits_xyz_deg,
         #                                                                         approximation_error_threshold,
+        #                                                                         coll_depth_to_try_remove=0.007,
         #                                                                         return_all_data=False)
 
         plan_data = tesseract_planner.plan(initial_full_state_dict, 
@@ -156,6 +157,7 @@ for mingruiyu_scene_id, dlo_type in itertools.product(scene_ids, dlo_types):
                                             environment_limits_xyz,
                                             joint_angle_limits_xyz_deg,
                                             approximation_error_threshold,
+                                            coll_depth_to_try_remove=0.007,
                                             return_all_data=True)
 
         # Unpack the plan data

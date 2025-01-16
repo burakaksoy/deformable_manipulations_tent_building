@@ -442,6 +442,7 @@ class VelocityControllerNode:
             self.automatic_tent_pole_max_links = rospy.get_param("~automatic_tent_pole_max_links", 10)
             self.automatic_tent_pole_min_links = rospy.get_param("~automatic_tent_pole_min_links", 1)
             self.dlo_approximation_error_threshold = rospy.get_param("~dlo_approximation_error_threshold", 0.02)
+            self.coll_depth_to_try_remove = rospy.get_param("~coll_depth_to_try_remove", 0.01)
             self.environment_limits_xyz = rospy.get_param("~environment_limits_xyz", [-1, 1, -1, 1, -1, 1])
             self.joint_angle_limits_xyz_deg = rospy.get_param("~joint_angle_limits_xyz_deg", [-90, 90, -180, 180, -40, 40])
             
@@ -2693,6 +2694,7 @@ class VelocityControllerNode:
                                                                             self.environment_limits_xyz,
                                                                             self.joint_angle_limits_xyz_deg,
                                                                             self.dlo_approximation_error_threshold,
+                                                                            self.coll_depth_to_try_remove,
                                                                             return_all_data=True,
                                                                             plot_for_debugging=False)
                                     
