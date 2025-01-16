@@ -7,11 +7,11 @@ Panels:
         - /Global Options1
         - /Status1
         - /Odometry1/Shape1
-        - /Odometry-01/Shape1
-        - /Odometry-391/Shape1
+        - /Odometry-51/Shape1
+        - /Odometry-341/Shape1
         - /Odometry-Centroid of Custom Static Particles1/Shape1
         - /Odometry-Projected Centroid of Custom Static Particles1/Shape1
-      Splitter Ratio: 0.45665237307548523
+      Splitter Ratio: 0.7124010324478149
     Tree Height: 738
   - Class: rviz/Selection
     Name: Selection
@@ -129,96 +129,96 @@ Visualization Manager:
       Value: true
     - Class: rviz/MarkerArray
       Enabled: false
-      Marker Topic: /dlo_markers_0_x
-      Name: MarkerArray-DLO-0-X
+      Marker Topic: /dlo_markers_5_x
+      Name: MarkerArray-DLO-5-X
       Namespaces:
         {}
       Queue Size: 1
       Value: false
     - Class: rviz/MarkerArray
       Enabled: false
-      Marker Topic: /dlo_markers_0_y
-      Name: MarkerArray-DLO-0-Y
+      Marker Topic: /dlo_markers_5_y
+      Name: MarkerArray-DLO-5-Y
       Namespaces:
         {}
       Queue Size: 1
       Value: false
     - Class: rviz/MarkerArray
       Enabled: false
-      Marker Topic: /dlo_markers_0_z
-      Name: MarkerArray-DLO-0-Z
+      Marker Topic: /dlo_markers_5_z
+      Name: MarkerArray-DLO-5-Z
       Namespaces:
         {}
       Queue Size: 1
       Value: false
     - Class: rviz/MarkerArray
       Enabled: false
-      Marker Topic: /dlo_markers_0_th_x
-      Name: MarkerArray-DLO-0-TH-X
+      Marker Topic: /dlo_markers_5_th_x
+      Name: MarkerArray-DLO-5-TH-X
       Namespaces:
         {}
       Queue Size: 1
       Value: false
     - Class: rviz/MarkerArray
       Enabled: false
-      Marker Topic: /dlo_markers_0_th_y
-      Name: MarkerArray-DLO-0-TH-Y
+      Marker Topic: /dlo_markers_5_th_y
+      Name: MarkerArray-DLO-5-TH-Y
       Namespaces:
         {}
       Queue Size: 1
       Value: false
     - Class: rviz/MarkerArray
       Enabled: false
-      Marker Topic: /dlo_markers_0_th_z
-      Name: MarkerArray-DLO-0-TH-Z
+      Marker Topic: /dlo_markers_5_th_z
+      Name: MarkerArray-DLO-5-TH-Z
       Namespaces:
         {}
       Queue Size: 1
       Value: false
     - Class: rviz/MarkerArray
       Enabled: false
-      Marker Topic: /dlo_markers_39_x
-      Name: MarkerArray-DLO-39-X
+      Marker Topic: /dlo_markers_34_x
+      Name: MarkerArray-DLO-34-X
       Namespaces:
         {}
       Queue Size: 1
       Value: false
     - Class: rviz/MarkerArray
       Enabled: false
-      Marker Topic: /dlo_markers_39_y
-      Name: MarkerArray-DLO-39-Y
+      Marker Topic: /dlo_markers_34_y
+      Name: MarkerArray-DLO-34-Y
       Namespaces:
         {}
       Queue Size: 1
       Value: false
     - Class: rviz/MarkerArray
       Enabled: false
-      Marker Topic: /dlo_markers_39_z
-      Name: MarkerArray-DLO-39-Z
+      Marker Topic: /dlo_markers_34_z
+      Name: MarkerArray-DLO-34-Z
       Namespaces:
         {}
       Queue Size: 1
       Value: false
     - Class: rviz/MarkerArray
       Enabled: false
-      Marker Topic: /dlo_markers_39_th_x
-      Name: MarkerArray-DLO-39-TH-X
+      Marker Topic: /dlo_markers_34_th_x
+      Name: MarkerArray-DLO-34-TH-X
       Namespaces:
         {}
       Queue Size: 1
       Value: false
     - Class: rviz/MarkerArray
       Enabled: false
-      Marker Topic: /dlo_markers_39_th_y
-      Name: MarkerArray-DLO-39-TH-Y
+      Marker Topic: /dlo_markers_34_th_y
+      Name: MarkerArray-DLO-34-TH-Y
       Namespaces:
         {}
       Queue Size: 1
       Value: false
     - Class: rviz/MarkerArray
       Enabled: false
-      Marker Topic: /dlo_markers_39_th_z
-      Name: MarkerArray-DLO-39-TH-Z
+      Marker Topic: /dlo_markers_34_th_z
+      Name: MarkerArray-DLO-34-TH-Z
       Namespaces:
         {}
       Queue Size: 1
@@ -233,96 +233,96 @@ Visualization Manager:
       Value: false
     - Class: rviz/MarkerArray
       Enabled: false
-      Marker Topic: /min_dist_markers_0_x
-      Name: MarkerArray-MinDist-0-X
+      Marker Topic: /min_dist_markers_5_x
+      Name: MarkerArray-MinDist-5-X
       Namespaces:
         {}
       Queue Size: 1
       Value: false
     - Class: rviz/MarkerArray
       Enabled: false
-      Marker Topic: /min_dist_markers_0_y
-      Name: MarkerArray-MinDist-0-Y
+      Marker Topic: /min_dist_markers_5_y
+      Name: MarkerArray-MinDist-5-Y
       Namespaces:
         {}
       Queue Size: 1
       Value: false
     - Class: rviz/MarkerArray
       Enabled: false
-      Marker Topic: /min_dist_markers_0_z
-      Name: MarkerArray-MinDist-0-Z
+      Marker Topic: /min_dist_markers_5_z
+      Name: MarkerArray-MinDist-5-Z
       Namespaces:
         {}
       Queue Size: 1
       Value: false
     - Class: rviz/MarkerArray
       Enabled: false
-      Marker Topic: /min_dist_markers_0_th_x
-      Name: MarkerArray-MinDist-0-TH-X
+      Marker Topic: /min_dist_markers_5_th_x
+      Name: MarkerArray-MinDist-5-TH-X
       Namespaces:
         {}
       Queue Size: 1
       Value: false
     - Class: rviz/MarkerArray
       Enabled: false
-      Marker Topic: /min_dist_markers_0_th_y
-      Name: MarkerArray-MinDist-0-TH-Y
+      Marker Topic: /min_dist_markers_5_th_y
+      Name: MarkerArray-MinDist-5-TH-Y
       Namespaces:
         {}
       Queue Size: 1
       Value: false
     - Class: rviz/MarkerArray
       Enabled: false
-      Marker Topic: /min_dist_markers_0_th_z
-      Name: MarkerArray-MinDist-0-TH-Z
+      Marker Topic: /min_dist_markers_5_th_z
+      Name: MarkerArray-MinDist-5-TH-Z
       Namespaces:
         {}
       Queue Size: 1
       Value: false
     - Class: rviz/MarkerArray
       Enabled: false
-      Marker Topic: /min_dist_markers_39_x
-      Name: MarkerArray-MinDist-39-X
+      Marker Topic: /min_dist_markers_34_x
+      Name: MarkerArray-MinDist-34-X
       Namespaces:
         {}
       Queue Size: 1
       Value: false
     - Class: rviz/MarkerArray
       Enabled: false
-      Marker Topic: /min_dist_markers_39_y
-      Name: MarkerArray-MinDist-39-Y
+      Marker Topic: /min_dist_markers_34_y
+      Name: MarkerArray-MinDist-34-Y
       Namespaces:
         {}
       Queue Size: 1
       Value: false
     - Class: rviz/MarkerArray
       Enabled: false
-      Marker Topic: /min_dist_markers_39_z
-      Name: MarkerArray-MinDist-39-Z
+      Marker Topic: /min_dist_markers_34_z
+      Name: MarkerArray-MinDist-34-Z
       Namespaces:
         {}
       Queue Size: 1
       Value: false
     - Class: rviz/MarkerArray
       Enabled: false
-      Marker Topic: /min_dist_markers_39_th_x
-      Name: MarkerArray-MinDist-39-TH-X
+      Marker Topic: /min_dist_markers_34_th_x
+      Name: MarkerArray-MinDist-34-TH-X
       Namespaces:
         {}
       Queue Size: 1
       Value: false
     - Class: rviz/MarkerArray
       Enabled: false
-      Marker Topic: /min_dist_markers_39_th_y
-      Name: MarkerArray-MinDist-39-TH-Y
+      Marker Topic: /min_dist_markers_34_th_y
+      Name: MarkerArray-MinDist-34-TH-Y
       Namespaces:
         {}
       Queue Size: 1
       Value: false
     - Class: rviz/MarkerArray
       Enabled: false
-      Marker Topic: /min_dist_markers_39_th_z
-      Name: MarkerArray-MinDist-39-TH-Z
+      Marker Topic: /min_dist_markers_34_th_z
+      Name: MarkerArray-MinDist-34-TH-Z
       Namespaces:
         {}
       Queue Size: 1
@@ -370,7 +370,7 @@ Visualization Manager:
       Topic: /odom_particle_0
       Unreliable: false
       Value: false
-    - Angle Tolerance: 0.019999999552965164
+    - Angle Tolerance: 0.20000000298023224
       Class: rviz/Odometry
       Covariance:
         Orientation:
@@ -389,23 +389,23 @@ Visualization Manager:
         Value: false
       Enabled: true
       Keep: 80
-      Name: Odometry-0
-      Position Tolerance: 0.009999999776482582
+      Name: Odometry-5
+      Position Tolerance: 0.10000000149011612
       Queue Size: 9
       Shape:
         Alpha: 1
-        Axes Length: 0.029999999329447746
-        Axes Radius: 0.003000000026077032
+        Axes Length: 0.15000000596046448
+        Axes Radius: 0.029999999329447746
         Color: 255; 25; 0
         Head Length: 0.30000001192092896
         Head Radius: 0.10000000149011612
         Shaft Length: 1
         Shaft Radius: 0.05000000074505806
         Value: Axes
-      Topic: /odom_particle_0
+      Topic: /odom_particle_5
       Unreliable: false
       Value: true
-    - Angle Tolerance: 0.019999999552965164
+    - Angle Tolerance: 0.20000000298023224
       Class: rviz/Odometry
       Covariance:
         Orientation:
@@ -424,20 +424,20 @@ Visualization Manager:
         Value: false
       Enabled: true
       Keep: 80
-      Name: Odometry-39
-      Position Tolerance: 0.009999999776482582
+      Name: Odometry-34
+      Position Tolerance: 0.10000000149011612
       Queue Size: 9
       Shape:
         Alpha: 1
-        Axes Length: 0.029999999329447746
-        Axes Radius: 0.003000000026077032
+        Axes Length: 0.15000000596046448
+        Axes Radius: 0.029999999329447746
         Color: 255; 25; 0
         Head Length: 0.30000001192092896
         Head Radius: 0.10000000149011612
         Shaft Length: 1
         Shaft Radius: 0.05000000074505806
         Value: Axes
-      Topic: /odom_particle_39
+      Topic: /odom_particle_34
       Unreliable: false
       Value: true
     - Alpha: 0.5
@@ -473,8 +473,8 @@ Visualization Manager:
       Head Length: 0.20000000298023224
       Length: 0.009999999776482582
       Line Style: Billboards
-      Line Width: 0.003000000026077032
-      Name: Path-0
+      Line Width: 0.019999999552965164
+      Name: Path-5
       Offset:
         X: 0
         Y: 0
@@ -485,7 +485,7 @@ Visualization Manager:
       Radius: 0.0010000000474974513
       Shaft Diameter: 0.10000000149011612
       Shaft Length: 0.10000000149011612
-      Topic: /tent_building_velocity_controller/planned_path_particle_0
+      Topic: /tent_building_velocity_controller/planned_path_particle_5
       Unreliable: false
       Value: true
     - Alpha: 0.5
@@ -497,8 +497,8 @@ Visualization Manager:
       Head Length: 0.20000000298023224
       Length: 0.009999999776482582
       Line Style: Billboards
-      Line Width: 0.003000000026077032
-      Name: Path-39
+      Line Width: 0.019999999552965164
+      Name: Path-34
       Offset:
         X: 0
         Y: 0
@@ -509,7 +509,7 @@ Visualization Manager:
       Radius: 0.0010000000474974513
       Shaft Diameter: 0.10000000149011612
       Shaft Length: 0.10000000149011612
-      Topic: /tent_building_velocity_controller/planned_path_particle_39
+      Topic: /tent_building_velocity_controller/planned_path_particle_34
       Unreliable: false
       Value: true
     - Angle Tolerance: 0
@@ -596,25 +596,25 @@ Visualization Manager:
     - Alpha: 1
       Class: rviz/PointStamped
       Color: 204; 41; 204
-      Enabled: false
+      Enabled: true
       History Length: 1
-      Name: PointStamped-CurrentTargetOnPath-0
+      Name: PointStamped-CurrentTargetOnPath-5
       Queue Size: 10
-      Radius: 0.009999999776482582
-      Topic: /tent_building_velocity_controller/info_planned_path_current_target_point_particle_0
+      Radius: 0.05000000074505806
+      Topic: /tent_building_velocity_controller/info_planned_path_current_target_point_particle_5
       Unreliable: false
-      Value: false
+      Value: true
     - Alpha: 1
       Class: rviz/PointStamped
       Color: 204; 41; 204
-      Enabled: false
+      Enabled: true
       History Length: 1
-      Name: PointStamped-CurrentTargetOnPath-39
+      Name: PointStamped-CurrentTargetOnPath-34
       Queue Size: 10
-      Radius: 0.009999999776482582
-      Topic: /tent_building_velocity_controller/info_planned_path_current_target_point_particle_39
+      Radius: 0.05000000074505806
+      Topic: /tent_building_velocity_controller/info_planned_path_current_target_point_particle_34
       Unreliable: false
-      Value: false
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 255; 255; 255
@@ -643,7 +643,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 6.716075897216797
+      Distance: 4.7979416847229
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -651,17 +651,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 1.9722342491149902
-        Y: 1.7976621389389038
-        Z: -0.6647666096687317
+        X: 1.9863032102584839
+        Y: 2.275951623916626
+        Z: 0.30017539858818054
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.7297978401184082
+      Pitch: 0.6747977137565613
       Target Frame: <Fixed Frame>
-      Yaw: 1.8403278589248657
+      Yaw: 0.9603307247161865
     Saved:
       - Class: rviz/Orbit
         Distance: 5.277319431304932
@@ -900,7 +900,7 @@ Window Geometry:
   Height: 1026
   Hide Left Dock: false
   Hide Right Dock: true
-  QMainWindow State: 000000ff00000000fd00000004000000000000034a000003bdfc0200000008fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000007300fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000b0fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000001f000003bd000000fb00fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c000002610000000100000272000003bdfc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073000000001f000003bd000000d100fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e1000001970000000300000f0000000060fc0100000002fb0000000800540069006d0065000000000000000f000000059a00fffffffb0000000800540069006d006501000000000000045000000000000000000000040b000003bd00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730000000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd0000000400000000000002f8000003bdfc0200000008fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000007300fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000b0fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000001f000003bd000000fb00fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c000002610000000100000272000003bdfc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073000000001f000003bd000000d100fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e1000001970000000300000f0000000060fc0100000002fb0000000800540069006d0065000000000000000f000000059a00fffffffb0000000800540069006d006501000000000000045000000000000000000000045d000003bd00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730000000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Time:
@@ -911,4 +911,4 @@ Window Geometry:
     collapsed: true
   Width: 1884
   X: 0
-  Y: 1059
+  Y: 986
