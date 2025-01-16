@@ -639,7 +639,8 @@ class VelocityControllerNode:
                 rospy.logerr("An error occurred while saving the states of the particles: {}".format(traceback.format_exc()))
                 return False
             
-            rospy.loginfo("The {} states of the particles are saved to the file: {}".format(state_type, file_path))
+            if save:
+                rospy.loginfo("The {} states of the particles are saved to the file: {}".format(state_type, file_path))
             return True                
         else:
             rospy.logerr("The current full state of the particles is not available yet!")
@@ -704,15 +705,30 @@ class VelocityControllerNode:
         return dlo_state
         
     def save_state_dict_to_csv(self, state_dict, file_path):
-        # Save the state dictionary to a csv file
-        # The file path is given as the argument
-        # Create a DataFrame from the dictionary
+        """
+        Save the state dictionary to a CSV file. If a file with the given 
+        file_path already exists, a suffix (_1, _2, etc.) will be appended
+        to prevent overwriting.
+
+        :param state_dict: Dictionary containing states to be saved.
+        :param file_path:  Full path (directory + filename) for the CSV file.
+        """
+        # Check if file already exists
+        if os.path.exists(file_path):
+            base, extension = os.path.splitext(file_path)
+            counter = 1
+            # Keep adding suffix until no file with that name exists
+            while os.path.exists(file_path):
+                file_path = f"{base}_{counter}{extension}"
+                counter += 1
+        
+        # Create the DataFrame from the dictionary
         df = pd.DataFrame(state_dict)
-    
+
         # Sort the DataFrame by 'id' in ascending order
         df.sort_values(by='id', ascending=True, inplace=True)
 
-        # Save the DataFrame to the output file
+        # Save the DataFrame to the CSV file
         df.to_csv(file_path, index=False)
 
     def read_state_dict_from_csv(self, file):
@@ -1996,7 +2012,8 @@ class VelocityControllerNode:
                         # Disable the path planning with pre-saved paths to allow automatic replanning
                         self.path_planning_pre_saved_paths_enabled = False
                         
-                        # Update the initial state as the current state w/out saving it
+                        # Update the initial state as the current state 
+                        # w/out saving it, because it'll be logged in the update_path_status_timer_callback
                         self.full_states_setter_n_saver(state_type="initial", save=False)
                         
                         # Resetting the planned path variables will force replanning
