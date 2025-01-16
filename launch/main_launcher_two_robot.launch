@@ -26,8 +26,12 @@
 
 <arg name="dlo_node_console_logs" default="log"/>
 
-<arg name="robot_1_id" default="0"/>
-<arg name="robot_2_id" default="39"/>
+<!-- FOR TENT BUILDING -->
+<arg name="robot_1_id" default="5"/>
+<arg name="robot_2_id" default="34"/>
+<!-- FOR MINGRUI YU SCENES WHICH HOLDS FROM ENDS -->
+<!-- <arg name="robot_1_id" default="0"/> -->
+<!-- <arg name="robot_2_id" default="39"/> -->
 
 <!-- Set this to false if you would like to launch the controller seperately -->
 <arg name="launch_controller" default="true" /> 
@@ -54,21 +58,32 @@
     <!-- <node type="dlo_simulator_stiff_rods_node" name="$(arg simulation_name)" pkg="dlo_simulator_stiff_rods" output="screen"> -->
         <rosparam param="dlo_visualization_mode"                    subst_value="true">4</rosparam>
         <rosparam param="dlo_markers_topic_name"                    subst_value="true">dlo_markers</rosparam>
-        <rosparam param="point_marker_scale"                        subst_value="true">0.005</rosparam>
+
         <rosparam param="point_marker_color_rgba"                   subst_value="true">[1.0,1.0,1.0,0.7]</rosparam>
-        <rosparam param="line_marker_scale_multiplier"              subst_value="true">2.0</rosparam>
         <rosparam param="line_marker_color_rgba"                    subst_value="true">[0.0, 0.0, 0.0, 1.0]</rosparam>
-        <rosparam param="frame_marker_scale"                        subst_value="true">0.001</rosparam>
-        <rosparam param="frame_marker_axis_length"                  subst_value="true">0.01</rosparam>
 
         <rosparam param="rb_visualization_mode"                     subst_value="true">2</rosparam>
         <rosparam param="rb_markers_topic_name"                     subst_value="true">rigid_body_markers</rosparam>
-        <rosparam param="rb_line_marker_scale_multiplier"           subst_value="true">0.2</rosparam>
-        <rosparam param="rb_line_marker_color_rgba"                 subst_value="true">[0.5, 1.0, 0.5, 0.025]</rosparam>
-        <rosparam param="rb_mesh_marker_color_rgba"                 subst_value="true">[0.5, 1.0, 0.5, 0.25]</rosparam>
-
-        <rosparam param="min_dist_line_marker_scale_multiplier"     subst_value="true">0.5</rosparam>
+        <rosparam param="rb_line_marker_color_rgba"                 subst_value="true">[0.5, 1.0, 0.5, 0.025]</rosparam>        
         <rosparam param="min_dist_line_marker_color_rgba"           subst_value="true">[0.0, 0.0, 0.0, 1.0]</rosparam>
+
+        <!-- FOR TENT BUILDING -->
+        <rosparam param="point_marker_scale"                        subst_value="true">0.025</rosparam>
+        <rosparam param="line_marker_scale_multiplier"              subst_value="true">10.0</rosparam>
+        <rosparam param="frame_marker_scale"                        subst_value="true">0.005</rosparam>
+        <rosparam param="frame_marker_axis_length"                  subst_value="true">0.05</rosparam>
+        <rosparam param="rb_line_marker_scale_multiplier"           subst_value="true">0.2</rosparam>
+        <rosparam param="rb_mesh_marker_color_rgba"                 subst_value="true">[0.5, 1.0, 0.5, 0.5]</rosparam>
+        <rosparam param="min_dist_line_marker_scale_multiplier"     subst_value="true">2.5</rosparam>
+
+        <!-- FOR MINGRUI YU SCENES -->
+        <!-- <rosparam param="point_marker_scale"                        subst_value="true">0.005</rosparam> -->
+        <!-- <rosparam param="line_marker_scale_multiplier"              subst_value="true">2.0</rosparam> -->
+        <!-- <rosparam param="frame_marker_scale"                        subst_value="true">0.001</rosparam> -->
+        <!-- <rosparam param="frame_marker_axis_length"                  subst_value="true">0.01</rosparam> -->
+        <!-- <rosparam param="rb_line_marker_scale_multiplier"           subst_value="true">0.2</rosparam> -->
+        <!-- <rosparam param="rb_mesh_marker_color_rgba"                 subst_value="true">[0.5, 1.0, 0.5, 0.25]</rosparam> -->
+        <!-- <rosparam param="min_dist_line_marker_scale_multiplier"     subst_value="true">0.5</rosparam> -->
     </node>
 
 </group>

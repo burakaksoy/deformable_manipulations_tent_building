@@ -19,9 +19,13 @@ dlo_zero_stretch_stiffness: 1.0e+7
 # Stiffness values for the DLO 
 
 # # ---------------------------------------------
-# Tent Building - stiffness values
+# Tent Building - stiffness values (STIFF TENT POLE)
 dlo_young_modulus: 30.0e+9 # 30.0e+9 # 3.0e+7 # E, elasticity modulus (unit: Pa?)
 dlo_torsion_modulus: 10.0e+9 # 10.0e+9 # 1.0e+7 # G, Shear modulus in classical phsysics. (unit: Pa?)
+
+# # Tent Building - stiffness values (ROPE)
+# dlo_young_modulus: 3.0e+6 # 30.0e+9 # 3.0e+7 # E, elasticity modulus (unit: Pa?)
+# dlo_torsion_modulus: 1.0e+6 # 10.0e+9 # 1.0e+7 # G, Shear modulus in classical phsysics. (unit: Pa?)
 # # ---------------------------------------------
 
 # # ---------------------------------------------
@@ -59,18 +63,28 @@ use_zero_stretch_stiffness: true
 # and dlo_zero_stretch_stiffness parameter will be used as a scalar multiplier
 
 # Global artificial velocity damping coefficients. Defaults to 0.0. 
-global_damp_coeff_v: 1.1e-0 # 1.1e-0 # 9.9e-1 # 5.9e-1 # 0.0 # 5.9e-1 # 2.1e-4; // 0.9e-3
-global_damp_coeff_w: 1.1e-0 # 0.9e-1 # 0.9e-2 # 0.9e-3 # 0.0 # 0.9e-3 # 2.1e-4;
+global_damp_coeff_v: 1.1e-1 # 1.1e-0 # 1.1e-0 # 9.9e-1 # 5.9e-1 # 0.0 # 5.9e-1 # 2.1e-4; // 0.9e-3
+global_damp_coeff_w: 1.1e-1 # 1.1e-0 # 0.9e-1 # 0.9e-2 # 0.9e-3 # 0.0 # 0.9e-3 # 2.1e-4;
 
 ## DLO INITIAL TRANSFORMATIONS 
 # DLO Initial Transformations (By Default, the dlo is laying in +y-axis to -y-axis direction centered at the origin)
 # initial_height: 0.0 # initial dlo height from ground (m) (Deprecated, use dlo_translation instead)
 
 # ---------------------------------------------
-# For Tent Building
-dlo_translation: [0, 1, 1.5] # [0.675, 0.0, 2.0] # [0.33, 0.37, 2.2] # [0, 0, 0]
+# # For Tent Building (SIMULATION)
+# dlo_translation: [0, 1, 1.5] # [0.675, 0.0, 2.0] # [0.33, 0.37, 2.2] # [0, 0, 0]
+# dlo_rotationAxis: [0, 0, 1] # [1, 0, 0]
+# dlo_rotationAngle: 1.5708 # 1.508 # 1.5708 # Radians
+
+# For Tent Building Real Scene (STIFF)
+dlo_translation: [1.9, 1.75, 0.7] 
 dlo_rotationAxis: [0, 0, 1] # [1, 0, 0]
 dlo_rotationAngle: 1.5708 # 1.508 # 1.5708 # Radians
+
+# # For Tent Building Real Scene (ROPE)
+# dlo_translation: [1.9, 1.5, 1] 
+# dlo_rotationAxis: [0, 0, 1] # [1, 0, 0]
+# dlo_rotationAngle: 1.5708 # 1.508 # 1.5708 # Radians
 # ---------------------------------------------
 
 # ---------------------------------------------
@@ -138,7 +152,8 @@ dlo_rotationAngle: 1.5708 # 1.508 # 1.5708 # Radians
 
 # dlo_scale: [1, 1, 1] # NOT USED, use dlo_l and dlo_r parameters instead
 
-custom_static_particles: [0,39] # [0,39] # [5,34] # [0,27] # specify the particle (segment) ids to set as static
+custom_static_particles: [5,34] # specify the particle (segment) ids to set as static (FOR TENT BUILDING)
+# custom_static_particles: [0,39] # specify the particle (segment) ids to set as static (FOR MINGRUI YU EXPERIMENTS)
 # Note: we also create an odom subscriber for each custom static particle to update their poses online.
 # Note: The specified ids must be in range of "dlo_num_segments" parameter.
 
@@ -171,7 +186,10 @@ min_dist_to_rb_pub_rate: 50.0 # Hz, frequency to publish minimum distances to th
 # rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/DloOnCylinderUnitBox.json
 # rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/DloOnCylinderVaseUnitBox.json
 # rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/DloOnFloor.json
-rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/TentBuilding.json
+# rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/TentBuilding.json
+
+# Real Tent Building Scene
+rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/TentBuildingReal.json
 
 # Scenes for Corridor Maneuver
 # rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/l_shape_corridor_width_0.8.json

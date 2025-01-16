@@ -22,9 +22,15 @@
 
     <arg name="is_collision_handling_enabled"  default="true"/>
 
-    <arg name="line_marker_scale_multiplier"  default="1.0"/>
+    <!-- TENT BUILDING EXPERIMENTS -->
+    <arg name="line_marker_scale_multiplier"  default="2.0"/>
     <arg name="line_marker_alpha"  default="0.7"/>
-    <arg name="min_dist_line_marker_scale_multiplier"  default="0.025"/>
+    <arg name="min_dist_line_marker_scale_multiplier"  default="1.0"/> 
+
+    <!-- MINGRUI YU EXPERIMENTS -->
+    <!-- <arg name="line_marker_scale_multiplier"  default="1.0"/> -->
+    <!-- <arg name="line_marker_alpha"  default="0.7"/> -->
+    <!-- <arg name="min_dist_line_marker_scale_multiplier"  default="0.025"/>  -->
 
     <!-- x -->
     <group>

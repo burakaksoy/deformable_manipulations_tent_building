@@ -2,6 +2,7 @@
 nominal_control_enabled: True # default:True
 obstacle_avoidance_enabled: True # default:True 
 stress_avoidance_enabled: True # default:True 
+# NOTE: To test the controller without triggering the planning see the path planning parameters below as well!
 
 # if the control output is invalid for this time, the controller stops.
 # If set to less than or equal to zero, the controller does not stop.
@@ -12,9 +13,13 @@ valid_control_output_wait_timeout: 5.0 # (seconds)
 ## Nominal Velocity controller parameters
 
 # Nominal Controller Gains [x,y,z, Rx,Ry,Rz]
+kp: [0.5,0.5,0.5, 0.75,0.75,0.75] # For Tent Building Scenes(STIFF)
+# kp: [0.5,0.5,0.5, 0.15,0.15,0.15] # For Tent Building Scenes(ROPE)
+# kp: [0.5,0.5,0.5, 0.75,0.75,0.75] # For Mingrui Yu's scenes
+
 # kp: [0.05,0.05,0.025, 0.15,0.15,0.15]
 # kp: [1.0,1.0,1.0, 1.5,1.5,1.5]
-kp: [0.5,0.5,0.5, 0.75,0.75,0.75]
+
 # kp: [0.03,0.03,0.03, 0.05,0.05,0.05]
 # kp: [0.02,0.02,0.02, 0.1,0.1,0.1]
 # kp: [0.06,0.06,0.03, 0.03,0.03,0.03]
@@ -29,9 +34,17 @@ tip_particles: [0,39]
 ## ----------------------------------------------------------------------------------------
 # Each element holds [[x,y,z],[Rx,Ry,Rz(euler angles in degrees)]]
 ## ---------------------------------------------
-# For TENT BUILDING
-target_poses: [[[-1, -1, 0.14], [5,   0, 90]],
-               [[ 1, -1, 0.14], [175, 0, 90]]]
+# # For TENT BUILDING (SIMULATION)
+# target_poses: [[[-1, -1, 0.14], [5,   0, 90]],
+#                [[ 1, -1, 0.14], [175, 0, 90]]]
+
+# For TENT BUILDING REAL (STIFF TENT POLE)
+target_poses: [[[0.9, 3.8, 0.24], [15,   0, 90]],
+               [[2.9, 3.8, 0.24], [165, 0, 90]]]
+
+# # For TENT BUILDING REAL (ROPE)
+# target_poses: [[[0.9, 3.8, 0.34], [0,   0, 90]],
+#                [[2.9, 3.8, 0.34], [180, 0, 90]]]
 ## ---------------------------------------------
 
 ## ---------------------------------------------
@@ -182,7 +195,13 @@ initial_state_file: ""
 ## ----------------------------------------------------------------------------------------
 # The target state file is used to load the target poses of the tent pole
 # If not specified, the target poses are expected to manually set using the set_n_save_target_state service
-target_state_file: "" 
+# target_state_file: "" 
+
+# TENT BUILDING REAL (STIFF TENT POLE)
+target_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/tent_building_stiff_real_target_states.csv"
+
+# # TENT BUILDING REAL (ROPE)
+# target_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/tent_building_rope_real_target_states.csv"
 
 # MINGRUI YU SIMULATION SCENES STATES
 # target_state_file: "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/mingrui_yu_scene_1_target_states.csv"
@@ -226,8 +245,14 @@ max_angular_acceleration: 0.2 # 0.5  # [rad/s^2]
 
 # Acceptable error for the target pose to consider the target is reached successfully
 # If the average error is less than this value, the target is not considered as reached
-acceptable_pos_err_avr_norm: 0.01 # 0.05 # 0.1 # 0.2 # [m] # note: d_obstacle_offset is added to this value ,NOPE it is not added
-acceptable_ori_err_avr_norm: 0.05 # 0.01 # 0.1 # [rad] 
+
+# For Tent Building Scenes
+acceptable_pos_err_avr_norm: 0.05 # [m] # note: d_obstacle_offset is added to this value ,NOPE it is not added
+acceptable_ori_err_avr_norm: 0.05 # [rad] (0.05 rad = 2.86 degrees)
+
+# # For the Mingrui Yu's scenes
+# acceptable_pos_err_avr_norm: 0.01 # [m] # note: d_obstacle_offset is added to this value ,NOPE it is not added
+# acceptable_ori_err_avr_norm: 0.05 # 0.01 # 0.1 # [rad] 
 
 # Convergence time limit for the controller
 # If the error changes are less than the convergence thresholds in the last "convergence_wait_timeout" seconds,
@@ -240,15 +265,24 @@ k_low_pass_convergence: 0.9 # low pass filter coefficient for the ratio of minim
 # Convergence threshold of the controller
 # If the average error changes less than this value in the last "convergence_wait_timeout" seconds,
 # the controller is considered to be converged or stuck
-convergence_threshold_pos: 1e-5 # 1e-7 [m]
-convergence_threshold_ori: 1e-2 # [rad]
+
+# For Tent Building Scenes
+convergence_threshold_pos: 1e-4 # 1e-7 [m]
+convergence_threshold_ori: 1e-2 # [rad] (1e-2 rad = 0.57 degrees)
+
+# # For Mingrui Yu's scenes
+# convergence_threshold_pos: 1e-5 # 1e-7 [m]
+# convergence_threshold_ori: 1e-2 # [rad] (1e-2 rad = 0.57 degrees)
 ## ----------------------------------------------------------------------------------------
 
 ## ----------------------------------------------------------------------------------------
 ## Path planning parameters
 path_tracking_control_enabled: True # default: True
-
 path_planning_tesseract_enabled: True # default: False # For Tesseract Path planning
+
+# # To test the controller without triggering the planning
+# path_tracking_control_enabled: False # default: True
+# path_planning_tesseract_enabled: False # default: False # For Tesseract Path planning
 
 # Is repanning_allowed. If True, replanning is allowed when the controller is converged withouth success (i.e. got stuck)
 replanning_allowed: True # default: True 
@@ -276,8 +310,11 @@ kd_path_tracking: [0.0,0.0,0.0, 0.0,0.0,0.0]
 # the path tracking controller smoothly to the nominal controller
 # when the robot is close to the end of path. 
 # See: https://www.desmos.com/calculator/lw1rirjtab
-d_path_tracking_start_switch_off_distance: 0.1 # 0.35 # the distance from the end of the path to start switching off the path tracking controller
-d_path_tracking_complete_switch_off_distance: 0.01 # the distance from the end of the path to completely switch off the path tracking controller
+d_path_tracking_start_switch_off_distance: 0.1 # 0.35 # the distance from the end of the path to start switching off the path tracking controller (For Tent Building Scenes)
+d_path_tracking_complete_switch_off_distance: 0.01 # the distance from the end of the path to completely switch off the path tracking controller (For Tent Building Scenes)
+
+# d_path_tracking_start_switch_off_distance: 0.1 # 0.35 # the distance from the end of the path to start switching off the path tracking controller (For Mingrui Yu's scenes)
+# d_path_tracking_complete_switch_off_distance: 0.01 # the distance from the end of the path to completely switch off the path tracking controller (For Mingrui Yu's scenes)
 
 # Feedforward velocity scale factors for the path tracking controller
 # These values are multiplied with the maximum velocity limits to scale down the velocity commands of the path tracking
@@ -343,18 +380,22 @@ automatic_tent_pole_max_links: 20
 # Minimum number of links allowed for the automatic creation of the URDF
 automatic_tent_pole_min_links: 2 
 
-dlo_approximation_error_threshold: 0.02 # m per original simulation segment
+dlo_approximation_error_threshold: 0.06 # m per original simulation segment (For Tent Building Real Scenes)
+# dlo_approximation_error_threshold: 0.02 # m per original simulation segment (For Mingrui Yu's scenes)
 
 # coll_depth_to_try_remove: In case of the automatic creation of the URDF is in collision with the environment, the URDF is modified to avoid the collision maximum by this value:
 coll_depth_to_try_remove: 0.1 # m # FOR TENT BUILDING SCENES (REAL)
 # coll_depth_to_try_remove: 0.007 # m # FOR MINGRUI YU SCENES
 
 # The limits of the environment in the x, y, and z directions for the initial end of the DLO.
-environment_limits_xyz: [-0.5, 0.5, -0.5, 0.5, 0, 1.0] # [min_x, max_x, min_y, max_y, min_z, max_z] in meters
+environment_limits_xyz: [0.0, 4.0, 0.0, 5.0, 0, 3.0] # [min_x, max_x, min_y, max_y, min_z, max_z] in meters # For Tent Building Scenes (REAL)
+# environment_limits_xyz: [-0.5, 0.5, -0.5, 0.5, 0, 1.0] # [min_x, max_x, min_y, max_y, min_z, max_z] in meters # For Mingrui Yu's scenes
 
 # The limits of the revolute joint angles in the x, y, and z directions in degrees in the approximation model
 # joint_angle_limits_xyz_deg: [-45, 45, -45, 45, -20, 20] # [min_x, max_x, min_y, max_y, min_z, max_z] in degrees
-joint_angle_limits_xyz_deg: [-55, 55, -55, 55, -20, 20] # [min_x, max_x, min_y, max_y, min_z, max_z] in degrees
+# joint_angle_limits_xyz_deg: [-55, 55, -55, 55, -20, 20] # [min_x, max_x, min_y, max_y, min_z, max_z] in degrees # For Tent Building Scenes (REAL - STIFF)
+joint_angle_limits_xyz_deg: [-175, 175, -175, 175, -20, 20] # [min_x, max_x, min_y, max_y, min_z, max_z] in degrees # For Tent Building Scenes (REAL - ROPE)
+# joint_angle_limits_xyz_deg: [-55, 55, -55, 55, -20, 20] # [min_x, max_x, min_y, max_y, min_z, max_z] in degrees # For Mingrui Yu's scenes
 
 ## ------------------------------------------------------------------------------------------------------
 
@@ -366,13 +407,13 @@ path_planning_pre_saved_paths_enabled: False # default: False # For Pre-saved Pa
 # For Simulation "1","2","3","4", 
 # experiments_scene_id: "1"
 
-# For Real Experiments ("0" for TASK 1, "2" for TASK 2, "6" for TASK 3)
+# For Mingrui Yu Real Experiments ("0" for TASK 1, "2" for TASK 2, "6" for TASK 3)
 # experiments_scene_id: "0" # TASK 1
 # experiments_scene_id: "2" # TASK 2
 # experiments_scene_id: "6" # TASK 3
 # experiments_scene_id: "7" # TASK 4
 
-# Dlo type of the experiment (For simulation assign to None or Comment out, For Real Experiments assign "1", "4", "5")
+# Dlo type of the experiment (For simulation assign to None or Comment out, For Mingrui Yu Real Experiments assign "1", "4", "5")
 experiments_dlo_type: "5" 
 
 # experiments_range: The pre-saved experiments has a range, e.g 1-100, in the directory make sure the paths exist given this range
@@ -386,7 +427,7 @@ experiments_range: [1,20]
 # Given the directory below we assume there exists sub folders with names "scene_<experiments_scene_id>"
 # experiments_saved_paths_directory: "~/catkin_ws_deformable/src/deformable_manipulations_tent_building/src/tesseract_planner/generated_plans_i9_10885h"
 # experiments_saved_paths_directory: "~/catkin_ws_deformable/src/deformable_manipulations_tent_building/src/tesseract_planner/generated_plans_i9_10885h_10_segments"
-experiments_saved_paths_directory: "~/catkin_ws_deformable/src/deformable_manipulations_tent_building/src/tesseract_planner/generated_plans_real_demo" # For Real Experiments
+experiments_saved_paths_directory: "~/catkin_ws_deformable/src/deformable_manipulations_tent_building/src/tesseract_planner/generated_plans_real_demo" # For Mingrui Yu Real Experiments
 
 ## ------------------------------------------------------------------------------------------------------
 
@@ -396,11 +437,13 @@ experiments_saved_paths_directory: "~/catkin_ws_deformable/src/deformable_manipu
 k_low_pass_min_d: 0.1 # low pass filter coefficient for the ratio of minimum distance values of the previous values (Must be between [0,1])
 
 # offset distance from the obstacles
-d_obstacle_offset: 0.002 # 0.004 # 0.05 # (meter) 
-# d_obstacle_offset: 0.01 # 0.004 # 0.05 # (meter) 
+# For the Tent Building Scenes
+d_obstacle_offset: 0.1 # 0.05 # (meter) # safety offset distance from the obstacles
+d_obstacle_freezone: 0.5 # (meter) # further than this distance, no obstacles considered by the controller 
 
-d_obstacle_freezone: 0.1 # GOOD 0.3 # (meter) # further than this distance, no obstacles considered by the controller 
-# d_obstacle_freezone: 0.03 # GOOD 0.3 # (meter) # further than this distance, no obstacles considered by the controller 
+# # # For Mingrui Yu's scenes
+# d_obstacle_offset: 0.002 # 0.004 # 0.05 # (meter) # safety offset distance from the obstacles
+# d_obstacle_freezone: 0.1 # GOOD 0.3 # (meter) # further than this distance, no obstacles considered by the controller 
 
 # alpha(h) function obstacle avoidance coefficients OLD
 # see: https://www.desmos.com/calculator/hc6lc7nzkk for the function visualizations
