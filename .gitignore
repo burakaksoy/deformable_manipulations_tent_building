@@ -59,5 +59,30 @@ src/CMakeLists.txt
 
 logs/*
 
-*_initial_states.csv
-*_target_states.csv
+# *_initial_states.csv
+# *_target_states.csv
+
+# # Ignore only numeric starting files 
+# [0-9]*_initial_states.csv 
+# [0-9]*_target_states.csv
+
+# Ignore files starting with a timestamp in the format 'YYYY-MM-DD-HH-MM-SS'
+# followed by '_target_states.csv'. The timestamp format is based on the 
+# output of the `get_system_timestamp` function, which generates filenames 
+# with the current date and time (e.g., '2025-01-14-15-30-45_target_states.csv').
+#
+# This pattern ensures that only files with this specific naming convention 
+# are ignored, while other files (e.g., those starting with letters or numbers 
+# not in the timestamp format) are not affected.
+#
+# Pattern explanation:
+#   [0-9][0-9][0-9][0-9]    Matches the 4-digit year (e.g., '2025')
+#   -[0-9][0-9]             Matches the 2-digit month (e.g., '01')
+#   -[0-9][0-9]             Matches the 2-digit day (e.g., '14')
+#   -[0-9][0-9]             Matches the 2-digit hour (e.g., '15')
+#   -[0-9][0-9]             Matches the 2-digit minute (e.g., '30')
+#   -[0-9][0-9]             Matches the 2-digit second (e.g., '45')
+#   *_target_states.csv     Matches the specific filename suffix '_target_states.csv'
+
+[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-[0-9][0-9]-[0-9][0-9]-[0-9][0-9]*_target_states.csv
+[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-[0-9][0-9]-[0-9][0-9]-[0-9][0-9]*_initial_states.csv
