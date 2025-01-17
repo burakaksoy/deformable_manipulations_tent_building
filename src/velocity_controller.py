@@ -134,11 +134,33 @@ class VelocityControllerNode:
         self.info_pub_wildcard_scalar = rospy.Publisher("~info_wildcard_scalar", Float32, queue_size=10)
         rospy.sleep(0.1)  # Small delay to ensure publishers are fully set up
 
-        # Create an (odom) Publisher for each static particle (i.e. held particles by the robots) as control output to them.
-        self.odom_publishers = {}
-        for particle in self.custom_static_particles:
-            self.odom_publishers[particle] = rospy.Publisher(self.odom_topic_prefix + str(particle), Odometry, queue_size=10)
-            rospy.sleep(0.1)  # Small delay to ensure publishers are fully set up
+        self.real_robot_mode_enabled = rospy.get_param("~real_robot_mode_enabled", False) # Flag to enable/disable the real robot mode
+        
+        if not self.real_robot_mode_enabled:
+            # Create an (odom) Publisher for each static particle (i.e. held particles by the robots) as control output to them.
+            self.odom_publishers = {}
+            for particle in self.custom_static_particles:
+                self.odom_publishers[particle] = rospy.Publisher(self.odom_topic_prefix + str(particle), Odometry, queue_size=10)
+                rospy.sleep(0.1)  # Small delay to ensure publishers are fully set up
+        else:
+            # Read the real robot topics and create the publishers
+            self.robot_command_topic_names = rospy.get_param("~robot_command_topic_names", [])
+            rospy.loginfo("robot_command_topic_names: " + str(self.robot_command_topic_names))
+            
+            # The number of robot_command_topic_names should be equal to the number of custom static particles in the DLO simulation
+            if len(self.robot_command_topic_names) != len(self.custom_static_particles):
+                rospy.logerr("The number of robot_command_topic_names should be equal to the number of custom static particles in the DLO simulation.\n" +
+                              "The number of custom_static_particles: " + str(len(self.custom_static_particles)) + "\n" +
+                                "The number of robot_command_topic_names: " + str(len(self.robot_command_topic_names)))
+                rospy.signal_shutdown("The number of robot_command_topic_names should be equal to the number of custom static particles in the DLO simulation.")
+                
+            # Create a (twist) Publisher for each static particle (i.e. held particles by the robots) as control output to them.
+            # Note that the order of the robot_command_topic_names should be the same as the order of the custom_static_particles!!
+            self.twist_publishers = {}
+            for i, particle in enumerate(self.custom_static_particles):
+                self.twist_publishers[particle] = rospy.Publisher(self.robot_command_topic_names[i], Twist, queue_size=10)
+                rospy.sleep(0.1)
+            
 
         self.delta_x = rospy.get_param("/perturbation_publisher/delta_x", 0.1) # m
         self.delta_y = rospy.get_param("/perturbation_publisher/delta_y", 0.1) # m
@@ -2168,7 +2190,10 @@ class VelocityControllerNode:
                         self.control_outputs_last[particle][3:6] = axis_angle
 
                         # Publish
-                        self.odom_publishers[particle].publish(odom)
+                        if not self.real_robot_mode_enabled:
+                            self.odom_publishers[particle].publish(odom)
+                        else:
+                            self.twist_publishers[particle].publish(odom.twist.twist)
                     else:
                         self.control_outputs[particle] = np.zeros(6)
 
@@ -2200,7 +2225,11 @@ class VelocityControllerNode:
             odom.twist.twist.angular.z = 0.0
 
             # Publish
-            self.odom_publishers[particle].publish(odom)
+            if not self.real_robot_mode_enabled:
+                self.odom_publishers[particle].publish(odom)
+            else:
+                self.twist_publishers[particle].publish(odom.twist.twist)
+
 
     def wrench_to_numpy(self, wrench):
         """

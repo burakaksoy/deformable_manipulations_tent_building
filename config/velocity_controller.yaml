@@ -7,6 +7,22 @@ stress_avoidance_enabled: True # default:True
 # if the control output is invalid for this time, the controller stops.
 # If set to less than or equal to zero, the controller does not stop.
 valid_control_output_wait_timeout: 5.0 # (seconds) 
+# valid_control_output_wait_timeout: 0.0 # (seconds) (To disable the timeout, set to less than or equal to zero)
+
+## ----------------------------------------------------------------------------------------
+
+## ----------------------------------------------------------------------------------------
+real_robot_mode_enabled: True # default: False # If True, the real robot is used, publish the commands to the real robot as geometry_msgs/Twist messages
+
+# The topic names to publish the twist messages for the real robots
+# The order is important, the first robot is assumed to control the first custom static particle id in the DLO simulation, The second robot is assumed to control the second custom static particle id in the DLO simulation etc.
+# The number of robot_command_topic_names should be equal to the number of custom static particles in the DLO simulation, otherwise it will raise an error.
+# If the real_robot_mode_enabled is False, the robot_command_topic_names are ignored.
+robot_command_topic_names:
+  - "/oarbot_silver/cmd_vel"
+  - "/oarbot_blue/cmd_vel"
+
+
 ## ----------------------------------------------------------------------------------------
 
 ## ----------------------------------------------------------------------------------------
