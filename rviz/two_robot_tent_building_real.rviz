@@ -1,0 +1,2141 @@
+Panels:
+  - Class: rviz/Displays
+    Help Height: 138
+    Name: Displays
+    Property Tree Widget:
+      Expanded:
+        - /Global Options1
+        - /Status1
+        - /Odometry1/Shape1
+        - /Odometry-51/Shape1
+        - /Odometry-341/Shape1
+        - /Odometry-Centroid of Custom Static Particles1/Shape1
+        - /Odometry-Projected Centroid of Custom Static Particles1/Shape1
+        - /TF1/Frames1
+        - /RobotModel-d11/Status1
+        - /DepthCloud-OarbotBlue1/Auto Size1
+        - /DepthCloud-OarbotSilver1/Auto Size1
+      Splitter Ratio: 0.8635743260383606
+    Tree Height: 1801
+  - Class: rviz/Selection
+    Name: Selection
+  - Class: rviz/Tool Properties
+    Expanded:
+      - /2D Pose Estimate1
+      - /2D Nav Goal1
+      - /Publish Point1
+    Name: Tool Properties
+    Splitter Ratio: 0.5886790156364441
+  - Class: rviz/Views
+    Expanded:
+      - /Current View1
+      - /Ortho1
+    Name: Views
+    Splitter Ratio: 0.5
+  - Class: rviz/Time
+    Name: Time
+    SyncMode: 0
+    SyncSource: OverheadCamera Nuc
+Preferences:
+  PromptSaveOnExit: true
+Toolbars:
+  toolButtonStyle: 2
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Alpha: 1
+      Cell Size: 1
+      Class: rviz/Grid
+      Color: 186; 189; 182
+      Enabled: true
+      Line Style:
+        Line Width: 0.029999999329447746
+        Value: Lines
+      Name: Grid
+      Normal Cell Count: 0
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Plane: XY
+      Plane Cell Count: 10
+      Reference Frame: <Fixed Frame>
+      Value: true
+    - Alpha: 1
+      Cell Size: 0.10000000149011612
+      Class: rviz/Grid
+      Color: 186; 189; 182
+      Enabled: false
+      Line Style:
+        Line Width: 0.029999999329447746
+        Value: Lines
+      Name: Grid-small
+      Normal Cell Count: 0
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Plane: XY
+      Plane Cell Count: 10
+      Reference Frame: <Fixed Frame>
+      Value: false
+    - Alpha: 0.5
+      Cell Size: 0.10000000149011612
+      Class: rviz/Grid
+      Color: 160; 160; 164
+      Enabled: false
+      Line Style:
+        Line Width: 0.029999999329447746
+        Value: Lines
+      Name: Grid
+      Normal Cell Count: 0
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Plane: XZ
+      Plane Cell Count: 100
+      Reference Frame: <Fixed Frame>
+      Value: false
+    - Alpha: 1
+      Class: rviz/Axes
+      Enabled: true
+      Length: 1
+      Name: Axes
+      Radius: 0.10000000149011612
+      Reference Frame: <Fixed Frame>
+      Show Trail: false
+      Value: true
+    - Alpha: 0.5
+      Class: rviz/Axes
+      Enabled: false
+      Length: 0.10000000149011612
+      Name: Axes-small
+      Radius: 0.009999999776482582
+      Reference Frame: <Fixed Frame>
+      Show Trail: false
+      Value: false
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /rigid_body_markers
+      Name: MarkerArray-RigidBodies
+      Namespaces:
+        "": true
+      Queue Size: 1
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /dlo_markers
+      Name: MarkerArray-DLO
+      Namespaces:
+        "": true
+      Queue Size: 1
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: false
+      Marker Topic: /dlo_markers_5_x
+      Name: MarkerArray-DLO-5-X
+      Namespaces:
+        {}
+      Queue Size: 1
+      Value: false
+    - Class: rviz/MarkerArray
+      Enabled: false
+      Marker Topic: /dlo_markers_5_y
+      Name: MarkerArray-DLO-5-Y
+      Namespaces:
+        {}
+      Queue Size: 1
+      Value: false
+    - Class: rviz/MarkerArray
+      Enabled: false
+      Marker Topic: /dlo_markers_5_z
+      Name: MarkerArray-DLO-5-Z
+      Namespaces:
+        {}
+      Queue Size: 1
+      Value: false
+    - Class: rviz/MarkerArray
+      Enabled: false
+      Marker Topic: /dlo_markers_5_th_x
+      Name: MarkerArray-DLO-5-TH-X
+      Namespaces:
+        {}
+      Queue Size: 1
+      Value: false
+    - Class: rviz/MarkerArray
+      Enabled: false
+      Marker Topic: /dlo_markers_5_th_y
+      Name: MarkerArray-DLO-5-TH-Y
+      Namespaces:
+        {}
+      Queue Size: 1
+      Value: false
+    - Class: rviz/MarkerArray
+      Enabled: false
+      Marker Topic: /dlo_markers_5_th_z
+      Name: MarkerArray-DLO-5-TH-Z
+      Namespaces:
+        {}
+      Queue Size: 1
+      Value: false
+    - Class: rviz/MarkerArray
+      Enabled: false
+      Marker Topic: /dlo_markers_34_x
+      Name: MarkerArray-DLO-34-X
+      Namespaces:
+        {}
+      Queue Size: 1
+      Value: false
+    - Class: rviz/MarkerArray
+      Enabled: false
+      Marker Topic: /dlo_markers_34_y
+      Name: MarkerArray-DLO-34-Y
+      Namespaces:
+        {}
+      Queue Size: 1
+      Value: false
+    - Class: rviz/MarkerArray
+      Enabled: false
+      Marker Topic: /dlo_markers_34_z
+      Name: MarkerArray-DLO-34-Z
+      Namespaces:
+        {}
+      Queue Size: 1
+      Value: false
+    - Class: rviz/MarkerArray
+      Enabled: false
+      Marker Topic: /dlo_markers_34_th_x
+      Name: MarkerArray-DLO-34-TH-X
+      Namespaces:
+        {}
+      Queue Size: 1
+      Value: false
+    - Class: rviz/MarkerArray
+      Enabled: false
+      Marker Topic: /dlo_markers_34_th_y
+      Name: MarkerArray-DLO-34-TH-Y
+      Namespaces:
+        {}
+      Queue Size: 1
+      Value: false
+    - Class: rviz/MarkerArray
+      Enabled: false
+      Marker Topic: /dlo_markers_34_th_z
+      Name: MarkerArray-DLO-34-TH-Z
+      Namespaces:
+        {}
+      Queue Size: 1
+      Value: false
+    - Class: rviz/MarkerArray
+      Enabled: false
+      Marker Topic: /min_dist_markers
+      Name: MarkerArray-MinDist
+      Namespaces:
+        {}
+      Queue Size: 1
+      Value: false
+    - Class: rviz/MarkerArray
+      Enabled: false
+      Marker Topic: /min_dist_markers_5_x
+      Name: MarkerArray-MinDist-5-X
+      Namespaces:
+        {}
+      Queue Size: 1
+      Value: false
+    - Class: rviz/MarkerArray
+      Enabled: false
+      Marker Topic: /min_dist_markers_5_y
+      Name: MarkerArray-MinDist-5-Y
+      Namespaces:
+        {}
+      Queue Size: 1
+      Value: false
+    - Class: rviz/MarkerArray
+      Enabled: false
+      Marker Topic: /min_dist_markers_5_z
+      Name: MarkerArray-MinDist-5-Z
+      Namespaces:
+        {}
+      Queue Size: 1
+      Value: false
+    - Class: rviz/MarkerArray
+      Enabled: false
+      Marker Topic: /min_dist_markers_5_th_x
+      Name: MarkerArray-MinDist-5-TH-X
+      Namespaces:
+        {}
+      Queue Size: 1
+      Value: false
+    - Class: rviz/MarkerArray
+      Enabled: false
+      Marker Topic: /min_dist_markers_5_th_y
+      Name: MarkerArray-MinDist-5-TH-Y
+      Namespaces:
+        {}
+      Queue Size: 1
+      Value: false
+    - Class: rviz/MarkerArray
+      Enabled: false
+      Marker Topic: /min_dist_markers_5_th_z
+      Name: MarkerArray-MinDist-5-TH-Z
+      Namespaces:
+        {}
+      Queue Size: 1
+      Value: false
+    - Class: rviz/MarkerArray
+      Enabled: false
+      Marker Topic: /min_dist_markers_34_x
+      Name: MarkerArray-MinDist-34-X
+      Namespaces:
+        {}
+      Queue Size: 1
+      Value: false
+    - Class: rviz/MarkerArray
+      Enabled: false
+      Marker Topic: /min_dist_markers_34_y
+      Name: MarkerArray-MinDist-34-Y
+      Namespaces:
+        {}
+      Queue Size: 1
+      Value: false
+    - Class: rviz/MarkerArray
+      Enabled: false
+      Marker Topic: /min_dist_markers_34_z
+      Name: MarkerArray-MinDist-34-Z
+      Namespaces:
+        {}
+      Queue Size: 1
+      Value: false
+    - Class: rviz/MarkerArray
+      Enabled: false
+      Marker Topic: /min_dist_markers_34_th_x
+      Name: MarkerArray-MinDist-34-TH-X
+      Namespaces:
+        {}
+      Queue Size: 1
+      Value: false
+    - Class: rviz/MarkerArray
+      Enabled: false
+      Marker Topic: /min_dist_markers_34_th_y
+      Name: MarkerArray-MinDist-34-TH-Y
+      Namespaces:
+        {}
+      Queue Size: 1
+      Value: false
+    - Class: rviz/MarkerArray
+      Enabled: false
+      Marker Topic: /min_dist_markers_34_th_z
+      Name: MarkerArray-MinDist-34-TH-Z
+      Namespaces:
+        {}
+      Queue Size: 1
+      Value: false
+    - Class: rviz/Marker
+      Enabled: false
+      Marker Topic: /fake_odom_publisher_gui_info_0_target_pose
+      Name: Marker
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: false
+    - Angle Tolerance: 0.20000000298023224
+      Class: rviz/Odometry
+      Covariance:
+        Orientation:
+          Alpha: 0.5
+          Color: 255; 255; 127
+          Color Style: Unique
+          Frame: Local
+          Offset: 1
+          Scale: 1
+          Value: true
+        Position:
+          Alpha: 0.30000001192092896
+          Color: 204; 51; 204
+          Scale: 1
+          Value: true
+        Value: false
+      Enabled: false
+      Keep: 1000
+      Name: Odometry
+      Position Tolerance: 0.009999999776482582
+      Queue Size: 9
+      Shape:
+        Alpha: 1
+        Axes Length: 0.20000000298023224
+        Axes Radius: 0.019999999552965164
+        Color: 255; 25; 0
+        Head Length: 0.30000001192092896
+        Head Radius: 0.10000000149011612
+        Shaft Length: 1
+        Shaft Radius: 0.05000000074505806
+        Value: Axes
+      Topic: /odom_particle_0
+      Unreliable: false
+      Value: false
+    - Angle Tolerance: 0.20000000298023224
+      Class: rviz/Odometry
+      Covariance:
+        Orientation:
+          Alpha: 0.5
+          Color: 255; 255; 127
+          Color Style: Unique
+          Frame: Local
+          Offset: 1
+          Scale: 1
+          Value: true
+        Position:
+          Alpha: 0.30000001192092896
+          Color: 204; 51; 204
+          Scale: 1
+          Value: true
+        Value: false
+      Enabled: true
+      Keep: 80
+      Name: Odometry-5
+      Position Tolerance: 0.10000000149011612
+      Queue Size: 9
+      Shape:
+        Alpha: 1
+        Axes Length: 0.15000000596046448
+        Axes Radius: 0.029999999329447746
+        Color: 255; 25; 0
+        Head Length: 0.30000001192092896
+        Head Radius: 0.10000000149011612
+        Shaft Length: 1
+        Shaft Radius: 0.05000000074505806
+        Value: Axes
+      Topic: /odom_particle_5
+      Unreliable: false
+      Value: true
+    - Angle Tolerance: 0.20000000298023224
+      Class: rviz/Odometry
+      Covariance:
+        Orientation:
+          Alpha: 0.5
+          Color: 255; 255; 127
+          Color Style: Unique
+          Frame: Local
+          Offset: 1
+          Scale: 1
+          Value: true
+        Position:
+          Alpha: 0.30000001192092896
+          Color: 204; 51; 204
+          Scale: 1
+          Value: true
+        Value: false
+      Enabled: true
+      Keep: 80
+      Name: Odometry-34
+      Position Tolerance: 0.10000000149011612
+      Queue Size: 9
+      Shape:
+        Alpha: 1
+        Axes Length: 0.15000000596046448
+        Axes Radius: 0.029999999329447746
+        Color: 255; 25; 0
+        Head Length: 0.30000001192092896
+        Head Radius: 0.10000000149011612
+        Shaft Length: 1
+        Shaft Radius: 0.05000000074505806
+        Value: Axes
+      Topic: /odom_particle_34
+      Unreliable: false
+      Value: true
+    - Alpha: 0.5
+      Buffer Length: 1
+      Class: rviz/Path
+      Color: 252; 233; 79
+      Enabled: false
+      Head Diameter: 0.30000001192092896
+      Head Length: 0.20000000298023224
+      Length: 0.014999999664723873
+      Line Style: Billboards
+      Line Width: 0.004999999888241291
+      Name: Path
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Pose Color: 255; 85; 255
+      Pose Style: None
+      Queue Size: 10
+      Radius: 0.0010000000474974513
+      Shaft Diameter: 0.10000000149011612
+      Shaft Length: 0.10000000149011612
+      Topic: /tent_building_velocity_controller/planned_path
+      Unreliable: false
+      Value: false
+    - Alpha: 0.5
+      Buffer Length: 1
+      Class: rviz/Path
+      Color: 25; 255; 0
+      Enabled: true
+      Head Diameter: 0.30000001192092896
+      Head Length: 0.20000000298023224
+      Length: 0.009999999776482582
+      Line Style: Billboards
+      Line Width: 0.019999999552965164
+      Name: Path-5
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Pose Color: 255; 85; 255
+      Pose Style: None
+      Queue Size: 10
+      Radius: 0.0010000000474974513
+      Shaft Diameter: 0.10000000149011612
+      Shaft Length: 0.10000000149011612
+      Topic: /tent_building_velocity_controller/planned_path_particle_5
+      Unreliable: false
+      Value: true
+    - Alpha: 0.5
+      Buffer Length: 1
+      Class: rviz/Path
+      Color: 0; 255; 255
+      Enabled: true
+      Head Diameter: 0.30000001192092896
+      Head Length: 0.20000000298023224
+      Length: 0.009999999776482582
+      Line Style: Billboards
+      Line Width: 0.019999999552965164
+      Name: Path-34
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Pose Color: 255; 85; 255
+      Pose Style: None
+      Queue Size: 10
+      Radius: 0.0010000000474974513
+      Shaft Diameter: 0.10000000149011612
+      Shaft Length: 0.10000000149011612
+      Topic: /tent_building_velocity_controller/planned_path_particle_34
+      Unreliable: false
+      Value: true
+    - Angle Tolerance: 0
+      Class: rviz/Odometry
+      Covariance:
+        Orientation:
+          Alpha: 0.5
+          Color: 255; 255; 127
+          Color Style: Unique
+          Frame: Local
+          Offset: 1
+          Scale: 1
+          Value: true
+        Position:
+          Alpha: 0.30000001192092896
+          Color: 204; 51; 204
+          Scale: 1
+          Value: true
+        Value: false
+      Enabled: false
+      Keep: 1
+      Name: Odometry-Centroid of Custom Static Particles
+      Position Tolerance: 0
+      Queue Size: 9
+      Shape:
+        Alpha: 1
+        Axes Length: 0.30000001192092896
+        Axes Radius: 0.05000000074505806
+        Color: 255; 25; 0
+        Head Length: 0.30000001192092896
+        Head Radius: 0.10000000149011612
+        Shaft Length: 1
+        Shaft Radius: 0.05000000074505806
+        Value: Axes
+      Topic: /tent_building_velocity_controller/info_centroid_pose_of_particles
+      Unreliable: false
+      Value: false
+    - Angle Tolerance: 0
+      Class: rviz/Odometry
+      Covariance:
+        Orientation:
+          Alpha: 0.5
+          Color: 255; 255; 127
+          Color Style: Unique
+          Frame: Local
+          Offset: 1
+          Scale: 1
+          Value: true
+        Position:
+          Alpha: 0.30000001192092896
+          Color: 204; 51; 204
+          Scale: 1
+          Value: true
+        Value: false
+      Enabled: false
+      Keep: 1
+      Name: Odometry-Projected Centroid of Custom Static Particles
+      Position Tolerance: 0
+      Queue Size: 9
+      Shape:
+        Alpha: 1
+        Axes Length: 0.4000000059604645
+        Axes Radius: 0.05000000074505806
+        Color: 255; 25; 0
+        Head Length: 0.30000001192092896
+        Head Radius: 0.10000000149011612
+        Shaft Length: 1
+        Shaft Radius: 0.05000000074505806
+        Value: Axes
+      Topic: /tent_building_velocity_controller/info_centroid_pose_of_particles_projected_on_path
+      Unreliable: false
+      Value: false
+    - Alpha: 1
+      Class: rviz/PointStamped
+      Color: 204; 41; 204
+      Enabled: false
+      History Length: 1
+      Name: PointStamped-CurrentTargetOnPath
+      Queue Size: 10
+      Radius: 0.014999999664723873
+      Topic: /tent_building_velocity_controller/info_planned_path_current_target_point
+      Unreliable: false
+      Value: false
+    - Alpha: 1
+      Class: rviz/PointStamped
+      Color: 204; 41; 204
+      Enabled: true
+      History Length: 1
+      Name: PointStamped-CurrentTargetOnPath-5
+      Queue Size: 10
+      Radius: 0.05000000074505806
+      Topic: /tent_building_velocity_controller/info_planned_path_current_target_point_particle_5
+      Unreliable: false
+      Value: true
+    - Alpha: 1
+      Class: rviz/PointStamped
+      Color: 204; 41; 204
+      Enabled: true
+      History Length: 1
+      Name: PointStamped-CurrentTargetOnPath-34
+      Queue Size: 10
+      Radius: 0.05000000074505806
+      Topic: /tent_building_velocity_controller/info_planned_path_current_target_point_particle_34
+      Unreliable: false
+      Value: true
+    - Class: rviz/Camera
+      Enabled: true
+      Image Rendering: background and overlay
+      Image Topic: /nuc/rgb/image_rect_color
+      Name: OverheadCamera Nuc
+      Overlay Alpha: 0.5
+      Queue Size: 2
+      Transport Hint: raw
+      Unreliable: false
+      Value: true
+      Visibility:
+        Aruco PoseWithCovariance d1: true
+        Aruco PoseWithCovariance d2: true
+        Axes: true
+        Axes-small: true
+        DepthCloud-OarbotBlue: true
+        DepthCloud-OarbotSilver: true
+        Grid: true
+        Grid-small: true
+        LaserScan d1: true
+        LaserScan d2: true
+        Marker: true
+        Marker /oarbot_blue_RedundancyResolverBall: true
+        Marker /oarbot_silver_RedundancyResolverBall: true
+        MarkerArray-DLO: true
+        MarkerArray-DLO-34-TH-X: true
+        MarkerArray-DLO-34-TH-Y: true
+        MarkerArray-DLO-34-TH-Z: true
+        MarkerArray-DLO-34-X: true
+        MarkerArray-DLO-34-Y: true
+        MarkerArray-DLO-34-Z: true
+        MarkerArray-DLO-5-TH-X: true
+        MarkerArray-DLO-5-TH-Y: true
+        MarkerArray-DLO-5-TH-Z: true
+        MarkerArray-DLO-5-X: true
+        MarkerArray-DLO-5-Y: true
+        MarkerArray-DLO-5-Z: true
+        MarkerArray-MinDist: true
+        MarkerArray-MinDist-34-TH-X: true
+        MarkerArray-MinDist-34-TH-Y: true
+        MarkerArray-MinDist-34-TH-Z: true
+        MarkerArray-MinDist-34-X: true
+        MarkerArray-MinDist-34-Y: true
+        MarkerArray-MinDist-34-Z: true
+        MarkerArray-MinDist-5-TH-X: true
+        MarkerArray-MinDist-5-TH-Y: true
+        MarkerArray-MinDist-5-TH-Z: true
+        MarkerArray-MinDist-5-X: true
+        MarkerArray-MinDist-5-Y: true
+        MarkerArray-MinDist-5-Z: true
+        MarkerArray-RigidBodies: true
+        Obstacles d1: true
+        Obstacles d2: true
+        Odometry: true
+        Odometry d1: true
+        Odometry d2: true
+        Odometry-34: true
+        Odometry-5: true
+        Odometry-Centroid of Custom Static Particles: true
+        Odometry-Human: true
+        Odometry-Projected Centroid of Custom Static Particles: true
+        Path: true
+        Path-34: true
+        Path-5: true
+        PointStamped-CurrentTargetOnPath: true
+        PointStamped-CurrentTargetOnPath-34: true
+        PointStamped-CurrentTargetOnPath-5: true
+        Polygon Workspace Oarbot_Blue (d1): true
+        Polygon Workspace Oarbot_Silver (d2): true
+        Polygon d1 obstacles BASE: true
+        Polygon d1 obstacles HARD thres: true
+        Polygon d1 obstacles SOFT thres: true
+        Polygon d2 obstacles BASE: true
+        Polygon d2 obstacles HARD thres: true
+        Polygon d2 obstacles SOFT thres: true
+        RobotModel-OarbotBlue: true
+        RobotModel-OarbotBlueCamera: true
+        RobotModel-OarbotSilver: true
+        RobotModel-OarbotSilverCamera: true
+        RobotModel-OverheadCamera: true
+        RobotModel-d1: true
+        RobotModel-d2: true
+        TF: true
+        TF-body-fused: true
+        TF-body-goals: true
+        TF-body-raw: true
+        Value: true
+        WrenchStamped-OarbotBlue: true
+        WrenchStamped-OarbotSilver: true
+      Zoom Factor: 1.100000023841858
+    - Alpha: 1
+      Class: rviz/Polygon
+      Color: 164; 0; 0
+      Enabled: true
+      Name: Polygon Workspace Oarbot_Silver (d2)
+      Queue Size: 1
+      Topic: /d2/viz_workspace_polygon
+      Unreliable: false
+      Value: true
+    - Alpha: 1
+      Class: rviz/Polygon
+      Color: 164; 0; 0
+      Enabled: true
+      Name: Polygon Workspace Oarbot_Blue (d1)
+      Queue Size: 1
+      Topic: /d1/viz_workspace_polygon
+      Unreliable: false
+      Value: true
+    - Class: rviz/TF
+      Enabled: true
+      Filter (blacklist): ""
+      Filter (whitelist): cage_rgb_camera_link|d1_tf_base_link|d2_tf_base_link|j2n6s300_right_end_effector|j2n6s300_left_end_effector|j2n6s300_right_link_base|j2n6s300_left_link_base
+      Frame Timeout: 15
+      Frames:
+        All Enabled: true
+        cage_rgb_camera_link:
+          Value: true
+        d1_tf_base_link:
+          Value: true
+        d2_tf_base_link:
+          Value: true
+        j2n6s300_left_end_effector:
+          Value: true
+        j2n6s300_left_link_base:
+          Value: true
+        j2n6s300_right_end_effector:
+          Value: true
+        j2n6s300_right_link_base:
+          Value: true
+      Marker Alpha: 1
+      Marker Scale: 0.5
+      Name: TF
+      Show Arrows: false
+      Show Axes: true
+      Show Names: true
+      Tree:
+        cage_rgb_camera_link:
+          {}
+        d1_tf_base_link:
+          {}
+        d2_tf_base_link:
+          {}
+        j2n6s300_left_end_effector:
+          {}
+        j2n6s300_left_link_base:
+          {}
+        j2n6s300_right_end_effector:
+          {}
+        j2n6s300_right_link_base:
+          {}
+      Update Interval: 0
+      Value: true
+    - Alpha: 1
+      Class: rviz/RobotModel
+      Collision Enabled: false
+      Enabled: true
+      Links:
+        All Links Enabled: true
+        Expand Joint Details: false
+        Expand Link Details: false
+        Expand Tree: false
+        Link Tree Style: Links in Alphabetic Order
+        cage_camera_base:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        cage_camera_body:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        cage_camera_visor:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+      Name: RobotModel-OverheadCamera
+      Robot Description: /nuc/azure_description
+      TF Prefix: ""
+      Update Interval: 0
+      Value: true
+      Visual Enabled: true
+    - Alpha: 1
+      Class: rviz/RobotModel
+      Collision Enabled: false
+      Enabled: true
+      Links:
+        All Links Enabled: true
+        Expand Joint Details: false
+        Expand Link Details: false
+        Expand Tree: false
+        Link Tree Style: Links in Alphabetic Order
+        d1_tf_arm_mount:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        d1_tf_base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        d1_tf_chassis_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        d1_tf_front_b_mount:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        d1_tf_front_bumper_mount:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        d1_tf_front_c_mount:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        d1_tf_front_laser:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        d1_tf_front_laser_mount:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        d1_tf_front_left_wheel_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        d1_tf_front_mount:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        d1_tf_front_right_wheel_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        d1_tf_imu_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        d1_tf_microstrain_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        d1_tf_mid_mount:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        d1_tf_rear_b_mount:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        d1_tf_rear_c_mount:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        d1_tf_rear_laser:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        d1_tf_rear_laser_mount:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        d1_tf_rear_left_wheel_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        d1_tf_rear_mount:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        d1_tf_rear_right_wheel_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        d1_tf_robot_arm_riser_aruco_mount_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        d1_tf_robot_arm_riser_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        d1_tf_robot_arm_riser_uwb_mount_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        d1_tf_uwb_tag_1_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        d1_tf_uwb_tag_2_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+      Name: RobotModel-d1
+      Robot Description: /d1/robot_description
+      TF Prefix: ""
+      Update Interval: 0
+      Value: true
+      Visual Enabled: true
+    - Alpha: 1
+      Class: rviz/RobotModel
+      Collision Enabled: false
+      Enabled: true
+      Links:
+        All Links Enabled: true
+        Expand Joint Details: false
+        Expand Link Details: false
+        Expand Tree: false
+        Link Tree Style: Links in Alphabetic Order
+        d2_tf_arm_mount:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        d2_tf_base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        d2_tf_chassis_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        d2_tf_front_b_mount:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        d2_tf_front_bumper_mount:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        d2_tf_front_c_mount:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        d2_tf_front_laser:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        d2_tf_front_laser_mount:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        d2_tf_front_left_wheel_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        d2_tf_front_mount:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        d2_tf_front_right_wheel_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        d2_tf_imu_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        d2_tf_microstrain_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        d2_tf_mid_mount:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        d2_tf_rear_b_mount:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        d2_tf_rear_c_mount:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        d2_tf_rear_laser:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        d2_tf_rear_laser_mount:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        d2_tf_rear_left_wheel_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        d2_tf_rear_mount:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        d2_tf_rear_right_wheel_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        d2_tf_robot_arm_riser_aruco_mount_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        d2_tf_robot_arm_riser_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        d2_tf_robot_arm_riser_uwb_mount_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        d2_tf_uwb_tag_1_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        d2_tf_uwb_tag_2_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+      Name: RobotModel-d2
+      Robot Description: /d2/robot_description
+      TF Prefix: ""
+      Update Interval: 0
+      Value: true
+      Visual Enabled: true
+    - Alpha: 1
+      Class: rviz/RobotModel
+      Collision Enabled: false
+      Enabled: true
+      Links:
+        All Links Enabled: true
+        Expand Joint Details: false
+        Expand Link Details: false
+        Expand Tree: false
+        Link Tree Style: Links in Alphabetic Order
+        j2n6s300_right_adapter:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        j2n6s300_right_end_effector:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        j2n6s300_right_ft_robot_side_connector:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        j2n6s300_right_gripper:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        j2n6s300_right_gripper_adapter:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        j2n6s300_right_link_1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        j2n6s300_right_link_2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        j2n6s300_right_link_3:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        j2n6s300_right_link_4:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        j2n6s300_right_link_5:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        j2n6s300_right_link_6:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        j2n6s300_right_link_base:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        j2n6s300_right_link_finger_1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        j2n6s300_right_link_finger_2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        j2n6s300_right_link_finger_3:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        j2n6s300_right_link_finger_tip_1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        j2n6s300_right_link_finger_tip_2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        j2n6s300_right_link_finger_tip_3:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        j2n6s300_right_mounting:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        j2n6s300_right_robot_side:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        j2n6s300_right_wrench:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        root_right_arm:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+      Name: RobotModel-OarbotBlue
+      Robot Description: /oarbot_blue/robot_description
+      TF Prefix: ""
+      Update Interval: 0
+      Value: true
+      Visual Enabled: true
+    - Alpha: 1
+      Class: rviz/RobotModel
+      Collision Enabled: false
+      Enabled: true
+      Links:
+        All Links Enabled: true
+        Expand Joint Details: false
+        Expand Link Details: false
+        Expand Tree: false
+        Link Tree Style: Links in Alphabetic Order
+        j2n6s300_left_adapter:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        j2n6s300_left_end_effector:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        j2n6s300_left_ft_robot_side_connector:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        j2n6s300_left_gripper:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        j2n6s300_left_gripper_adapter:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        j2n6s300_left_link_1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        j2n6s300_left_link_2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        j2n6s300_left_link_3:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        j2n6s300_left_link_4:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        j2n6s300_left_link_5:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        j2n6s300_left_link_6:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        j2n6s300_left_link_base:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        j2n6s300_left_link_finger_1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        j2n6s300_left_link_finger_2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        j2n6s300_left_link_finger_3:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        j2n6s300_left_link_finger_tip_1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        j2n6s300_left_link_finger_tip_2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        j2n6s300_left_link_finger_tip_3:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        j2n6s300_left_mounting:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        j2n6s300_left_robot_side:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        j2n6s300_left_wrench:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        root_left_arm:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+      Name: RobotModel-OarbotSilver
+      Robot Description: /oarbot_silver/robot_description
+      TF Prefix: ""
+      Update Interval: 0
+      Value: true
+      Visual Enabled: true
+    - Alpha: 1
+      Class: rviz/RobotModel
+      Collision Enabled: false
+      Enabled: true
+      Links:
+        All Links Enabled: true
+        Expand Joint Details: false
+        Expand Link Details: false
+        Expand Tree: false
+        Link Tree Style: Links in Alphabetic Order
+        j2n6s300_right_camera_base:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        j2n6s300_right_camera_body:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        j2n6s300_right_camera_visor:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+      Name: RobotModel-OarbotBlueCamera
+      Robot Description: /oarbot_blue/azure_description
+      TF Prefix: ""
+      Update Interval: 0
+      Value: true
+      Visual Enabled: true
+    - Alpha: 1
+      Class: rviz/RobotModel
+      Collision Enabled: false
+      Enabled: true
+      Links:
+        All Links Enabled: true
+        Expand Joint Details: false
+        Expand Link Details: false
+        Expand Tree: false
+        Link Tree Style: Links in Alphabetic Order
+        j2n6s300_left_camera_base:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        j2n6s300_left_camera_body:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        j2n6s300_left_camera_visor:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+      Name: RobotModel-OarbotSilverCamera
+      Robot Description: /oarbot_silver/azure_description
+      TF Prefix: ""
+      Update Interval: 0
+      Value: true
+      Visual Enabled: true
+    - Alpha: 1
+      Auto Size:
+        Auto Size Factor: 1
+        Value: true
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 10
+        Min Value: -10
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz/DepthCloud
+      Color: 255; 255; 255
+      Color Image Topic: ""
+      Color Transformer: ""
+      Color Transport Hint: raw
+      Decay Time: 0
+      Depth Map Topic: /oarbot_blue/depth/image_rect_raw
+      Depth Map Transport Hint: raw
+      Enabled: true
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Min Color: 0; 0; 0
+      Name: DepthCloud-OarbotBlue
+      Occlusion Compensation:
+        Occlusion Time-Out: 30
+        Value: false
+      Position Transformer: ""
+      Queue Size: 5
+      Selectable: true
+      Size (Pixels): 3
+      Style: Flat Squares
+      Topic Filter: true
+      Use Fixed Frame: true
+      Use rainbow: true
+      Value: true
+    - Alpha: 1
+      Auto Size:
+        Auto Size Factor: 1
+        Value: true
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 10
+        Min Value: -10
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz/DepthCloud
+      Color: 255; 255; 255
+      Color Image Topic: ""
+      Color Transformer: ""
+      Color Transport Hint: raw
+      Decay Time: 0
+      Depth Map Topic: /oarbot_silver/depth/image_rect_raw
+      Depth Map Transport Hint: raw
+      Enabled: true
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Min Color: 0; 0; 0
+      Name: DepthCloud-OarbotSilver
+      Occlusion Compensation:
+        Occlusion Time-Out: 30
+        Value: false
+      Position Transformer: ""
+      Queue Size: 5
+      Selectable: true
+      Size (Pixels): 3
+      Style: Flat Squares
+      Topic Filter: true
+      Use Fixed Frame: true
+      Use rainbow: true
+      Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /oarbot_silver/constraint_marker
+      Name: Marker /oarbot_silver_RedundancyResolverBall
+      Namespaces:
+        "": true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /oarbot_blue/constraint_marker
+      Name: Marker /oarbot_blue_RedundancyResolverBall
+      Namespaces:
+        "": true
+      Queue Size: 100
+      Value: true
+    - Alpha: 1
+      Class: rviz/Polygon
+      Color: 245; 121; 0
+      Enabled: true
+      Name: Polygon d1 obstacles HARD thres
+      Queue Size: 10
+      Topic: /d1/viz_base_obs_dist_hard_thres
+      Unreliable: false
+      Value: true
+    - Alpha: 1
+      Class: rviz/Polygon
+      Color: 25; 255; 0
+      Enabled: true
+      Name: Polygon d1 obstacles SOFT thres
+      Queue Size: 10
+      Topic: /d1/viz_base_obs_dist_thres
+      Unreliable: false
+      Value: true
+    - Alpha: 1
+      Class: rviz/Polygon
+      Color: 239; 41; 41
+      Enabled: true
+      Name: Polygon d1 obstacles BASE
+      Queue Size: 10
+      Topic: /d1/viz_robots_d1_tf_base_link
+      Unreliable: false
+      Value: true
+    - Alpha: 1
+      Class: rviz/Polygon
+      Color: 245; 121; 0
+      Enabled: true
+      Name: Polygon d2 obstacles HARD thres
+      Queue Size: 10
+      Topic: /d2/viz_base_obs_dist_hard_thres
+      Unreliable: false
+      Value: true
+    - Alpha: 1
+      Class: rviz/Polygon
+      Color: 25; 255; 0
+      Enabled: true
+      Name: Polygon d2 obstacles SOFT thres
+      Queue Size: 10
+      Topic: /d2/viz_base_obs_dist_thres
+      Unreliable: false
+      Value: true
+    - Alpha: 1
+      Class: rviz/Polygon
+      Color: 239; 41; 41
+      Enabled: true
+      Name: Polygon d2 obstacles BASE
+      Queue Size: 10
+      Topic: /d2/viz_robots_d2_tf_base_link
+      Unreliable: false
+      Value: true
+    - Alpha: 1
+      Axes Length: 1
+      Axes Radius: 0.10000000149011612
+      Class: rviz/PoseWithCovariance
+      Color: 255; 25; 0
+      Covariance:
+        Orientation:
+          Alpha: 0.5
+          Color: 255; 255; 127
+          Color Style: Unique
+          Frame: Local
+          Offset: 1
+          Scale: 1
+          Value: true
+        Position:
+          Alpha: 0.30000001192092896
+          Color: 204; 51; 204
+          Scale: 1
+          Value: true
+        Value: true
+      Enabled: false
+      Head Length: 0.30000001192092896
+      Head Radius: 0.10000000149011612
+      Name: Aruco PoseWithCovariance d1
+      Queue Size: 10
+      Shaft Length: 1
+      Shaft Radius: 0.05000000074505806
+      Shape: Arrow
+      Topic: /nuc/Pose_d1_tf_base_link
+      Unreliable: false
+      Value: false
+    - Alpha: 1
+      Axes Length: 1
+      Axes Radius: 0.10000000149011612
+      Class: rviz/PoseWithCovariance
+      Color: 255; 25; 0
+      Covariance:
+        Orientation:
+          Alpha: 0.5
+          Color: 255; 255; 127
+          Color Style: Unique
+          Frame: Local
+          Offset: 1
+          Scale: 1
+          Value: true
+        Position:
+          Alpha: 0.30000001192092896
+          Color: 204; 51; 204
+          Scale: 1
+          Value: true
+        Value: true
+      Enabled: false
+      Head Length: 0.30000001192092896
+      Head Radius: 0.10000000149011612
+      Name: Aruco PoseWithCovariance d2
+      Queue Size: 10
+      Shaft Length: 1
+      Shaft Radius: 0.05000000074505806
+      Shape: Arrow
+      Topic: /nuc/Pose_d2_tf_base_link
+      Unreliable: false
+      Value: false
+    - Angle Tolerance: 0
+      Class: rviz/Odometry
+      Covariance:
+        Orientation:
+          Alpha: 0.5
+          Color: 255; 255; 127
+          Color Style: Unique
+          Frame: Local
+          Offset: 1
+          Scale: 1
+          Value: true
+        Position:
+          Alpha: 0.30000001192092896
+          Color: 204; 51; 204
+          Scale: 1
+          Value: true
+        Value: true
+      Enabled: false
+      Keep: 1
+      Name: Odometry d1
+      Position Tolerance: 0
+      Queue Size: 10
+      Shape:
+        Alpha: 1
+        Axes Length: 0.10000000149011612
+        Axes Radius: 0.10000000149011612
+        Color: 255; 25; 0
+        Head Length: 0.30000001192092896
+        Head Radius: 0.10000000149011612
+        Shaft Length: 1
+        Shaft Radius: 0.05000000074505806
+        Value: Axes
+      Topic: /d1/odometry/filtered
+      Unreliable: false
+      Value: false
+    - Angle Tolerance: 0
+      Class: rviz/Odometry
+      Covariance:
+        Orientation:
+          Alpha: 0.5
+          Color: 255; 255; 127
+          Color Style: Unique
+          Frame: Local
+          Offset: 1
+          Scale: 1
+          Value: true
+        Position:
+          Alpha: 0.30000001192092896
+          Color: 204; 51; 204
+          Scale: 1
+          Value: true
+        Value: true
+      Enabled: false
+      Keep: 1
+      Name: Odometry d2
+      Position Tolerance: 0
+      Queue Size: 10
+      Shape:
+        Alpha: 1
+        Axes Length: 0.10000000149011612
+        Axes Radius: 0.10000000149011612
+        Color: 255; 25; 0
+        Head Length: 0.30000001192092896
+        Head Radius: 0.10000000149011612
+        Shaft Length: 1
+        Shaft Radius: 0.05000000074505806
+        Value: Axes
+      Topic: /d2/odometry/filtered
+      Unreliable: false
+      Value: false
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 0.29440000653266907
+        Min Value: 0.29440000653266907
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz/LaserScan
+      Color: 0; 112; 255
+      Color Transformer: FlatColor
+      Decay Time: 0
+      Enabled: false
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Min Color: 0; 0; 0
+      Name: LaserScan d1
+      Position Transformer: XYZ
+      Queue Size: 10
+      Selectable: true
+      Size (Pixels): 3
+      Size (m): 0.029999999329447746
+      Style: Flat Squares
+      Topic: /d1/scan
+      Unreliable: false
+      Use Fixed Frame: true
+      Use rainbow: true
+      Value: false
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 0.29440000653266907
+        Min Value: 0.29440000653266907
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz/LaserScan
+      Color: 78; 154; 6
+      Color Transformer: FlatColor
+      Decay Time: 0
+      Enabled: false
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Min Color: 0; 0; 0
+      Name: LaserScan d2
+      Position Transformer: XYZ
+      Queue Size: 10
+      Selectable: true
+      Size (Pixels): 3
+      Size (m): 0.029999999329447746
+      Style: Flat Squares
+      Topic: /d2/scan
+      Unreliable: false
+      Use Fixed Frame: true
+      Use rainbow: true
+      Value: false
+    - Circles color: 170; 0; 0
+      Class: Obstacles
+      Enabled: false
+      Margin color: 0; 170; 0
+      Name: Obstacles d1
+      Opacity: 0.75
+      Queue Size: 10
+      Segments color: 170; 170; 0
+      Segments thickness: 0.05000000074505806
+      Topic: /d1/obstacles
+      Unreliable: false
+      Value: false
+    - Circles color: 170; 0; 0
+      Class: Obstacles
+      Enabled: false
+      Margin color: 0; 170; 0
+      Name: Obstacles d2
+      Opacity: 0.75
+      Queue Size: 10
+      Segments color: 170; 170; 0
+      Segments thickness: 0.05000000074505806
+      Topic: /d2/obstacles
+      Unreliable: false
+      Value: false
+    - Angle Tolerance: 0.10000000149011612
+      Class: rviz/Odometry
+      Covariance:
+        Orientation:
+          Alpha: 0.5
+          Color: 255; 255; 127
+          Color Style: Unique
+          Frame: Local
+          Offset: 1
+          Scale: 1
+          Value: true
+        Position:
+          Alpha: 0.30000001192092896
+          Color: 204; 51; 204
+          Scale: 1
+          Value: true
+        Value: true
+      Enabled: false
+      Keep: 1
+      Name: Odometry-Human
+      Position Tolerance: 0.10000000149011612
+      Queue Size: 10
+      Shape:
+        Alpha: 1
+        Axes Length: 0.20000000298023224
+        Axes Radius: 0.019999999552965164
+        Color: 255; 25; 0
+        Head Length: 0.30000001192092896
+        Head Radius: 0.10000000149011612
+        Shaft Length: 1
+        Shaft Radius: 0.05000000074505806
+        Value: Axes
+      Topic: /odometry/filtered
+      Unreliable: false
+      Value: false
+    - Class: rviz/TF
+      Enabled: true
+      Filter (blacklist): body_joint_neck_goal_left|body_joint_neck_goal_right
+      Filter (whitelist): body_joint_neck
+      Frame Timeout: 15
+      Frames:
+        All Enabled: false
+      Marker Alpha: 1
+      Marker Scale: 1
+      Name: TF-body-fused
+      Show Arrows: true
+      Show Axes: true
+      Show Names: true
+      Tree:
+        {}
+      Update Interval: 0
+      Value: true
+    - Class: rviz/TF
+      Enabled: true
+      Filter (blacklist): ""
+      Filter (whitelist): j2n6s300_left_body_joint_neck|j2n6s300_right_body_joint_neck
+      Frame Timeout: 15
+      Frames:
+        All Enabled: false
+      Marker Alpha: 1
+      Marker Scale: 0.5
+      Name: TF-body-raw
+      Show Arrows: false
+      Show Axes: true
+      Show Names: false
+      Tree:
+        {}
+      Update Interval: 0
+      Value: true
+    - Class: rviz/TF
+      Enabled: true
+      Filter (blacklist): ""
+      Filter (whitelist): body_joint_neck_goal_left|body_joint_neck_goal_right
+      Frame Timeout: 15
+      Frames:
+        All Enabled: false
+      Marker Alpha: 0.5
+      Marker Scale: 0.6000000238418579
+      Name: TF-body-goals
+      Show Arrows: true
+      Show Axes: true
+      Show Names: true
+      Tree:
+        {}
+      Update Interval: 0
+      Value: true
+    - Alpha: 1
+      Arrow Width: 0.20000000298023224
+      Class: rviz/WrenchStamped
+      Enabled: false
+      Force Arrow Scale: 0.10000000149011612
+      Force Color: 204; 51; 51
+      Hide Small Values: false
+      History Length: 10
+      Name: WrenchStamped-OarbotBlue
+      Queue Size: 10
+      Topic: /oarbot_blue/ft_sensor/j2n6s300_right/ft_sensor_readings/wrench_compensated_in_arm_base
+      Torque Arrow Scale: 0.20000000298023224
+      Torque Color: 204; 204; 51
+      Unreliable: false
+      Value: false
+    - Alpha: 1
+      Arrow Width: 0.20000000298023224
+      Class: rviz/WrenchStamped
+      Enabled: false
+      Force Arrow Scale: 0.10000000149011612
+      Force Color: 204; 51; 51
+      Hide Small Values: false
+      History Length: 10
+      Name: WrenchStamped-OarbotSilver
+      Queue Size: 10
+      Topic: /oarbot_silver/ft_sensor/j2n6s300_left/ft_sensor_readings/wrench_compensated_in_arm_base
+      Torque Arrow Scale: 0.20000000298023224
+      Torque Color: 204; 204; 51
+      Unreliable: false
+      Value: false
+  Enabled: true
+  Global Options:
+    Background Color: 255; 255; 255
+    Default Light: true
+    Fixed Frame: map
+    Frame Rate: 30
+  Name: root
+  Tools:
+    - Class: rviz/Interact
+      Hide Inactive Objects: true
+    - Class: rviz/MoveCamera
+    - Class: rviz/Select
+    - Class: rviz/FocusCamera
+    - Class: rviz/Measure
+    - Class: rviz/SetInitialPose
+      Theta std deviation: 0.2617993950843811
+      Topic: /initialpose
+      X std deviation: 0.5
+      Y std deviation: 0.5
+    - Class: rviz/SetGoal
+      Topic: /move_base_simple/goal
+    - Class: rviz/PublishPoint
+      Single click: true
+      Topic: /clicked_point
+  Value: true
+  Views:
+    Current:
+      Class: rviz/Orbit
+      Distance: 7.087379455566406
+      Enable Stereo Rendering:
+        Stereo Eye Separation: 0.05999999865889549
+        Stereo Focal Distance: 1
+        Swap Stereo Eyes: false
+        Value: false
+      Field of View: 0.7853981852531433
+      Focal Point:
+        X: 2.3194217681884766
+        Y: 1.740144968032837
+        Z: 0.2648911476135254
+      Focal Shape Fixed Size: false
+      Focal Shape Size: 0.05000000074505806
+      Invert Z Axis: false
+      Name: Current View
+      Near Clip Distance: 0.009999999776482582
+      Pitch: 0.5797977447509766
+      Target Frame: <Fixed Frame>
+      Yaw: 0.8303418159484863
+    Saved:
+      - Class: rviz/Orbit
+        Distance: 5.277319431304932
+        Enable Stereo Rendering:
+          Stereo Eye Separation: 0.05999999865889549
+          Stereo Focal Distance: 1
+          Swap Stereo Eyes: false
+          Value: false
+        Field of View: 0.7853981852531433
+        Focal Point:
+          X: 0.6961945295333862
+          Y: 0.0763276219367981
+          Z: 0.8635705709457397
+        Focal Shape Fixed Size: false
+        Focal Shape Size: 0.05000000074505806
+        Invert Z Axis: false
+        Name: Orbit
+        Near Clip Distance: 0.009999999776482582
+        Pitch: 0.6603982448577881
+        Target Frame: <Fixed Frame>
+        Yaw: 3.3554012775421143
+      - Angle: 0
+        Class: rviz/TopDownOrtho
+        Enable Stereo Rendering:
+          Stereo Eye Separation: 0.05999999865889549
+          Stereo Focal Distance: 1
+          Swap Stereo Eyes: false
+          Value: false
+        Invert Z Axis: false
+        Name: TopDownOrtho
+        Near Clip Distance: 0.009999999776482582
+        Scale: 527.9962768554688
+        Target Frame: <Fixed Frame>
+        X: 1.6960105895996094
+        Y: 0.12826421856880188
+      - Centre:
+          X: 0.24636539816856384
+          Y: -0.28447261452674866
+          Z: 0.7717583775520325
+        Class: rviz_ortho_view_controller/Ortho
+        Enable Stereo Rendering:
+          Stereo Eye Separation: 0.05999999865889549
+          Stereo Focal Distance: 1
+          Swap Stereo Eyes: false
+          Value: false
+        Invert Z Axis: false
+        Name: Ortho
+        Near Clip Distance: 0.009999999776482582
+        Plane: XZ
+        Scale: 686.60400390625
+        Target Frame: <Fixed Frame>
+      - Centre:
+          X: 0.24017000198364258
+          Y: -0.08117080479860306
+          Z: 1.0089763402938843
+        Class: rviz_ortho_view_controller/Ortho
+        Enable Stereo Rendering:
+          Stereo Eye Separation: 0.05999999865889549
+          Stereo Focal Distance: 1
+          Swap Stereo Eyes: false
+          Value: false
+        Invert Z Axis: false
+        Name: Ortho
+        Near Clip Distance: 0.009999999776482582
+        Orientation:
+          W: 0.5
+          X: 0.5
+          Y: -0.5
+          Z: -0.5
+        Plane: none
+        Scale: 450
+        Target Frame: <Fixed Frame>
+      - Class: rviz/Orbit
+        Distance: 4.644041061401367
+        Enable Stereo Rendering:
+          Stereo Eye Separation: 0.05999999865889549
+          Stereo Focal Distance: 1
+          Swap Stereo Eyes: false
+          Value: false
+        Field of View: 0.7853981852531433
+        Focal Point:
+          X: -0.24249958992004395
+          Y: 0.6019741892814636
+          Z: 0.16655774414539337
+        Focal Shape Fixed Size: false
+        Focal Shape Size: 0.05000000074505806
+        Invert Z Axis: false
+        Name: Orbit
+        Near Clip Distance: 0.009999999776482582
+        Pitch: 0.6303982734680176
+        Target Frame: <Fixed Frame>
+        Yaw: 3.370403289794922
+      - Class: rviz/Orbit
+        Distance: 6.360830307006836
+        Enable Stereo Rendering:
+          Stereo Eye Separation: 0.05999999865889549
+          Stereo Focal Distance: 1
+          Swap Stereo Eyes: false
+          Value: false
+        Field of View: 0.7853981852531433
+        Focal Point:
+          X: -1.7318536043167114
+          Y: -0.9593796133995056
+          Z: -0.06243230029940605
+        Focal Shape Fixed Size: false
+        Focal Shape Size: 0.05000000074505806
+        Invert Z Axis: false
+        Name: Orbit-Experiments
+        Near Clip Distance: 0.009999999776482582
+        Pitch: 0.7253990769386292
+        Target Frame: <Fixed Frame>
+        Yaw: 2.373535394668579
+      - Class: rviz/Orbit
+        Distance: 0.6006841063499451
+        Enable Stereo Rendering:
+          Stereo Eye Separation: 0.05999999865889549
+          Stereo Focal Distance: 1
+          Swap Stereo Eyes: false
+          Value: false
+        Field of View: 0.7853981852531433
+        Focal Point:
+          X: -0.09511720389127731
+          Y: 0.04302871227264404
+          Z: 0.20081178843975067
+        Focal Shape Fixed Size: false
+        Focal Shape Size: 0.05000000074505806
+        Invert Z Axis: false
+        Name: Orbit
+        Near Clip Distance: 0.009999999776482582
+        Pitch: 0.3197980523109436
+        Target Frame: <Fixed Frame>
+        Yaw: 1.1153209209442139
+      - Class: rviz/Orbit
+        Distance: 0.7785110473632812
+        Enable Stereo Rendering:
+          Stereo Eye Separation: 0.05999999865889549
+          Stereo Focal Distance: 1
+          Swap Stereo Eyes: false
+          Value: false
+        Field of View: 0.7853981852531433
+        Focal Point:
+          X: -0.06987443566322327
+          Y: 0.08249662071466446
+          Z: 0.1707882434129715
+        Focal Shape Fixed Size: false
+        Focal Shape Size: 0.05000000074505806
+        Invert Z Axis: false
+        Name: Orbit
+        Near Clip Distance: 0.009999999776482582
+        Pitch: 0.5847978591918945
+        Target Frame: <Fixed Frame>
+        Yaw: 5.99351167678833
+      - Class: rviz/Orbit
+        Distance: 0.4656064212322235
+        Enable Stereo Rendering:
+          Stereo Eye Separation: 0.05999999865889549
+          Stereo Focal Distance: 1
+          Swap Stereo Eyes: false
+          Value: false
+        Field of View: 0.7853981852531433
+        Focal Point:
+          X: -0.10194814950227737
+          Y: 0.12906835973262787
+          Z: 0.14341652393341064
+        Focal Shape Fixed Size: false
+        Focal Shape Size: 0.05000000074505806
+        Invert Z Axis: false
+        Name: Orbit
+        Near Clip Distance: 0.009999999776482582
+        Pitch: 0.34479784965515137
+        Target Frame: <Fixed Frame>
+        Yaw: 0.8052796125411987
+      - Class: rviz/Orbit
+        Distance: 0.4656064212322235
+        Enable Stereo Rendering:
+          Stereo Eye Separation: 0.05999999865889549
+          Stereo Focal Distance: 1
+          Swap Stereo Eyes: false
+          Value: false
+        Field of View: 0.7853981852531433
+        Focal Point:
+          X: -0.07090180367231369
+          Y: 0.09182296693325043
+          Z: 0.13355222344398499
+        Focal Shape Fixed Size: false
+        Focal Shape Size: 0.05000000074505806
+        Invert Z Axis: false
+        Name: Orbit
+        Near Clip Distance: 0.009999999776482582
+        Pitch: 0.3597978353500366
+        Target Frame: <Fixed Frame>
+        Yaw: 0.8502795696258545
+      - Class: rviz/Orbit
+        Distance: 0.6727662086486816
+        Enable Stereo Rendering:
+          Stereo Eye Separation: 0.05999999865889549
+          Stereo Focal Distance: 1
+          Swap Stereo Eyes: false
+          Value: false
+        Field of View: 0.7853981852531433
+        Focal Point:
+          X: 0.1500035524368286
+          Y: 0.12792843580245972
+          Z: 0.08615408837795258
+        Focal Shape Fixed Size: false
+        Focal Shape Size: 0.05000000074505806
+        Invert Z Axis: false
+        Name: Orbit
+        Near Clip Distance: 0.009999999776482582
+        Pitch: 0.599797785282135
+        Target Frame: <Fixed Frame>
+        Yaw: 5.123499393463135
+      - Class: rviz/Orbit
+        Distance: 0.662349283695221
+        Enable Stereo Rendering:
+          Stereo Eye Separation: 0.05999999865889549
+          Stereo Focal Distance: 1
+          Swap Stereo Eyes: false
+          Value: false
+        Field of View: 0.7853981852531433
+        Focal Point:
+          X: -0.007451032288372517
+          Y: 0.07962148636579514
+          Z: 0.10811998695135117
+        Focal Shape Fixed Size: false
+        Focal Shape Size: 0.05000000074505806
+        Invert Z Axis: false
+        Name: Orbit
+        Near Clip Distance: 0.009999999776482582
+        Pitch: 0.5847977995872498
+        Target Frame: <Fixed Frame>
+        Yaw: 5.303503513336182
+Window Geometry:
+  Displays:
+    collapsed: true
+  Height: 2089
+  Hide Left Dock: true
+  Hide Right Dock: false
+  OverheadCamera Nuc:
+    collapsed: false
+  QMainWindow State: 000000ff00000000fd0000000400000000000002df000007e4fc0200000008fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000007300fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000b0fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073000000001f000007e4000000fb00fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c000002610000000100000665000007e4fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fc0000001f000007e4000000fa01000028fa000000010100000003fb00000024004f007600650072006800650061006400430061006d0065007200610020004e007500630000000000ffffffff0000000000000000fb00000024004f007600650072006800650061006400430061006d0065007200610020004e007500630100000000ffffffff0000012a00fffffffb0000000a005600690065007700730100000c46000002720000011700fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e1000001970000000300000f0000000060fc0100000002fb0000000800540069006d0065000000000000000f000000052500fffffffb0000000800540069006d006501000000000000045000000000000000000000084c000007e400000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730000000000ffffffff0000000000000000
+  Selection:
+    collapsed: false
+  Time:
+    collapsed: false
+  Tool Properties:
+    collapsed: false
+  Views:
+    collapsed: false
+  Width: 3768
+  X: 0
+  Y: 34
