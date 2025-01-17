@@ -1,15 +1,16 @@
 #!/bin/bash
 sleep 1s;
 
-gnome-terminal --tab --title="ROSCORE" --command "bash -c \"source ~/.bashrc; killall gzclient && killall gzserver; roscore; exec bash\"";
-sleep 1s;
+# gnome-terminal --tab --title="ROSCORE" --command "bash -c \"source ~/.bashrc; killall gzclient && killall gzserver; roscore; exec bash\"";
+# sleep 1s;
 
 # gnome-terminal --tab --title="All" --command "bash -c \"source ~/.bashrc; roslaunch deformable_manipulations_tent_building main_launcher_two_robot.launch launch_controller:=false; exec bash\"";
 gnome-terminal --tab --title="All" --command "bash -c \"source ~/.bashrc; roslaunch deformable_manipulations_tent_building main_launcher_two_robot.launch is_remote:=true launch_controller:=false; exec bash\"";
 sleep 4s;
 
 # gnome-terminal --tab --title="RVIZ" --command "bash -c \"source ~/.bashrc; rosrun rviz rviz -d ~/catkin_ws_deformable/src/deformable_manipulations_tent_building/rviz/two_robot.rviz; exec bash\"";
-gnome-terminal --tab --title="RVIZ" --command "bash -c \"source ~/.bashrc; rosrun rviz rviz -d ~/catkin_ws_deformable/src/deformable_manipulations_tent_building/rviz/two_robot_tent_building.rviz; exec bash\"";
+# gnome-terminal --tab --title="RVIZ" --command "bash -c \"source ~/.bashrc; rosrun rviz rviz -d ~/catkin_ws_deformable/src/deformable_manipulations_tent_building/rviz/two_robot_tent_building.rviz; exec bash\"";
+gnome-terminal --tab --title="RVIZ" --command "bash -c \"source ~/.bashrc; rosrun rviz rviz -d ~/catkin_ws_deformable/src/deformable_manipulations_tent_building/rviz/two_robot_tent_building_real.rviz; exec bash\"";
 sleep 4s;
 
 gnome-terminal --tab --title="GUI" --command "bash -c \"source ~/.bashrc; rosrun dlo_simulator_stiff_rods test_gui.py; exec bash\"";
