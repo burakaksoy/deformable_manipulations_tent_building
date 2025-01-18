@@ -33,6 +33,8 @@
 <!-- <arg name="robot_1_id" default="0"/> -->
 <!-- <arg name="robot_2_id" default="39"/> -->
 
+<arg name="real_robot_mode_enabled" default="false"/>
+
 <!-- Set this to false if you would like to launch the controller seperately -->
 <arg name="launch_controller" default="true" /> 
 
@@ -143,7 +145,7 @@
 <!-- Obtain ODOM data from real robots instead of fake odom GUI -->
 
 <!-- Particle $(arg robot_1_id) -->
-<group>
+<group if="$(arg real_robot_mode_enabled)">
     <arg name="particle_id" value="$(arg robot_1_id)" />
     <!-- Utility node to publish where the ronot end-effector is at as a odom message -->
     <node type="tf_to_odom_node_advanced.py" name="tf_to_odom_node_$(arg particle_id)" pkg="topic_tf_transformers" output="screen">
@@ -166,7 +168,7 @@
 </group>
 
 <!-- Particle $(arg robot_2_id) -->
-<group>
+<group if="$(arg real_robot_mode_enabled)">
     <arg name="particle_id" value="$(arg robot_2_id)" />
     <!-- Utility node to publish where the ronot end-effector is at as a odom message -->
     <node type="tf_to_odom_node_advanced.py" name="tf_to_odom_node_$(arg particle_id)" pkg="topic_tf_transformers" output="screen">

@@ -19,8 +19,8 @@ real_robot_mode_enabled: True # default: False # If True, the real robot is used
 # The number of robot_command_topic_names should be equal to the number of custom static particles in the DLO simulation, otherwise it will raise an error.
 # If the real_robot_mode_enabled is False, the robot_command_topic_names are ignored.
 robot_command_topic_names:
-  - "/oarbot_silver/cmd_vel"
-  - "/oarbot_blue/cmd_vel"
+  - "/oarbot_silver/cmd_vel_world"
+  - "/oarbot_blue/cmd_vel_world"
 
 
 ## ----------------------------------------------------------------------------------------

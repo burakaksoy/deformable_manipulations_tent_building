@@ -5,7 +5,15 @@ sleep 1s;
 # sleep 1s;
 
 # gnome-terminal --tab --title="All" --command "bash -c \"source ~/.bashrc; roslaunch deformable_manipulations_tent_building main_launcher_two_robot.launch launch_controller:=false; exec bash\"";
-gnome-terminal --tab --title="All" --command "bash -c \"source ~/.bashrc; roslaunch deformable_manipulations_tent_building main_launcher_two_robot.launch is_remote:=true launch_controller:=false; exec bash\"";
+
+# gnome-terminal --tab --title="All" --command "bash -c \"source ~/.bashrc; 
+#                                                         roslaunch deformable_manipulations_tent_building main_launcher_two_robot.launch is_remote:=true launch_controller:=false; 
+#                                                         exec bash\"";
+
+gnome-terminal --tab --title="All" --command "bash -c \"source ~/.bashrc; 
+                                                        roslaunch deformable_manipulations_tent_building main_launcher_two_robot.launch is_remote:=true launch_controller:=false real_robot_mode_enabled:=true; 
+                                                        exec bash\"";
+
 sleep 4s;
 
 # gnome-terminal --tab --title="RVIZ" --command "bash -c \"source ~/.bashrc; rosrun rviz rviz -d ~/catkin_ws_deformable/src/deformable_manipulations_tent_building/rviz/two_robot.rviz; exec bash\"";
