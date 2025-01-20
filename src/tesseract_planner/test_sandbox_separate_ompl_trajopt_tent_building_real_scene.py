@@ -59,10 +59,10 @@ tesseract_planner = TesseractPlanner(collision_scene_json_file = json_file_path,
 # 6.    Approximation error threshold for the dlo state approximator
 
 # 1.
-# initial_full_state_file = "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/tent_building_rope_real_initial_states.csv"
-# target_full_state_file = "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/tent_building_rope_real_target_states.csv"
-initial_full_state_file = "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/tent_building_stiff_real_initial_states.csv"
-target_full_state_file = "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/tent_building_stiff_real_target_states.csv"
+initial_full_state_file = "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/tent_building_rope_real_initial_states.csv"
+target_full_state_file = "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/tent_building_rope_real_target_states.csv"
+# initial_full_state_file = "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/tent_building_stiff_real_initial_states.csv"
+# target_full_state_file = "/home/burak/catkin_ws_deformable/src/deformable_manipulations_tent_building/saved_states/tent_building_stiff_real_target_states.csv"
 
 # Read the state dictionaries from the csv files
 initial_full_state_dict = read_state_dict_from_csv(initial_full_state_file) # TODO: Must be passed
@@ -83,7 +83,8 @@ max_simplified_dlo_num_segments = 20 # Example (If given) # TODO: Must be passed
 min_simplified_dlo_num_segments = 2 # Example (If given) # TODO: Must be passed
 
 # 5.
-environment_limits_xyz=[0.0, 4.0, 0.0, 5.0, 0, 3.0] # Example # TODO: Must be passed, 
+# environment_limits_xyz=[0.0, 4.0, 0.0, 5.0, 0, 3.0] # Example # TODO: Must be passed, 
+environment_limits_xyz=[0.0, 3.7, 0.0, 5.0, 0, 1.6] # Example # TODO: Must be passed, 
 
 joint_angle_limits_xyz_deg=[-175, 175, -175, 175, -20, 20] # Example # TODO: Must be passed
 

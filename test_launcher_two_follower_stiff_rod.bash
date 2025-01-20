@@ -18,8 +18,8 @@ sleep 4s;
 
 # gnome-terminal --tab --title="RVIZ" --command "bash -c \"source ~/.bashrc; rosrun rviz rviz -d ~/catkin_ws_deformable/src/deformable_manipulations_tent_building/rviz/two_robot.rviz; exec bash\"";
 # gnome-terminal --tab --title="RVIZ" --command "bash -c \"source ~/.bashrc; rosrun rviz rviz -d ~/catkin_ws_deformable/src/deformable_manipulations_tent_building/rviz/two_robot_tent_building.rviz; exec bash\"";
-gnome-terminal --tab --title="RVIZ" --command "bash -c \"source ~/.bashrc; rosrun rviz rviz -d ~/catkin_ws_deformable/src/deformable_manipulations_tent_building/rviz/two_robot_tent_building_real.rviz; exec bash\"";
-sleep 4s;
+# gnome-terminal --tab --title="RVIZ" --command "bash -c \"source ~/.bashrc; rosrun rviz rviz -d ~/catkin_ws_deformable/src/deformable_manipulations_tent_building/rviz/two_robot_tent_building_real.rviz; exec bash\"";
+# sleep 4s;
 
 gnome-terminal --tab --title="GUI" --command "bash -c \"source ~/.bashrc; rosrun dlo_simulator_stiff_rods test_gui.py; exec bash\"";
 sleep 1s;

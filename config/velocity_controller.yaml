@@ -6,8 +6,8 @@ stress_avoidance_enabled: True # default:True
 
 # if the control output is invalid for this time, the controller stops.
 # If set to less than or equal to zero, the controller does not stop.
-valid_control_output_wait_timeout: 5.0 # (seconds) 
-# valid_control_output_wait_timeout: 0.0 # (seconds) (To disable the timeout, set to less than or equal to zero)
+# valid_control_output_wait_timeout: 5.0 # (seconds) 
+valid_control_output_wait_timeout: 0.0 # (seconds) (To disable the timeout, set to less than or equal to zero)
 
 ## ----------------------------------------------------------------------------------------
 
@@ -31,6 +31,7 @@ robot_command_topic_names:
 # Nominal Controller Gains [x,y,z, Rx,Ry,Rz]
 kp: [0.5,0.5,0.5, 0.75,0.75,0.75] # For Tent Building Scenes(STIFF)
 # kp: [0.5,0.5,0.5, 0.15,0.15,0.15] # For Tent Building Scenes(ROPE)
+# kp: [0.3,0.3,0.3, 0.15,0.15,0.15] # For Tent Building Scenes(ROPE)
 # kp: [0.5,0.5,0.5, 0.75,0.75,0.75] # For Mingrui Yu's scenes
 
 # kp: [0.05,0.05,0.025, 0.15,0.15,0.15]
@@ -274,7 +275,9 @@ acceptable_ori_err_avr_norm: 0.05 # [rad] (0.05 rad = 2.86 degrees)
 # If the error changes are less than the convergence thresholds in the last "convergence_wait_timeout" seconds,
 # the controller is considered to be converged or stuck.
 # If set to less than or equal to zero, the controller does not stop.
-convergence_wait_timeout: 5.0 # 10.0 # [s]
+# convergence_wait_timeout: 5.0 # 10.0 # [s]
+convergence_wait_timeout: 3.0 # 10.0 # [s]
+# convergence_wait_timeout: 0.0 # [s] # (To disable the timeout, set to less than or equal to zero)
 
 k_low_pass_convergence: 0.9 # low pass filter coefficient for the ratio of minimum distance values of the previous values (Must be between [0,1])
 
@@ -292,7 +295,7 @@ convergence_threshold_ori: 1e-2 # [rad] (1e-2 rad = 0.57 degrees)
 ## ----------------------------------------------------------------------------------------
 
 ## ----------------------------------------------------------------------------------------
-## Path planning parameters
+# Path planning parameters
 path_tracking_control_enabled: True # default: True
 path_planning_tesseract_enabled: True # default: False # For Tesseract Path planning
 
@@ -310,9 +313,10 @@ max_replanning_attempts: 8 # default: 3
 # kp_path_tracking: [1.0,1.0,1.0, 1.5,1.5,1.5]
 # kp_path_tracking: [0.5,0.5,0.5, 0.75,0.75,0.75]
 # kp_path_tracking: [0.3,0.3,0.3, 0.45,0.45,0.45]
-# kp_path_tracking: [0.2,0.2,0.2, 0.3,0.3,0.3]
-# kp_path_tracking: [0.2,0.2,0.2, 0.3,0.3,0.3]
-kp_path_tracking: [0.1,0.1,0.1, 0.15,0.15,0.15] 
+# kp_path_tracking: [0.2,0.2,0.2, 0.3,0.3,0.3] 
+kp_path_tracking: [0.2,0.2,0.2, 0.3,0.3,0.3] # Tent Building Scenes
+# kp_path_tracking: [0.1,0.1,0.1, 0.15,0.15,0.15] # Tent Building Scenes
+# kp_path_tracking: [0.1,0.1,0.1, 0.15,0.15,0.15] # Mingrui Yu's scenes
 # kp_path_tracking: [0.05,0.05,0.05, 0.075,0.075,0.075]
 
 kd_path_tracking: [0.0,0.0,0.0, 0.0,0.0,0.0]
@@ -404,7 +408,8 @@ coll_depth_to_try_remove: 0.1 # m # FOR TENT BUILDING SCENES (REAL)
 # coll_depth_to_try_remove: 0.007 # m # FOR MINGRUI YU SCENES
 
 # The limits of the environment in the x, y, and z directions for the initial end of the DLO.
-environment_limits_xyz: [0.0, 4.0, 0.0, 5.0, 0, 3.0] # [min_x, max_x, min_y, max_y, min_z, max_z] in meters # For Tent Building Scenes (REAL)
+# environment_limits_xyz: [0.0, 3.7, 0.0, 5.0, 0, 1.2] # [min_x, max_x, min_y, max_y, min_z, max_z] in meters # For Tent Building Scenes (REAL - Rope)
+environment_limits_xyz: [0.0, 3.7, 0.0, 5.0, 0, 1.4] # [min_x, max_x, min_y, max_y, min_z, max_z] in meters # For Tent Building Scenes (REAL - Stiff)
 # environment_limits_xyz: [-0.5, 0.5, -0.5, 0.5, 0, 1.0] # [min_x, max_x, min_y, max_y, min_z, max_z] in meters # For Mingrui Yu's scenes
 
 # The limits of the revolute joint angles in the x, y, and z directions in degrees in the approximation model

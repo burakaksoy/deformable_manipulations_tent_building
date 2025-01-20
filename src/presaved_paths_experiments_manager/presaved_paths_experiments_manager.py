@@ -235,7 +235,7 @@ class PresavedPathsExperimentsManager(object):
         time.sleep(time_to_wait)
         return
     
-    def start_rosbag_recording_manual(self, experiment_number, saving_dir, compress=True):
+    def start_rosbag_recording_manual(self, experiment_number, saving_dir, compress=False):
         rospy.loginfo("Starting rosbag recording for manual execution")
         
         if self.rosbag_recorder is not None:
@@ -266,6 +266,18 @@ class PresavedPathsExperimentsManager(object):
         self.odom_topics = [f"/odom_particle_{i}" for i in self.velocity_controller_node.custom_static_particles]
         # e.g. ["/odom_particle_1", "/odom_particle_2"]
         topics.extend(self.odom_topics)
+        
+        # Real robot topics
+        real_robot_topics = ["/oarbot_blue/cmd_vel_world", "/oarbot_silver/cmd_vel_world", "/e_stop",
+                             "/nuc/rgb/camera_info", "/nuc/rgb/image_rect_color/compressed", 
+                             "/tf", "/tf_static",
+                             "/oarbot_silver/constraint_marker", "/oarbot_blue/constraint_marker",
+                             "/d1/viz_base_obs_dist_hard_thres","/d2/viz_base_obs_dist_hard_thres",
+                             "/d1/viz_base_obs_dist_thres", "/d2/viz_base_obs_dist_thres",
+                             "/d1/viz_robots_d1_tf_base_link", "/d2/viz_robots_d2_tf_base_link",
+                             "/d1/viz_workspace_polygon", "/d2/viz_workspace_polygon"]
+        
+        topics.extend(real_robot_topics)
         
         # Convert to a single string with spaces
         topics_str = " ".join(topics)

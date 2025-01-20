@@ -12,10 +12,11 @@ Panels:
         - /Odometry-Centroid of Custom Static Particles1/Shape1
         - /Odometry-Projected Centroid of Custom Static Particles1/Shape1
         - /TF1/Frames1
+        - /RobotModel-d11
         - /RobotModel-d11/Status1
         - /DepthCloud-OarbotBlue1/Auto Size1
         - /DepthCloud-OarbotSilver1/Auto Size1
-      Splitter Ratio: 0.8635743260383606
+      Splitter Ratio: 0.5948158502578735
     Tree Height: 1801
   - Class: rviz/Selection
     Name: Selection
@@ -626,7 +627,7 @@ Visualization Manager:
       Name: OverheadCamera Nuc
       Overlay Alpha: 0.5
       Queue Size: 2
-      Transport Hint: raw
+      Transport Hint: compressed
       Unreliable: false
       Value: true
       Visibility:
@@ -736,18 +737,6 @@ Visualization Manager:
         All Enabled: true
         cage_rgb_camera_link:
           Value: true
-        d1_tf_base_link:
-          Value: true
-        d2_tf_base_link:
-          Value: true
-        j2n6s300_left_end_effector:
-          Value: true
-        j2n6s300_left_link_base:
-          Value: true
-        j2n6s300_right_end_effector:
-          Value: true
-        j2n6s300_right_link_base:
-          Value: true
       Marker Alpha: 1
       Marker Scale: 0.5
       Name: TF
@@ -756,18 +745,6 @@ Visualization Manager:
       Show Names: true
       Tree:
         cage_rgb_camera_link:
-          {}
-        d1_tf_base_link:
-          {}
-        d2_tf_base_link:
-          {}
-        j2n6s300_left_end_effector:
-          {}
-        j2n6s300_left_link_base:
-          {}
-        j2n6s300_right_end_effector:
-          {}
-        j2n6s300_right_link_base:
           {}
       Update Interval: 0
       Value: true
@@ -812,122 +789,6 @@ Visualization Manager:
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
-        d1_tf_arm_mount:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        d1_tf_base_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        d1_tf_chassis_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        d1_tf_front_b_mount:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        d1_tf_front_bumper_mount:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        d1_tf_front_c_mount:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        d1_tf_front_laser:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        d1_tf_front_laser_mount:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        d1_tf_front_left_wheel_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        d1_tf_front_mount:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        d1_tf_front_right_wheel_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        d1_tf_imu_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        d1_tf_microstrain_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        d1_tf_mid_mount:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        d1_tf_rear_b_mount:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        d1_tf_rear_c_mount:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        d1_tf_rear_laser:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        d1_tf_rear_laser_mount:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        d1_tf_rear_left_wheel_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        d1_tf_rear_mount:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        d1_tf_rear_right_wheel_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        d1_tf_robot_arm_riser_aruco_mount_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        d1_tf_robot_arm_riser_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        d1_tf_robot_arm_riser_uwb_mount_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        d1_tf_uwb_tag_1_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        d1_tf_uwb_tag_2_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
       Name: RobotModel-d1
       Robot Description: /d1/robot_description
       TF Prefix: ""
@@ -944,122 +805,6 @@ Visualization Manager:
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
-        d2_tf_arm_mount:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        d2_tf_base_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        d2_tf_chassis_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        d2_tf_front_b_mount:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        d2_tf_front_bumper_mount:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        d2_tf_front_c_mount:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        d2_tf_front_laser:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        d2_tf_front_laser_mount:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        d2_tf_front_left_wheel_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        d2_tf_front_mount:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        d2_tf_front_right_wheel_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        d2_tf_imu_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        d2_tf_microstrain_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        d2_tf_mid_mount:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        d2_tf_rear_b_mount:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        d2_tf_rear_c_mount:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        d2_tf_rear_laser:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        d2_tf_rear_laser_mount:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        d2_tf_rear_left_wheel_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        d2_tf_rear_mount:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        d2_tf_rear_right_wheel_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        d2_tf_robot_arm_riser_aruco_mount_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        d2_tf_robot_arm_riser_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        d2_tf_robot_arm_riser_uwb_mount_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        d2_tf_uwb_tag_1_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        d2_tf_uwb_tag_2_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
       Name: RobotModel-d2
       Robot Description: /d2/robot_description
       TF Prefix: ""
@@ -1076,111 +821,6 @@ Visualization Manager:
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
-        j2n6s300_right_adapter:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        j2n6s300_right_end_effector:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        j2n6s300_right_ft_robot_side_connector:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        j2n6s300_right_gripper:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        j2n6s300_right_gripper_adapter:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        j2n6s300_right_link_1:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        j2n6s300_right_link_2:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        j2n6s300_right_link_3:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        j2n6s300_right_link_4:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        j2n6s300_right_link_5:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        j2n6s300_right_link_6:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        j2n6s300_right_link_base:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        j2n6s300_right_link_finger_1:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        j2n6s300_right_link_finger_2:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        j2n6s300_right_link_finger_3:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        j2n6s300_right_link_finger_tip_1:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        j2n6s300_right_link_finger_tip_2:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        j2n6s300_right_link_finger_tip_3:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        j2n6s300_right_mounting:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        j2n6s300_right_robot_side:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        j2n6s300_right_wrench:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        root_right_arm:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
       Name: RobotModel-OarbotBlue
       Robot Description: /oarbot_blue/robot_description
       TF Prefix: ""
@@ -1197,111 +837,6 @@ Visualization Manager:
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
-        j2n6s300_left_adapter:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        j2n6s300_left_end_effector:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        j2n6s300_left_ft_robot_side_connector:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        j2n6s300_left_gripper:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        j2n6s300_left_gripper_adapter:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        j2n6s300_left_link_1:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        j2n6s300_left_link_2:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        j2n6s300_left_link_3:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        j2n6s300_left_link_4:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        j2n6s300_left_link_5:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        j2n6s300_left_link_6:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        j2n6s300_left_link_base:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        j2n6s300_left_link_finger_1:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        j2n6s300_left_link_finger_2:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        j2n6s300_left_link_finger_3:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        j2n6s300_left_link_finger_tip_1:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        j2n6s300_left_link_finger_tip_2:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        j2n6s300_left_link_finger_tip_3:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        j2n6s300_left_mounting:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        j2n6s300_left_robot_side:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        j2n6s300_left_wrench:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        root_left_arm:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
       Name: RobotModel-OarbotSilver
       Robot Description: /oarbot_silver/robot_description
       TF Prefix: ""
@@ -1359,7 +894,7 @@ Visualization Manager:
       Decay Time: 0
       Depth Map Topic: /oarbot_blue/depth/image_rect_raw
       Depth Map Transport Hint: raw
-      Enabled: true
+      Enabled: false
       Invert Rainbow: false
       Max Color: 255; 255; 255
       Min Color: 0; 0; 0
@@ -1375,7 +910,7 @@ Visualization Manager:
       Topic Filter: true
       Use Fixed Frame: true
       Use rainbow: true
-      Value: true
+      Value: false
     - Alpha: 1
       Auto Size:
         Auto Size Factor: 1
@@ -1395,7 +930,7 @@ Visualization Manager:
       Decay Time: 0
       Depth Map Topic: /oarbot_silver/depth/image_rect_raw
       Depth Map Transport Hint: raw
-      Enabled: true
+      Enabled: false
       Invert Rainbow: false
       Max Color: 255; 255; 255
       Min Color: 0; 0; 0
@@ -1411,13 +946,13 @@ Visualization Manager:
       Topic Filter: true
       Use Fixed Frame: true
       Use rainbow: true
-      Value: true
+      Value: false
     - Class: rviz/Marker
       Enabled: true
       Marker Topic: /oarbot_silver/constraint_marker
       Name: Marker /oarbot_silver_RedundancyResolverBall
       Namespaces:
-        "": true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -1425,7 +960,7 @@ Visualization Manager:
       Marker Topic: /oarbot_blue/constraint_marker
       Name: Marker /oarbot_blue_RedundancyResolverBall
       Namespaces:
-        "": true
+        {}
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -1730,7 +1265,7 @@ Visualization Manager:
       Unreliable: false
       Value: false
     - Class: rviz/TF
-      Enabled: true
+      Enabled: false
       Filter (blacklist): body_joint_neck_goal_left|body_joint_neck_goal_right
       Filter (whitelist): body_joint_neck
       Frame Timeout: 15
@@ -1745,9 +1280,9 @@ Visualization Manager:
       Tree:
         {}
       Update Interval: 0
-      Value: true
+      Value: false
     - Class: rviz/TF
-      Enabled: true
+      Enabled: false
       Filter (blacklist): ""
       Filter (whitelist): j2n6s300_left_body_joint_neck|j2n6s300_right_body_joint_neck
       Frame Timeout: 15
@@ -1762,9 +1297,9 @@ Visualization Manager:
       Tree:
         {}
       Update Interval: 0
-      Value: true
+      Value: false
     - Class: rviz/TF
-      Enabled: true
+      Enabled: false
       Filter (blacklist): ""
       Filter (whitelist): body_joint_neck_goal_left|body_joint_neck_goal_right
       Frame Timeout: 15
@@ -1779,7 +1314,7 @@ Visualization Manager:
       Tree:
         {}
       Update Interval: 0
-      Value: true
+      Value: false
     - Alpha: 1
       Arrow Width: 0.20000000298023224
       Class: rviz/WrenchStamped
@@ -1854,9 +1389,9 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.5447976589202881
+      Pitch: 0.749797523021698
       Target Frame: <Fixed Frame>
-      Yaw: 1.2403404712677002
+      Yaw: 0.870341420173645
     Saved:
       - Class: rviz/Orbit
         Distance: 5.277319431304932
@@ -2097,7 +1632,7 @@ Window Geometry:
   Hide Right Dock: false
   OverheadCamera Nuc:
     collapsed: false
-  QMainWindow State: 000000ff00000000fd0000000400000000000002df000007e4fc0200000008fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000007300fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000b0fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073000000001f000007e4000000fb00fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c000002610000000100000731000007e4fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fc0000001f000007e4000000fa01000028fa000000010100000003fb00000024004f007600650072006800650061006400430061006d0065007200610020004e007500630000000000ffffffff0000000000000000fb00000024004f007600650072006800650061006400430061006d0065007200610020004e007500630100000000ffffffff0000012a00fffffffb0000000a005600690065007700730100000c46000002720000011700fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e1000001970000000300000f0000000060fc0100000002fb0000000800540069006d0065000000000000000f000000052500fffffffb0000000800540069006d0065010000000000000450000000000000000000000780000007e400000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730000000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd0000000400000000000003a5000007e4fc0200000008fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000007300fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000b0fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073000000001f000007e4000000fb00fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c000002610000000100000731000007e4fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fc0000001f000007e4000000fa01000028fa000000010100000003fb00000024004f007600650072006800650061006400430061006d0065007200610020004e007500630000000000ffffffff0000000000000000fb00000024004f007600650072006800650061006400430061006d0065007200610020004e007500630100000000ffffffff0000012a00fffffffb0000000a005600690065007700730100000c46000002720000011700fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e1000001970000000300000f0000000060fc0100000002fb0000000800540069006d0065000000000000000f000000052500fffffffb0000000800540069006d0065010000000000000450000000000000000000000780000007e400000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730000000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Time:

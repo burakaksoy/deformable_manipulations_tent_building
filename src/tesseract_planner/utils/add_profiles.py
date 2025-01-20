@@ -111,13 +111,15 @@ def add_TrajOptPlanProfile(profiles, name, num_joints):
     # trajopt_plan_profile.joint_coeff = np.array([0,0,0,0,0,0,0], dtype=np.float64)
     
     joint_coeff = np.ones(num_joints, dtype=np.float64)
+    
     # joint_coeff[:2] = 2 # x, y
-    # joint_coeff[2] = 1 # z
-    # joint_coeff[3:6] = 1 # rx, ry, rz of the initial segment orientation
+    # joint_coeff[2] = 2 # z
+    # joint_coeff[3:6] = 0.1 #1 # rx, ry, rz of the initial segment orientation
     # if num_joints > 6:
     #     joint_coeff[6::3] = 10 # rx of the internal joints
     #     joint_coeff[7::3] = 10 # ry of the internal joints
     #     joint_coeff[8::3] = 100 # rz of the internal joints
+    
     trajopt_plan_profile.joint_coeff = joint_coeff
 
     """
@@ -164,7 +166,11 @@ def add_TrajOptPlanProfile(profiles, name, num_joints):
 
     trajopt_composite_profile.collision_cost_config.enabled = True # If true, a collision cost term will be added to the problem. Default: true*/
     trajopt_composite_profile.collision_cost_config.use_weighted_sum = True # Use the weighted sum for each link pair. This reduces the number equations added to the problem. If set to true, it is recommended to start with the coeff set to one Default: false*/
-    trajopt_composite_profile.collision_cost_config.safety_margin = 0.015 # 0.005 # 0.025 # 0.0150 # 2.5cm #  Max distance in which collision costs will be evaluated. Default: 0.025*/
+    
+    # trajopt_composite_profile.collision_cost_config.safety_margin = 0.015 # 0.005 # 0.025 # 0.0150 # 2.5cm #  Max distance in which collision costs will be evaluated. Default: 0.025*/
+    trajopt_composite_profile.collision_cost_config.safety_margin = 0.15 # STIFF TENT BUILDING 
+    # trajopt_composite_profile.collision_cost_config.safety_margin = 0.10 # ROPE TENT BUILDING 
+    
     trajopt_composite_profile.collision_cost_config.safety_margin_buffer = 0.0 # 0.01 # Distance beyond safety_margin in which collision optimization will be evaluated. This is set to 0 by default (effectively disabled) for collision costs.
     trajopt_composite_profile.collision_cost_config.type = CollisionEvaluatorType_DISCRETE_CONTINUOUS # The evaluator type that will be used for collision checking. # SINGLE_TIMESTEP, DISCRETE_CONTINUOUS, CAST_CONTINUOUS. Default: DISCRETE_CONTINUOUS
     # trajopt_composite_profile.collision_cost_config.type = CollisionEvaluatorType_SINGLE_TIMESTEP # The evaluator type that will be used for collision checking. # SINGLE_TIMESTEP, DISCRETE_CONTINUOUS, CAST_CONTINUOUS. Default: DISCRETE_CONTINUOUS
@@ -172,8 +178,15 @@ def add_TrajOptPlanProfile(profiles, name, num_joints):
 
     trajopt_composite_profile.collision_constraint_config.enabled = True # If true, a collision cost term will be added to the problem. Default: true
     trajopt_composite_profile.collision_constraint_config.use_weighted_sum = True # Use the weighted sum for each link pair. This reduces the number equations added to the problem. If set to true, it is recommended to start with the coeff set to one. Default: false
-    trajopt_composite_profile.collision_constraint_config.safety_margin = 0.001 # 0.01 # 0.016 # Max distance in which collision costs will be evaluated. Default: 0.01
-    trajopt_composite_profile.collision_constraint_config.safety_margin_buffer = 0.001 # 0.051 # Distance beyond safety_margin in which collision optimization will be evaluated. Default: 0.05
+    
+    # trajopt_composite_profile.collision_constraint_config.safety_margin = 0.001 # 0.01 # 0.016 # Max distance in which collision costs will be evaluated. Default: 0.01
+    trajopt_composite_profile.collision_constraint_config.safety_margin = 0.1 # STIFF TENT BUILDING 
+    # trajopt_composite_profile.collision_constraint_config.safety_margin = 0.03 # ROPE TENT BUILDING     
+    
+    # trajopt_composite_profile.collision_constraint_config.safety_margin_buffer = 0.001 # 0.051 # Distance beyond safety_margin in which collision optimization will be evaluated. Default: 0.05
+    trajopt_composite_profile.collision_constraint_config.safety_margin_buffer = 0.05 # STIFF TENT BUILDING
+    # trajopt_composite_profile.collision_constraint_config.safety_margin_buffer = 0.05 # ROPE TENT BUILDING
+    
     trajopt_composite_profile.collision_constraint_config.type = CollisionEvaluatorType_DISCRETE_CONTINUOUS # The evaluator type that will be used for collision checking. # SINGLE_TIMESTEP, DISCRETE_CONTINUOUS, CAST_CONTINUOUS. Default: DISCRETE_CONTINUOUS
     # trajopt_composite_profile.collision_constraint_config.type = CollisionEvaluatorType_SINGLE_TIMESTEP # The evaluator type that will be used for collision checking. # SINGLE_TIMESTEP, DISCRETE_CONTINUOUS, CAST_CONTINUOUS. Default: DISCRETE_CONTINUOUS
     trajopt_composite_profile.collision_constraint_config.coeff = 50 #20 # The collision coeff/weight. Default: 20

@@ -153,7 +153,7 @@
         <rosparam param="tf_a_frame_name"       subst_value="True">map</rosparam>
         <rosparam param="tf_b_frame_name"       subst_value="True">j2n6s300_left_end_effector</rosparam>
         <rosparam param="pub_rate"              subst_value="True">100.0</rosparam>
-        <rosparam param="tf_b_to_c_pose" subst_value="True">
+        <!-- <rosparam param="tf_b_to_c_pose"        subst_value="True">
             orientation:
                 x: 0.5
                 y: 0.5
@@ -163,7 +163,19 @@
                 x: 0.0
                 y: 0.0
                 z: 0.0
+        </rosparam> -->
+        <rosparam param="tf_b_to_c_pose"        subst_value="True">
+            orientation:
+                x: 0.5
+                y: -0.5
+                z: 0.5
+                w: 0.5
+            position:
+                x: 0.0
+                y: 0.0
+                z: 0.0
         </rosparam>
+        <rosparam param="twist_topic_name_in"    subst_value="True">/oarbot_silver/cmd_vel_world</rosparam>
     </node>
 </group>
 
@@ -176,7 +188,7 @@
         <rosparam param="tf_a_frame_name"       subst_value="True">map</rosparam>
         <rosparam param="tf_b_frame_name"       subst_value="True">j2n6s300_right_end_effector</rosparam>
         <rosparam param="pub_rate"              subst_value="True">100.0</rosparam>
-        <rosparam param="tf_b_to_c_pose" subst_value="True">
+        <!-- <rosparam param="tf_b_to_c_pose"        subst_value="True">
             orientation:
                 x: 0.5
                 y: 0.5
@@ -186,7 +198,19 @@
                 x: 0.0
                 y: 0.0
                 z: 0.0
+        </rosparam> -->
+        <rosparam param="tf_b_to_c_pose"        subst_value="True">
+            orientation:
+                x: 0.5
+                y: -0.5
+                z: 0.5
+                w: 0.5
+            position:
+                x: 0.0
+                y: 0.0
+                z: 0.0
         </rosparam>
+        <rosparam param="twist_topic_name_in"    subst_value="True">/oarbot_blue/cmd_vel_world</rosparam>
     </node>
 </group>
 

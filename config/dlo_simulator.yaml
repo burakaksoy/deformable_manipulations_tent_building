@@ -189,7 +189,8 @@ min_dist_to_rb_pub_rate: 50.0 # Hz, frequency to publish minimum distances to th
 # rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/TentBuilding.json
 
 # Real Tent Building Scene
-rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/TentBuildingReal.json
+# rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/TentBuildingRealRope.json
+rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/TentBuildingRealStiff.json
 
 # Scenes for Corridor Maneuver
 # rb_scene_config_path: $(find dlo_simulator_stiff_rods)/config/scenes/l_shape_corridor_width_0.8.json
