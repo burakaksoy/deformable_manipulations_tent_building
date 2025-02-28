@@ -6,19 +6,21 @@ sleep 1s;
 
 # gnome-terminal --tab --title="All" --command "bash -c \"source ~/.bashrc; roslaunch deformable_manipulations_tent_building main_launcher_two_robot.launch launch_controller:=false; exec bash\"";
 
-# gnome-terminal --tab --title="All" --command "bash -c \"source ~/.bashrc; 
-#                                                         roslaunch deformable_manipulations_tent_building main_launcher_two_robot.launch is_remote:=true launch_controller:=false; 
-#                                                         exec bash\"";
-
 gnome-terminal --tab --title="All" --command "bash -c \"source ~/.bashrc; 
-                                                        roslaunch deformable_manipulations_tent_building main_launcher_two_robot.launch is_remote:=true launch_controller:=false real_robot_mode_enabled:=true; 
+                                                        roslaunch deformable_manipulations_tent_building main_launcher_two_robot.launch is_remote:=true launch_controller:=false; 
                                                         exec bash\"";
+
+# gnome-terminal --tab --title="All" --command "bash -c \"source ~/.bashrc; 
+#                                                         roslaunch deformable_manipulations_tent_building main_launcher_two_robot.launch is_remote:=true launch_controller:=false real_robot_mode_enabled:=true; 
+#                                                         exec bash\"";
 
 sleep 4s;
 
 # gnome-terminal --tab --title="RVIZ" --command "bash -c \"source ~/.bashrc; rosrun rviz rviz -d ~/catkin_ws_deformable/src/deformable_manipulations_tent_building/rviz/two_robot.rviz; exec bash\"";
-# gnome-terminal --tab --title="RVIZ" --command "bash -c \"source ~/.bashrc; rosrun rviz rviz -d ~/catkin_ws_deformable/src/deformable_manipulations_tent_building/rviz/two_robot_tent_building.rviz; exec bash\"";
+gnome-terminal --tab --title="RVIZ" --command "bash -c \"source ~/.bashrc; rosrun rviz rviz -d ~/catkin_ws_deformable/src/deformable_manipulations_tent_building/rviz/two_robot_tent_building.rviz; exec bash\"";
 # gnome-terminal --tab --title="RVIZ" --command "bash -c \"source ~/.bashrc; rosrun rviz rviz -d ~/catkin_ws_deformable/src/deformable_manipulations_tent_building/rviz/two_robot_tent_building_real.rviz; exec bash\"";
+
+# Topics to hide (optional): -/cmd_vel_particle_* 
 # sleep 4s;
 
 gnome-terminal --tab --title="GUI" --command "bash -c \"source ~/.bashrc; rosrun dlo_simulator_stiff_rods test_gui.py; exec bash\"";
