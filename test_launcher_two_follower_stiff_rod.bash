@@ -23,7 +23,7 @@ gnome-terminal --tab --title="RVIZ" --command "bash -c \"source ~/.bashrc; rosru
 # Topics to hide (optional): -/cmd_vel_particle_* 
 # sleep 4s;
 
-gnome-terminal --tab --title="GUI" --command "bash -c \"source ~/.bashrc; rosrun dlo_simulator_stiff_rods test_gui.py; exec bash\"";
+gnome-terminal --tab --title="GUI" --command "bash -c \"source ~/.bashrc; rosrun dlo_simulator_stiff_rods test_gui.py _mode:="tent_building_application_test"; exec bash\"";
 sleep 1s;
 
 # rqt_ez_publisher, to publish to "/space_nav/twist"
